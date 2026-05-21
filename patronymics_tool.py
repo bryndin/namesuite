@@ -28,7 +28,7 @@ from engine.logging import InferenceLogManager, generate_execution_id
 
 # Slavic surname regex markers (Cyrillic and Latin transliterated)
 SLAVIC_SURNAME_PATTERN = re.compile(
-    r"(ов|ев|ин|ын|енко|чук|ко|ова|ева|ина|ына|ov|ev|in|enko|chuk|sky|ska)$",
+    r"(ов|ев|ин|ын|енко|чук|ко|ова|ева|ина|ына|ov|ev|in|enko|chuk|sky|skiy|skaya)$",
     re.IGNORECASE,
 )
 
@@ -294,7 +294,7 @@ class InferPatronymicsTool(tool.Tool):
         # Signal 1: Cyrillic Script Check (+0.50)
         # Direct indicator of East Slavic localizations
         full_name_str = primary_name.get_regular_name()
-        if self.has_cyrillic(full_name_str) or self.has_cyrillic(father_first_name):
+        if self.has_cyrillic(full_name_str):
             score += 0.50
 
         # Signal 2: Slavic Surname Ends (+0.20)
