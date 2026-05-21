@@ -8,7 +8,7 @@ orthographic script preferences.
 """
 
 import re
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple
 
 # Sibilant characters that trigger -evich/-evna instead of -ovich/-ovna
 SIBILANTS = set("жшчщцЖШЧЩЦ")
@@ -155,7 +155,7 @@ def parse_stem(father_name: str) -> Tuple[str, str, str]:
 
 def generate_east_slavic_patronymic(
     father_name: str,
-    gender: Union[str, int],
+    is_male: bool,
     year: Optional[int] = None,
     pre_reform_script: bool = False,
 ) -> Optional[str]:
@@ -165,8 +165,7 @@ def generate_east_slavic_patronymic(
 
     Args:
         father_name (str): Given name of the father (e.g., "Иван", "Дмитрий").
-        gender (str|int): Target's gender.
-                          Supported: 'male', 'female', or Gramps constants (1=male, 0=female).
+        is_male (bool): Target's gender.
         year (int, optional): Reference year (Y_ref) calculated via resolution hierarchy.
                               Defaults to modern standard (Post-1917) if None.
         pre_reform_script (bool): If True, re-enables pre-1918 Cyrillic spelling rules.
@@ -176,23 +175,6 @@ def generate_east_slavic_patronymic(
     """
     if not father_name or not father_name.strip():
         return None
-
-    # Resolve gender string representation
-    if isinstance(gender, int):
-        if gender == 1:
-            is_male = True
-        elif gender == 0:
-            is_male = False
-        else:
-            return None  # Unknown/undetermined gender cannot be safely morphed
-    else:
-        g_lower = gender.lower()
-        if g_lower.startswith("m") or g_lower == "1":
-            is_male = True
-        elif g_lower.startswith("f") or g_lower == "0":
-            is_male = False
-        else:
-            return None
 
     # Parse stem and bases
     stem_type, genitive_base, formal_base = parse_stem(father_name)

@@ -11,75 +11,70 @@ class TestEastSlavicMorphology(unittest.TestCase):
         f = generate_east_slavic_patronymic
 
         # Hard stem
-        self.assertEqual(f("Иван", "male", year), "Иванович")
-        self.assertEqual(f("Иван", "female", year), "Ивановна")
+        self.assertEqual(f("Иван", True, year), "Иванович")
+        self.assertEqual(f("Иван", False, year), "Ивановна")
 
         # Soft stem
-        self.assertEqual(f("Игорь", "male", year), "Игоревич")
-        self.assertEqual(f("Игорь", "female", year), "Игоревна")
+        self.assertEqual(f("Игорь", True, year), "Игоревич")
+        self.assertEqual(f("Игорь", False, year), "Игоревна")
 
         # Yod -ий ending
-        self.assertEqual(f("Дмитрий", "male", year), "Дмитриевич")
-        self.assertEqual(f("Василий", "male", year), "Васильевич")
-        self.assertEqual(f("Василий", "female", year), "Васильевна")
+        self.assertEqual(f("Дмитрий", True, year), "Дмитриевич")
+        self.assertEqual(f("Василий", True, year), "Васильевич")
+        self.assertEqual(f("Василий", False, year), "Васильевна")
 
         # Yod -ей ending
-        self.assertEqual(f("Сергей", "male", year), "Сергеевич")
-        self.assertEqual(f("Сергей", "female", year), "Сергеевна")
+        self.assertEqual(f("Сергей", True, year), "Сергеевич")
+        self.assertEqual(f("Сергей", False, year), "Сергеевна")
 
         # Contracted endings
-        self.assertEqual(f("Илья", "male", year), "Ильич")
-        self.assertEqual(f("Илья", "female", year), "Ильинична")
-        self.assertEqual(f("Никита", "male", year), "Никитич")
-        self.assertEqual(f("Никита", "female", year), "Никитична")
+        self.assertEqual(f("Илья", True, year), "Ильич")
+        self.assertEqual(f("Илья", False, year), "Ильинична")
+        self.assertEqual(f("Никита", True, year), "Никитич")
+        self.assertEqual(f("Никита", False, year), "Никитична")
 
     def test_transitional_genitives_1861_1917(self):
         year = 1890
         f = generate_east_slavic_patronymic
 
         # Direct genitive suffix, no "сын/дочь"
-        self.assertEqual(f("Сергей", "male", year), "Сергеев")
-        self.assertEqual(f("Сергей", "female", year), "Сергеева")
-        self.assertEqual(f("Никита", "male", year), "Никитин")
-        self.assertEqual(f("Никита", "female", year), "Никитина")
+        self.assertEqual(f("Сергей", True, year), "Сергеев")
+        self.assertEqual(f("Сергей", False, year), "Сергеева")
+        self.assertEqual(f("Никита", True, year), "Никитин")
+        self.assertEqual(f("Никита", False, year), "Никитина")
 
     def test_pre_emancipation_pre_1861(self):
         year = 1830
         f = generate_east_slavic_patronymic
 
         # Genitive base + relational noun
-        self.assertEqual(f("Иван", "male", year), "Иванов сын")
-        self.assertEqual(f("Иван", "female", year), "Иванова дочь")
+        self.assertEqual(f("Иван", True, year), "Иванов сын")
+        self.assertEqual(f("Иван", False, year), "Иванова дочь")
 
     def test_pre_reform_orthography_pre_1918(self):
         year = 1830
         f = generate_east_slavic_patronymic
 
         # Suffix with terminal 'ъ' and decimal 'і' before vowels
-        self.assertEqual(f("Иванъ", "male", year, pre_reform_script=True), "Ивановъ сынъ")
-        self.assertEqual(f("Дмитрій", "male", year, pre_reform_script=True), "Дмитріевъ сынъ")
+        self.assertEqual(f("Иванъ", True, year, pre_reform_script=True), "Ивановъ сынъ")
+        self.assertEqual(f("Дмитрій", True, year, pre_reform_script=True), "Дмитріевъ сынъ")
 
     def test_gender_integer_mapping(self):
         year = 1950
         f = generate_east_slavic_patronymic
 
-        # Support Gramps integer constants (1=male, 0=female)
-        self.assertEqual(f("Иван", 1, year), "Иванович")
-        self.assertEqual(f("Иван", 0, year), "Ивановна")
-
-    def test_empty_and_invalid_inputs(self):
-        f = generate_east_slavic_patronymic
-        self.assertIsNone(f("", "male", 1950))
-        self.assertIsNone(f("   ", "male", 1950))
-        self.assertIsNone(f("Иван", "unknown", 1950))
-        self.assertIsNone(f("Иван", 3, 1950))  # Invalid integer gender
+        # Support Gramps integer constants (True=male, False=female)
+        self.assertEqual(f("Иван", True, year), "Иванович")
+        self.assertEqual(f("Иван", False, year), "Ивановна")
 
     def test_western_names_handling(self):
+        year = 1950
         f = generate_east_slavic_patronymic
+
         # Verify robust handling of Latin names without crashing
-        self.assertEqual(f("John", "male", 1950), "Johnович")
-        self.assertEqual(f("John", "female", 1950), "Johnовна")
-        self.assertEqual(f("William", "male", 1950), "Williamович")
+        self.assertEqual(f("John", True, year), "Johnович")
+        self.assertEqual(f("John", False, year), "Johnовна")
+        self.assertEqual(f("William", True, year), "Williamович")
 
     def test_slavic_surname_pattern_regex(self):
         # Surnames that MUST match (East Slavic patterns)

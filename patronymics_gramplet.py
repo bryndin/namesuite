@@ -13,7 +13,7 @@ from gi.repository import Gtk
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gen.plug import Gramplet
 from gramps.gen.db import DbTxn
-from gramps.gen.lib import Surname, NameOriginType
+from gramps.gen.lib import Surname, NameOriginType, Person
 
 # Local modules
 from engine.morphology import generate_east_slavic_patronymic
@@ -116,10 +116,17 @@ class InferPatronymicsGramplet(Gramplet):
 
         father_name = father.get_primary_name().get_first_name()
 
+        # Resolve binary gender translation at the boundary
+        gender_val = person.get_gender()
+        if gender_val not in (Person.MALE, Person.FEMALE):
+            # Skip persons with OTHER or UNKNOWN genders as traditional patronymic
+            # suffix grammar cannot be deterministically inferred for them.
+            return
+
         # Run inference using standard modern standard defaults for inline matches
         patronymic = generate_east_slavic_patronymic(
             father_name=father_name,
-            gender=person.get_gender(),
+            is_male=(gender_val == Person.MALE),
             year=1950,  # Standard default
             pre_reform_script=False,
         )

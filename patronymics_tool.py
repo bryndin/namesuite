@@ -15,7 +15,7 @@ from gi.repository import Gtk
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gui.plug import tool
 from gramps.gen.db import DbTxn
-from gramps.gen.lib import Surname, NameOriginType
+from gramps.gen.lib import Surname, NameOriginType, Person
 from gramps.gui.dialog import OkDialog, ErrorDialog
 
 # Custom modular imports
@@ -351,9 +351,16 @@ class InferPatronymicsTool(tool.Tool):
                 else False
             )
 
+            # Resolve binary gender translation at the boundary
+            gender_val = person.get_gender()
+            if gender_val not in (Person.MALE, Person.FEMALE):
+                # Skip persons with OTHER or UNKNOWN genders as traditional patronymic
+                # suffix grammar cannot be deterministically inferred for them.
+                continue
+
             patronymic = generate_east_slavic_patronymic(
                 father_name=father_first_name,
-                gender=person.get_gender(),
+                is_male=(gender_val == Person.MALE),
                 year=ref_year,
                 pre_reform_script=pre_reform,
             )
