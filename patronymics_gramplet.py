@@ -18,9 +18,6 @@ from gramps.gen.plug import Gramplet
 from gramps.gen.db import DbTxn
 from gramps.gen.lib import Surname, NameOriginType
 
-# Custom modular imports
-from engine.morphology import generate_east_slavic_patronymic
-
 
 # Schema compatibility check
 def has_patronymic_surname(name_obj) -> bool:
@@ -138,7 +135,7 @@ class InferPatronymicsGramplet(Gramplet):
             self.apply_btn.set_sensitive(False)
 
     def get_father_handle(self, person):
-        for fam_handle in person.get_family_handle_list():
+        for fam_handle in person.get_parent_family_handle_list():
             fam = self.dbstate.db.get_family_from_handle(fam_handle)
             if fam and fam.get_father_handle() != "":
                 return fam.get_father_handle()

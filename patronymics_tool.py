@@ -8,6 +8,7 @@ and batch-apply inferred patronymic name fields with clean reversibility logs.
 """
 
 import os
+import re
 import logging
 from gi.repository import Gtk, Gdk, GObject
 
@@ -25,12 +26,16 @@ from gramps.gui.dialog import OkDialog, ErrorDialog
 from engine.morphology import generate_east_slavic_patronymic
 from engine.logging import InferenceLogManager, generate_execution_id
 
+# Slavic surname regex markers (Cyrillic and Latin transliterated)
+SLAVIC_SURNAME_PATTERN = re.compile(
+    r"(ов|ев|ин|ын|енко|чук|ко|ова|ева|ина|ына|ov|ev|in|enko|chuk|sky|ska)$",
+    re.IGNORECASE,
+)
 
-# Helper utilities to navigate the Surname List schema
+
+# Helpers to navigate the Surname List schema
 def has_patronymic_surname(name_obj) -> bool:
-    """
-    Returns True if the Name object contains any Surname marked as a PATRONYMIC.
-    """
+    """Returns True if the Name object contains any Surname marked as a PATRONYMIC."""
     for surname in name_obj.get_surname_list():
         orig = surname.get_origintype()
         if (
@@ -45,9 +50,7 @@ def has_patronymic_surname(name_obj) -> bool:
 
 
 def get_patronymic_value(name_obj) -> str:
-    """
-    Finds and returns the string value of the patronymic Surname object.
-    """
+    """Finds and returns the string value of the patronymic Surname object."""
     for surname in name_obj.get_surname_list():
         orig = surname.get_origintype()
         if (
@@ -277,6 +280,42 @@ class InferPatronymicsTool(tool.Tool):
                 ]
             )
 
+    def has_cyrillic(self, text):
+        return bool(re.search(r"[\u0400-\u04FF]", text))
+
+    def evaluate_confidence(self, person, primary_name, father_first_name) -> float:
+        """
+        Multi-Signal Applicability Engine.
+        Calculates a score between 0.0 and 1.0.
+        Requires at least 0.60 to pass auto-inference checks.
+        """
+        score = 0.0
+
+        # Signal 1: Cyrillic Script Check (+0.50)
+        # Direct indicator of East Slavic localizations
+        full_name_str = primary_name.get_regular_name()
+        if self.has_cyrillic(full_name_str) or self.has_cyrillic(father_first_name):
+            score += 0.50
+
+        # Signal 2: Slavic Surname Ends (+0.20)
+        for surname_obj in primary_name.get_surname_list():
+            sur_str = surname_obj.get_surname()
+            if sur_str and SLAVIC_SURNAME_PATTERN.search(sur_str):
+                score += 0.20
+
+        # Signal 3: Sibling Patronymic Presence (+0.30)
+        for fam_handle in person.get_parent_family_handle_list():
+            fam = self.db.get_family_from_handle(fam_handle)
+            if fam:
+                for child_ref in fam.get_child_ref_list():
+                    if child_ref.ref != person.handle:
+                        sib = self.db.get_person_from_handle(child_ref.ref)
+                        if sib and has_patronymic_surname(sib.get_primary_name()):
+                            score += 0.30
+                            break
+
+        return min(score, 1.0)
+
     def on_scan_clicked(self, widget):
         """Scans the database and populates our list of candidates."""
         self.list_store.clear()
@@ -304,6 +343,15 @@ class InferPatronymicsTool(tool.Tool):
             if not father_first_name:
                 continue
 
+            # Check applicability confidence scores
+            confidence = self.evaluate_confidence(
+                person, primary_name, father_first_name
+            )
+            if confidence < 0.60:
+                # Silently skip individuals (such as Skłodowska or Dostoevsky written in Latin)
+                # who do not meet our strict cultural applicability thresholds
+                continue
+
             ref_year, rule_source = self.resolve_reference_year(person)
             pre_reform = (
                 self.script_check.get_active()
@@ -326,7 +374,7 @@ class InferPatronymicsTool(tool.Tool):
                         father_first_name,
                         ref_year if ref_year else 0,
                         patronymic,
-                        "94%",
+                        f"{int(confidence * 100)}%",
                         rule_source,
                         handle,
                     ]
@@ -335,7 +383,7 @@ class InferPatronymicsTool(tool.Tool):
         self.update_action_buttons()
 
     def get_father_handle(self, person):
-        for fam_handle in person.get_family_handle_list():
+        for fam_handle in person.get_parent_family_handle_list():
             fam = self.db.get_family_from_handle(fam_handle)
             if fam and fam.get_father_handle() != "":
                 return fam.get_father_handle()
@@ -547,8 +595,8 @@ def rollback_batch_execution(db, log_file_path, target_execution_id):
 
 
 # -------------------------------------------------------------------------
-# # InferPatronymicsOptions
-# # -------------------------------------------------------------------------
+# InferPatronymicsOptions
+# -------------------------------------------------------------------------
 class InferPatronymicsOptions(tool.ToolOptions):
     """
     Defines options and provides a handling interface for the patronymic inference tool.
