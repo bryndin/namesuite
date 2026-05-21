@@ -7,6 +7,7 @@ Belarusian) based on the father's given name, gender, reference year, and
 orthographic script preferences.
 """
 
+import re
 from typing import Optional, Union, Tuple
 
 # Sibilant characters that trigger -evich/-evna instead of -ovich/-ovna
@@ -17,6 +18,14 @@ HARD_CONSONANTS = set("бвгджзклмнпрстфхцчшщБВГДЖЗКЛ�
 
 # Cyrillic vowels for pre-reform decimal 'і' replacement rules
 CYRILLIC_VOWELS = set("аеиоуыэюяѣАЕИОУЫЭЮЯѢіІ")
+
+# Slavic surname regex markers (Cyrillic and Latin transliterated)
+# Expanded to include feminine Latin suffixes (ova, eva, ina, yna) and Cyrillic adjectival endings (ский, ская, цкий, цкая)
+# Note: Intentionally excludes Polish endings like "ska" (e.g. Skladowska) to avoid false matches.
+SLAVIC_SURNAME_PATTERN = re.compile(
+    r"(ов|ев|ин|ын|енко|чук|ко|ова|ева|ина|ына|ский|ская|цкий|цкая|ov|ova|ev|eva|in|ina|yn|yna|enko|chuk|sky|skiy|skaya)$",
+    re.IGNORECASE,
+)
 
 
 def apply_pre_reform_orthography(text: str) -> str:
@@ -47,6 +56,34 @@ def apply_pre_reform_orthography(text: str) -> str:
     return " ".join(reformed_words)
 
 
+def normalize_to_modern(text: str) -> str:
+    """
+    Normalizes pre-reform Cyrillic text to modern characters to ensure
+    consistent morphological stem parsing.
+    """
+    if not text:
+        return text
+    # Strip terminal pre-reform hard sign if present, as it is an orthographic artifact
+    text = text.strip()
+    while text.endswith(("ъ", "Ъ")):
+        text = text[:-1].strip()
+
+    # Replace pre-reform characters with modern equivalents
+    replacements = {
+        "і": "и",
+        "І": "И",
+        "ѣ": "е",
+        "Ѣ": "Е",
+        "ѳ": "ф",
+        "Ѳ": "Ф",
+        "ѵ": "и",
+        "Ѵ": "И",
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    return text
+
+
 def parse_stem(father_name: str) -> Tuple[str, str, str]:
     """
     Analyzes the father's given name ending to classify the linguistic stem.
@@ -67,13 +104,16 @@ def parse_stem(father_name: str) -> Tuple[str, str, str]:
     if not name:
         return ("hard", "", "")
 
+    # Normalize pre-reform script characters for robust stem analysis
+    name = normalize_to_modern(name)
+
     # Normalize case (Title Case)
     name = name[0].upper() + name[1:].lower() if len(name) > 1 else name.upper()
 
     # 1. Contracted soft vowel stems (e.g., Илья)
     if name.endswith("ья"):
-        base = name[:-2]  # "Ил"
-        return ("contracted_ya", base + "ин", base + "и")
+        base = name[:-1]  # Strip "я" -> "Иль"
+        return ("contracted_ya", base + "ин", base)
 
     # 2. Contracted hard vowel stems (e.g., Никита, Савва, Фома, Лука)
     elif name.endswith(("а", "я")) and not name.endswith("ия"):
@@ -134,7 +174,7 @@ def generate_east_slavic_patronymic(
     Returns:
         str: Correctly generated patronymic, or None if generation is impossible.
     """
-    if not father_name:
+    if not father_name or not father_name.strip():
         return None
 
     # Resolve gender string representation
@@ -171,21 +211,13 @@ def generate_east_slavic_patronymic(
 
     # 1. Pre-1861: Possessive Genitive with Status Relationship Clue
     if epoch == "pre_1861":
-        # Handle special contracted suffix rules for genitives (e.g., Никитин, Ильин)
-        if stem_type in ("contracted_a", "contracted_ya"):
-            base_part = genitive_base
-        else:
-            base_part = genitive_base if is_male else genitive_base + "а"
-
+        base_part = genitive_base if is_male else genitive_base + "а"
         rel_word = "сын" if is_male else "дочь"
         result = f"{base_part} {rel_word}"
 
     # 2. 1861-1917: Direct Class-Agnostic Genitive Suffix (e.g. Иван Сергеев Коваль)
     elif epoch == "1861_1917":
-        if stem_type in ("contracted_a", "contracted_ya"):
-            result = genitive_base if is_male else genitive_base + "а"
-        else:
-            result = genitive_base if is_male else genitive_base + "а"
+        result = genitive_base if is_male else genitive_base + "а"
 
     # 3. Post-1917: Modern Formal Gender Suffix (-ovich / -ovna)
     else:

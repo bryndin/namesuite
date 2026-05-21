@@ -19,16 +19,10 @@ from gramps.gen.lib import Surname, NameOriginType
 from gramps.gui.dialog import OkDialog, ErrorDialog
 
 # Custom modular imports
-from engine.morphology import generate_east_slavic_patronymic
+from engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PATTERN
 from engine.logging import InferenceLogManager, generate_execution_id
 
 _ = glocale.translation.gettext
-
-# Slavic surname regex markers (Cyrillic and Latin transliterated)
-SLAVIC_SURNAME_PATTERN = re.compile(
-    r"(ов|ев|ин|ын|енко|чук|ко|ова|ева|ина|ына|ov|ev|in|enko|chuk|sky|skiy|skaya)$",
-    re.IGNORECASE,
-)
 
 
 # Helpers to navigate the Surname List schema

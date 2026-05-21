@@ -2,7 +2,7 @@
 
 import unittest
 
-from engine.morphology import generate_east_slavic_patronymic
+from engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PATTERN
 
 class TestEastSlavicMorphology(unittest.TestCase):
 
@@ -66,6 +66,60 @@ class TestEastSlavicMorphology(unittest.TestCase):
         # Support Gramps integer constants (1=male, 0=female)
         self.assertEqual(f("Иван", 1, year), "Иванович")
         self.assertEqual(f("Иван", 0, year), "Ивановна")
+
+    def test_empty_and_invalid_inputs(self):
+        f = generate_east_slavic_patronymic
+        self.assertIsNone(f("", "male", 1950))
+        self.assertIsNone(f("   ", "male", 1950))
+        self.assertIsNone(f("Иван", "unknown", 1950))
+        self.assertIsNone(f("Иван", 3, 1950))  # Invalid integer gender
+
+    def test_western_names_handling(self):
+        f = generate_east_slavic_patronymic
+        # Verify robust handling of Latin names without crashing
+        self.assertEqual(f("John", "male", 1950), "Johnович")
+        self.assertEqual(f("John", "female", 1950), "Johnовна")
+        self.assertEqual(f("William", "male", 1950), "Williamович")
+
+    def test_slavic_surname_pattern_regex(self):
+        # Surnames that MUST match (East Slavic patterns)
+        matching_surnames = [
+            "Иванов", "Ivanov",
+            "Иванова", "Ivanova",
+            "Сергеев", "Sergeev",
+            "Сергеева", "Sergeeva",
+            "Никитин", "Nikitin",
+            "Никитина", "Nikitina",
+            "Шевченко", "Shevchenko",
+            "Клименко", "Klimenko",
+            "Достоевский", "Dostoevsky",
+            "Достоевская", "Dostoevskaya",
+            "Корнейчук", "Korneychuk",
+            "Гриценко"
+        ]
+
+        # Surnames that MUST NOT match (Polish, German, Western or non-Slavic)
+        non_matching_surnames = [
+            "Skladowska",      # Polish (avoiding "ska" false match bugs)
+            "Kowalski",        # Polish (avoiding "ski" false match bugs)
+            "Smith",           # English
+            "Schmidt",         # German
+            "Müller",          # German
+            "John",            # Given name
+            "Skladowski"       # Polish masculine
+        ]
+
+        for s in matching_surnames:
+            self.assertTrue(
+                SLAVIC_SURNAME_PATTERN.search(s) is not None,
+                f"Expected surname '{s}' to match SLAVIC_SURNAME_PATTERN, but it did not."
+            )
+
+        for s in non_matching_surnames:
+            self.assertFalse(
+                SLAVIC_SURNAME_PATTERN.search(s) is not None,
+                f"Expected surname '{s}' NOT to match SLAVIC_SURNAME_PATTERN, but it did."
+            )
 
 
 if __name__ == "__main__":
