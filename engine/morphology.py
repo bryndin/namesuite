@@ -7,7 +7,7 @@ Belarusian) based on the father's given name, gender, reference year, and
 orthographic script preferences.
 """
 
-from typing import Optional, Union, Tuple, Dict
+from typing import Optional, Union, Tuple
 
 # Sibilant characters that trigger -evich/-evna instead of -ovich/-ovna
 SIBILANTS = set("жшчщцЖШЧЩЦ")

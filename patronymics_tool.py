@@ -9,14 +9,10 @@ and batch-apply inferred patronymic name fields with clean reversibility logs.
 
 import os
 import re
-import logging
-from gi.repository import Gtk, Gdk, GObject
+from gi.repository import Gtk
 
 # Gramps modules
 from gramps.gen.const import GRAMPS_LOCALE as glocale
-
-_ = glocale.translation.gettext
-
 from gramps.gui.plug import tool
 from gramps.gen.db import DbTxn
 from gramps.gen.lib import Surname, NameOriginType
@@ -25,6 +21,8 @@ from gramps.gui.dialog import OkDialog, ErrorDialog
 # Custom modular imports
 from engine.morphology import generate_east_slavic_patronymic
 from engine.logging import InferenceLogManager, generate_execution_id
+
+_ = glocale.translation.gettext
 
 # Slavic surname regex markers (Cyrillic and Latin transliterated)
 SLAVIC_SURNAME_PATTERN = re.compile(
@@ -90,7 +88,7 @@ class InferPatronymicsTool(tool.Tool):
         # In-memory storage of calculated candidates
         self.scanned_candidates = []
 
-        # Build GTK Window UI
+        # Build GTK Window UI+
         self.build_window()
 
     def build_window(self):

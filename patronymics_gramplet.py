@@ -11,12 +11,14 @@ from gi.repository import Gtk
 
 # Gramps modules
 from gramps.gen.const import GRAMPS_LOCALE as glocale
-
-_ = glocale.translation.gettext
-
 from gramps.gen.plug import Gramplet
 from gramps.gen.db import DbTxn
 from gramps.gen.lib import Surname, NameOriginType
+
+# Local modules
+from engine.morphology import generate_east_slavic_patronymic
+
+_ = glocale.translation.gettext
 
 
 # Schema compatibility check
