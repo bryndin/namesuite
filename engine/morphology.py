@@ -19,6 +19,11 @@ HARD_CONSONANTS = set("бвгджзклмнпрстфхцчшщБВГДЖЗКЛ�
 # Cyrillic vowels for pre-reform decimal 'і' replacement rules
 CYRILLIC_VOWELS = set("аеиоуыэюяѣАЕИОУЫЭЮЯѢіІ")
 
+# Epoch constants for chronological period classification
+EPOCH_PRE_1861 = "pre_1861"
+EPOCH_1861_1917 = "1861_1917"
+EPOCH_POST_1917 = "post_1917"
+
 # Slavic surname regex markers (Cyrillic and Latin transliterated)
 # Expanded to include feminine Latin suffixes (ova, eva, ina, yna) and Cyrillic adjectival endings (ский, ская, цкий, цкая)
 # Note: Intentionally excludes Polish endings like "ska" (e.g. Skladowska) to avoid false matches.
@@ -26,6 +31,27 @@ SLAVIC_SURNAME_PATTERN = re.compile(
     r"(ов|ев|ин|ын|енко|чук|ко|ова|ева|ина|ына|ский|ская|цкий|цкая|ov|ova|ev|eva|in|ina|yn|yna|enko|chuk|sky|skiy|skaya)$",
     re.IGNORECASE,
 )
+
+
+def determine_epoch(year: Optional[int]) -> str:
+    """
+    Determines the historical epoch based on the reference year.
+
+    Args:
+        year: Reference year, or None for default (post-1917)
+
+    Returns:
+        Epoch constant string (EPOCH_PRE_1861, EPOCH_1861_1917, or EPOCH_POST_1917)
+    """
+    if year is None:
+        return EPOCH_POST_1917
+
+    if year < 1861:
+        return EPOCH_PRE_1861
+    elif 1861 <= year < 1917:
+        return EPOCH_1861_1917
+    else:
+        return EPOCH_POST_1917
 
 
 def apply_pre_reform_orthography(text: str) -> str:
@@ -180,25 +206,19 @@ def generate_east_slavic_patronymic(
     stem_type, genitive_base, formal_base = parse_stem(father_name)
 
     # Determine Chronological Epoch (Pivot Windows)
-    # Default to Post-1917 if year is unrecorded or metadata is missing
-    epoch = "post_1917"
-    if year is not None:
-        if year < 1861:
-            epoch = "pre_1861"
-        elif 1861 <= year < 1917:
-            epoch = "1861_1917"
+    epoch = determine_epoch(year)
 
     # Apply Epoch Strategies
     result = ""
 
     # 1. Pre-1861: Possessive Genitive with Status Relationship Clue
-    if epoch == "pre_1861":
+    if epoch == EPOCH_PRE_1861:
         base_part = genitive_base if is_male else genitive_base + "а"
         rel_word = "сын" if is_male else "дочь"
         result = f"{base_part} {rel_word}"
 
     # 2. 1861-1917: Direct Class-Agnostic Genitive Suffix (e.g. Иван Сергеев Коваль)
-    elif epoch == "1861_1917":
+    elif epoch == EPOCH_1861_1917:
         result = genitive_base if is_male else genitive_base + "а"
 
     # 3. Post-1917: Modern Formal Gender Suffix (-ovich / -ovna)
@@ -223,7 +243,7 @@ def generate_east_slavic_patronymic(
             result = formal_base + "ович" if is_male else formal_base + "овна"
 
     # Apply historical orthography replacements if requested (Only valid pre-1918)
-    if pre_reform_script and epoch != "post_1917":
+    if pre_reform_script and epoch != EPOCH_POST_1917:
         result = apply_pre_reform_orthography(result)
 
     return result
