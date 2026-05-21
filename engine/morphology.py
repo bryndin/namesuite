@@ -3,7 +3,7 @@
 engine/morphology.py
 
 Provides morphological generation of East Slavic patronymics (Russian, Ukrainian,
-Belarusian) based on the father's given name, gender, reference year, and 
+Belarusian) based on the father's given name, gender, reference year, and
 orthographic script preferences.
 """
 
@@ -31,11 +31,11 @@ def apply_pre_reform_orthography(text: str) -> str:
     chars = list(text)
     # 1. Replace 'и' with 'і' before vowels
     for i in range(len(chars) - 1):
-        if chars[i].lower() == 'и' and chars[i + 1].lower() in CYRILLIC_VOWELS:
-            chars[i] = 'І' if chars[i].isupper() else 'і'
-            
+        if chars[i].lower() == "и" and chars[i + 1].lower() in CYRILLIC_VOWELS:
+            chars[i] = "І" if chars[i].isupper() else "і"
+
     text = "".join(chars)
-    
+
     # 2. Append terminal hard sign 'ъ' to words ending in hard consonants
     words = text.split(" ")
     reformed_words = []
@@ -43,17 +43,17 @@ def apply_pre_reform_orthography(text: str) -> str:
         if word and word[-1] in HARD_CONSONANTS:
             word = word + "ъ"
         reformed_words.append(word)
-        
+
     return " ".join(reformed_words)
 
 
 def parse_stem(father_name: str) -> Tuple[str, str, str]:
     """
     Analyzes the father's given name ending to classify the linguistic stem.
-    
+
     Returns a tuple of:
         (stem_type, genitive_base, modern_formal_base)
-        
+
     Stem Types:
         - "hard": Ends in standard hard consonant (e.g., Иван, Петр)
         - "sibilant": Ends in ж, ш, ч, щ, ц (e.g., Жорж)
@@ -117,17 +117,17 @@ def generate_east_slavic_patronymic(
     father_name: str,
     gender: Union[str, int],
     year: Optional[int] = None,
-    pre_reform_script: bool = False
+    pre_reform_script: bool = False,
 ) -> Optional[str]:
     """
-    Generates a patronymic name from the father's given name according to the 
+    Generates a patronymic name from the father's given name according to the
     specified epoch and orthography.
 
     Args:
         father_name (str): Given name of the father (e.g., "Иван", "Дмитрий").
-        gender (str|int): Target's gender. 
+        gender (str|int): Target's gender.
                           Supported: 'male', 'female', or Gramps constants (1=male, 0=female).
-        year (int, optional): Reference year (Y_ref) calculated via resolution hierarchy. 
+        year (int, optional): Reference year (Y_ref) calculated via resolution hierarchy.
                               Defaults to modern standard (Post-1917) if None.
         pre_reform_script (bool): If True, re-enables pre-1918 Cyrillic spelling rules.
 
@@ -176,7 +176,7 @@ def generate_east_slavic_patronymic(
             base_part = genitive_base
         else:
             base_part = genitive_base if is_male else genitive_base + "а"
-            
+
         rel_word = "сын" if is_male else "дочь"
         result = f"{base_part} {rel_word}"
 
