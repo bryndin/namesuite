@@ -389,48 +389,94 @@ class InferPatronymicsTool(tool.Tool):
         return None
 
     def resolve_reference_year(self, person):
-        # 1. Death Year
-        for event_ref in person.get_event_ref_list():
-            event = self.db.get_event_from_handle(event_ref.ref)
-            if event and event.get_type() == 4:  # Death
-                date_obj = event.get_date_object()
-                if date_obj and date_obj.get_year():
-                    return date_obj.get_year(), _("Death Year")
-
-        # 2. Earliest Event
-        earliest_year = None
+        # Tier 1: Latest Recorded Event Year
+        # Scan all events (Birth, Baptism, Marriage, Census, Death, Burial)
+        # and extract the maximum (latest) valid year
+        event_years = []
         for event_ref in person.get_event_ref_list():
             event = self.db.get_event_from_handle(event_ref.ref)
             if event:
                 date_obj = event.get_date_object()
                 if date_obj and date_obj.get_year():
-                    yr = date_obj.get_year()
-                    if earliest_year is None or yr < earliest_year:
-                        earliest_year = yr
-        if earliest_year:
-            return earliest_year, _("Earliest Event Year")
+                    event_years.append(date_obj.get_year())
 
-        # 3. Birth Year
-        for event_ref in person.get_event_ref_list():
-            event = self.db.get_event_from_handle(event_ref.ref)
-            if event and event.get_type() == 2:  # Birth
-                date_obj = event.get_date_object()
-                if date_obj and date_obj.get_year():
-                    return date_obj.get_year(), _("Birth Year")
+        if event_years:
+            latest_year = max(event_years)
+            return latest_year, _("Latest Event Year")
 
-        # 4. Generational Heuristics
-        father_handle = self.get_father_handle(person)
-        if father_handle:
-            father = self.db.get_person_from_handle(father_handle)
-            if father:
-                for event_ref in father.get_event_ref_list():
-                    event = self.db.get_event_from_handle(event_ref.ref)
-                    if event and event.get_type() == 2:
-                        date_obj = event.get_date_object()
-                        if date_obj and date_obj.get_year():
-                            return date_obj.get_year() + 25, _(
-                                "Generational Estimation"
-                            )
+        # Tier 2: Generational Lineage Heuristic
+        # If no dated events, estimate using immediate family members
+
+        # Parents: Median year of parent events + 25 years
+        parent_years = []
+        for fam_handle in person.get_parent_family_handle_list():
+            fam = self.db.get_family_from_handle(fam_handle)
+            if fam:
+                # Father events
+                father_handle = fam.get_father_handle()
+                if father_handle:
+                    father = self.db.get_person_from_handle(father_handle)
+                    if father:
+                        for event_ref in father.get_event_ref_list():
+                            event = self.db.get_event_from_handle(event_ref.ref)
+                            if event:
+                                date_obj = event.get_date_object()
+                                if date_obj and date_obj.get_year():
+                                    parent_years.append(date_obj.get_year())
+                # Mother events
+                mother_handle = fam.get_mother_handle()
+                if mother_handle:
+                    mother = self.db.get_person_from_handle(mother_handle)
+                    if mother:
+                        for event_ref in mother.get_event_ref_list():
+                            event = self.db.get_event_from_handle(event_ref.ref)
+                            if event:
+                                date_obj = event.get_date_object()
+                                if date_obj and date_obj.get_year():
+                                    parent_years.append(date_obj.get_year())
+
+        if parent_years:
+            median_parent_year = sorted(parent_years)[len(parent_years) // 2]
+            return median_parent_year + 25, _("Generational Estimation (Parents)")
+
+        # Siblings: Median year of sibling events
+        sibling_years = []
+        for fam_handle in person.get_parent_family_handle_list():
+            fam = self.db.get_family_from_handle(fam_handle)
+            if fam:
+                for child_ref in fam.get_child_ref_list():
+                    if child_ref.ref != person.handle:
+                        sibling = self.db.get_person_from_handle(child_ref.ref)
+                        if sibling:
+                            for event_ref in sibling.get_event_ref_list():
+                                event = self.db.get_event_from_handle(event_ref.ref)
+                                if event:
+                                    date_obj = event.get_date_object()
+                                    if date_obj and date_obj.get_year():
+                                        sibling_years.append(date_obj.get_year())
+
+        if sibling_years:
+            median_sibling_year = sorted(sibling_years)[len(sibling_years) // 2]
+            return median_sibling_year, _("Generational Estimation (Siblings)")
+
+        # Children: Median year of children events - 25 years
+        child_years = []
+        for fam_handle in person.get_family_handle_list():
+            fam = self.db.get_family_from_handle(fam_handle)
+            if fam:
+                for child_ref in fam.get_child_ref_list():
+                    child = self.db.get_person_from_handle(child_ref.ref)
+                    if child:
+                        for event_ref in child.get_event_ref_list():
+                            event = self.db.get_event_from_handle(event_ref.ref)
+                            if event:
+                                date_obj = event.get_date_object()
+                                if date_obj and date_obj.get_year():
+                                    child_years.append(date_obj.get_year())
+
+        if child_years:
+            median_child_year = sorted(child_years)[len(child_years) // 2]
+            return median_child_year - 25, _("Generational Estimation (Children)")
 
         return 1920, _("Default Modern Era")
 
