@@ -68,13 +68,12 @@ Delivered as a standard **Tool Addon** (`TOOL` plugin type) accessible via `Tool
 3. **Review and Execution:** The user reviews confidence scores, geographical clues, and structural explanations, with the ability to selectively deselect candidates before committing changes.
 4. **Logging and Serialization:** The tool writes the original and modified values to a localized, offline transaction log file, then performs a safe, batched transaction to mutate the primary names in the Gramps database.
 
-#### Workflow 2: Inline Sidebar Gramplet (P2)
+**Workflow 2: Inline Contextual Gramplet (P2)**
+Delivered as a **Sidebar/Bottombar Gramplet Addon** (`GRAMPLET` plugin type), active in both the _People_ and _Relationships_ views.
 
-Delivered as a **Sidebar/Bottombar Gramplet Addon** (`GRAMPLET` plugin type).
-
-1. **Active Listener Trigger:** The Gramplet connects to the standard Gramps database signal `active-person-changed`.
-2. **Dynamic Inline Evaluation:** Whenever the user navigates to a new person, the Gramplet evaluates whether the active individual is missing a patronymic but has an attached father.
-3. **Visual Recommendation:** If eligible, the Gramplet displays a sidebar recommendation showing the suggested patronymic, confidence score, applied historical rule, and a single-click **[Apply]** button.
+1. **Active Listener Trigger:** The Gramplet connects to `active-person-changed`.
+2. **Contextual Evaluation:** The engine checks if the active person lacks a patronymic but has a linked father. This is most effective in the _Relationships view_, where the user can visually cross-reference the father's name on the same screen.
+3. **Visual Recommendation:** A sidebar widget displays the inferred patronymic, confidence score, and a single-click **[Apply]** button.
 
 ### 1.4 Success Metrics
 
@@ -189,27 +188,13 @@ Because we are working entirely within a standard decoupled addon, we cannot ins
 
 ### 3.1 Reference Year Resolution Algorithm
 
-To accurately identify the naming standards in use during an individual's lifetime, we determine a **Reference Year ($Y_{ref}$)**. Since subsequent generations remember and record the name forms used during their ancestor's final years, the engine prioritizes death records before falling back to birth or generational heuristics.
+To accurately identify the orthographic and naming standards in use, the engine determines a **Reference Year ($Y_{ref}$)** by anchoring to the latest available chronological data for the individual.
 
-```mermaid
-graph TD
-    Start[Resolve Reference Year] --> Q1{Is Death Year Known?}
-    Q1 -- Yes --> A1[Use Death Year]
-    Q1 -- No --> Q2{Is Earliest Event Year Known?}
-    Q2 -- Yes --> A2[Use Earliest Event Year]
-    Q2 -- No --> Q3{Is Birth Year Known?}
-    Q3 -- Yes --> A3[Use Birth Year]
-    Q3 -- No --> A4[Apply Generational Lineage Heuristic]
-```
-
-1. **Tier 1: Death Year:** If a death event contains a valid, parsed year, that year is used directly.
-2. **Tier 2: Earliest Event Year:** If the death year is unrecorded, the engine scans all available events attached to the person (such as baptisms, census entries, marriages, and residences) and selects the earliest recorded year.
-3. **Tier 3: Birth Year:** If no other event records are available, the parsed birth year is used.
-4. **Tier 4: Generational Lineage Heuristics:** If the individual's record contains no dates at all, the engine estimates the reference year using their closest family members:
-   - _If siblings have dates:_ Use the median year of sibling births/events.
-   - _If parents have dates:_ Use the median year of parent births/events + $25$ years.
-   - _If children have dates:_ Use the median year of children births/events - $25$ years.
-   - _If no generational dates are found:_ The engine assigns a high-penalty confidence score and prompts the user for manual input.
+1. **Tier 1: Latest Recorded Event Year:** The engine scans all events attached to the person (Birth, Baptism, Marriage, Census, Death, Burial). It extracts the maximum (latest) valid year from this pool. Because death or late-census records naturally fall at the end of a life, this guarantees the most mature temporal anchor for that individual.
+2. **Tier 2: Generational Lineage Heuristic:** If the individual's record contains absolutely no dated events, the engine immediately falls back to estimating the reference year using immediate family members:
+    - **Parents:** Median year of parent events + 25 years.
+    - **Siblings:** Median year of sibling events.
+    - **Children:** Median year of children events - 25 years.
 
 ---
 
@@ -269,6 +254,34 @@ graph TD
 | **Soft Consonant** (ending in `-ь`)       | Soft                | `-евич`     | `-евна`             | Игорь $\rightarrow$ Игоревич / Игоревна                                                       |
 | **Vowel `-ий` or `-ей`**                  | Yod (Soft)          | `-евич`     | `-евна`             | Дмитрий $\rightarrow$ Дмитриевич / Дмитриевна <br> Сергей $\rightarrow$ Сергеевич / Сергеевна |
 | **Vowel `-а` or `-я`** (contracted)       | Contracted          | `-ич`       | `-ична` / `-инична` | Никита $\rightarrow$ Никитич / Никитична <br> Илья $\rightarrow$ Ильич / Ильинична            |
+
+#### Exception Handling: The Irregular Dictionary
+
+Before executing algorithmic stem parsing, the engine must cross-reference the father's given name against an exact-match dictionary of morphological irregularities. Relying solely on regular expressions to manage these outliers is unsafe. For example, attempting to write a regex rule to drop the 'е' in "Павел" might inadvertently corrupt standard names like "Савел". Maintaining a hardcoded dictionary is performant and prevents false positives.
+
+**Key Linguistic Irregularities Handled:**
+
+- **Fleeting Vowels (Беглые гласные):** Names like _Павел_, _Лев_, and _Пётр_ drop a vowel in the stem during declension (e.g., _Павел_ $\rightarrow$ _Павлов_, not _Павелов_; _Лев_ $\rightarrow$ _Львов_, not _Левов_).
+- **Intrusive Consonants:** _Яков_ (and its variant _Иаков_) utilizes an intrusive 'л' when transitioning to a patronymic (_Яковлев_).
+- **Atypical Declensions:** Names ending in `-ила` or `-она` (such as _Гаврила_, _Данила_, _Иона_) are masculine but decline similarly to feminine nouns, requiring explicit overrides to prevent the engine from misclassifying them as standard hard stems.
+
+**Implementation Data Structure:**
+
+```python
+irregular_names = {
+    # Format: "Nominative": ("stem_type", "Male Suffix", "Female Stem")
+    "Яков": ("hard_irregular", "Яковлев", "Яковлев"),
+    "Иаков": ("hard_irregular", "Иаковлев", "Иаковлев"),
+    "Павел": ("hard", "Павлов", "Павл"),
+    "Лев": ("hard", "Львов", "Льв"),
+    "Михаил": ("hard", "Михайлов", "Михайл"),
+    "Пётр": ("hard", "Петров", "Петр"),
+    "Гаврила": ("hard", "Гаврилин", "Гаврил"),
+    "Данила": ("hard", "Данилин", "Данил"),
+    "Михайла": ("hard", "Михайлин", "Михайл"),
+    "Иона": ("hard", "Ионин", "Ион"),
+}
+```
 
 ---
 
