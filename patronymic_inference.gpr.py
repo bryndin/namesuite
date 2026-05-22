@@ -24,6 +24,6 @@ register(GRAMPLET,
     status=STABLE,
     fname='patronymics_gramplet.py',
     gramplet='InferPatronymicsGramplet',
-    navtypes=["Person"],
+    navtypes=["Person", "Relationship"],
     gramplet_title=_("Patronymic Suggestion")
 )
