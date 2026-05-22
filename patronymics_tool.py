@@ -473,12 +473,11 @@ class InferPatronymicsTool(tool.Tool):
 
                     primary_name.add_surname(surn_obj)
 
-                    self.db.update_person(person, txn)
+                    self.db.commit_person(person, txn)
 
                     logged_changes.append(
                         {
                             "person_handle": item["handle"],
-                            "name_handle": primary_name.handle,
                             "original_value": orig_pat,
                             "inferred_value": item["patronymic"],
                             "father_handle": self.get_father_handle(person),
@@ -551,35 +550,34 @@ def rollback_batch_execution(db, log_file_path, target_execution_id):
                 continue
 
             primary_name = person.get_primary_name()
-            if primary_name.handle == change["name_handle"]:
-                current_value = get_patronymic_value(primary_name)
+            current_value = get_patronymic_value(primary_name)
 
-                if current_value == change["inferred_value"]:
-                    # Safely remove the added patronymic Surname object from the Surname List
-                    surnames = primary_name.get_surname_list()
-                    new_surnames = []
-                    for s in surnames:
-                        orig = s.get_origintype()
-                        is_patro = (
-                            orig == NameOriginType.PATRONYMIC
-                            or orig == 5
-                            or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
-                            or getattr(orig, "value", None) == 5
-                            or str(orig).strip() == "Patronymic"
-                        )
-                        if is_patro and s.get_surname() == change["inferred_value"]:
-                            # If there was a previous patronymic, restore it. Otherwise drop.
-                            if change["original_value"]:
-                                s.set_surname(change["original_value"])
-                                new_surnames.append(s)
-                        else:
+            if current_value == change["inferred_value"]:
+                # Safely remove the added patronymic Surname object from the Surname List
+                surnames = primary_name.get_surname_list()
+                new_surnames = []
+                for s in surnames:
+                    orig = s.get_origintype()
+                    is_patro = (
+                        orig == NameOriginType.PATRONYMIC
+                        or orig == 5
+                        or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
+                        or getattr(orig, "value", None) == 5
+                        or str(orig).strip() == "Patronymic"
+                    )
+                    if is_patro and s.get_surname() == change["inferred_value"]:
+                        # If there was a previous patronymic, restore it. Otherwise drop.
+                        if change["original_value"]:
+                            s.set_surname(change["original_value"])
                             new_surnames.append(s)
+                    else:
+                        new_surnames.append(s)
 
-                    primary_name.set_surname_list(new_surnames)
-                    db.update_person(person, txn)
-                    report["reverted"].append(person.handle)
-                else:
-                    report["skipped_modified"].append(person.handle)
+                primary_name.set_surname_list(new_surnames)
+                db.commit_person(person, txn)
+                report["reverted"].append(person.handle)
+            else:
+                report["skipped_modified"].append(person.handle)
 
     executions = [
         run

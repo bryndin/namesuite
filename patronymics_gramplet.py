@@ -46,6 +46,7 @@ class InferPatronymicsGramplet(Gramplet):
 
     def init(self):
         """Sets up the GTK user interface panel."""
+        self.title = _("Patronymic Suggestion")
         self.current_handle = None
         self.suggested_value = None
 
@@ -169,7 +170,7 @@ class InferPatronymicsGramplet(Gramplet):
 
                 primary_name.add_surname(surn_obj)
 
-                self.dbstate.db.update_person(person, txn)
+                self.dbstate.db.commit_person(person, txn)
 
         # Clean GUI state
         self.label.set_text(_("Patronymic applied successfully!"))

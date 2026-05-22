@@ -12,7 +12,7 @@ register(TOOL,
     authors=["Your Name"],
     authors_email=["your.email@example.com"],
     toolclass='InferPatronymicsTool',
-    optionclass='InferPatronymicsOptions'  # <--- THIS WAS MISSING
+    optionclass='InferPatronymicsOptions'
 )
 
 register(GRAMPLET,
@@ -23,5 +23,7 @@ register(GRAMPLET,
     gramps_target_version='6.0',
     status=STABLE,
     fname='patronymics_gramplet.py',
-    gramplet='InferPatronymicsGramplet'
+    gramplet='InferPatronymicsGramplet',
+    navtypes=["Person"],
+    gramplet_title=_("Patronymic Suggestion")
 )
