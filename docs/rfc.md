@@ -645,6 +645,11 @@ def test_fuzz_morphology_generator(input_string):
 
 ---
 
+## Future Work (review and incorporate into the rfc)
+
+1. Support Ukrainian and Belarusian patronymic systems. Current system only supports Russian.
+
+
 ## References
 
 [1] Elson, M. J. (2020). *The Development of the East Slavic Patronymic System: Social and Orthographic Dimensions*. Journal of Slavic Linguistics, 28(2), 189-214.
