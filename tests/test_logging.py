@@ -47,7 +47,7 @@ class TestInferenceLogging(unittest.TestCase):
                 "reference_year": 1920,
                 "pre_reform": False,
                 "confidence_score": 0.95,
-                "applied_heuristics": ["DEATH_YEAR_POST_1917"]
+                "applied_heuristics": ["DEATH_YEAR_POST_1918"]
             }
         ]
 

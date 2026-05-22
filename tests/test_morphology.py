@@ -6,7 +6,7 @@ from engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PA
 
 
 class TestEastSlavicMorphology(unittest.TestCase):
-    def test_modern_formal_post_1917(self):
+    def test_modern_formal_post_1918(self):
         year = 1950
         f = generate_east_slavic_patronymic
 
@@ -44,7 +44,7 @@ class TestEastSlavicMorphology(unittest.TestCase):
         if failures:
             self.fail("\n" + "\n".join(failures))
 
-    def test_pre_1917_possessives(self):
+    def test_pre_1918_possessives(self):
         year = 1890
         f = generate_east_slavic_patronymic
 
@@ -269,28 +269,28 @@ class TestEastSlavicMorphology(unittest.TestCase):
                     continue
                 expected_old_m, expected_old_f = old_parts
 
-                # 1. Test Modern Male (post-1917, e.g., year=1950)
+                # 1. Test Modern Male (post-1918, e.g., year=1950)
                 actual_mod_m = generate_east_slavic_patronymic(father_name, is_male=True, year=1950)
                 if actual_mod_m != expected_mod_m:
                     failures.append(
                         f"Line {line_idx}: Modern Male for '{father_name}' -> Expected '{expected_mod_m}', got '{actual_mod_m}'"
                     )
 
-                # 2. Test Modern Female (post-1917, e.g., year=1950)
+                # 2. Test Modern Female (post-1918, e.g., year=1950)
                 actual_mod_f = generate_east_slavic_patronymic(father_name, is_male=False, year=1950)
                 if actual_mod_f != expected_mod_f:
                     failures.append(
                         f"Line {line_idx}: Modern Female for '{father_name}' -> Expected '{expected_mod_f}', got '{actual_mod_f}'"
                     )
 
-                # 3. Test Old Male (pre-1917, e.g., year=1850)
+                # 3. Test Old Male (pre-1918, e.g., year=1850)
                 actual_old_m = generate_east_slavic_patronymic(father_name, is_male=True, year=1850)
                 if actual_old_m != expected_old_m:
                     failures.append(
                         f"Line {line_idx}: Old Male for '{father_name}' -> Expected '{expected_old_m}', got '{actual_old_m}'"
                     )
 
-                # 4. Test Old Female (pre-1917, e.g., year=1850)
+                # 4. Test Old Female (pre-1918, e.g., year=1850)
                 actual_old_f = generate_east_slavic_patronymic(father_name, is_male=False, year=1850)
                 if actual_old_f != expected_old_f:
                     failures.append(
