@@ -17,7 +17,7 @@ SIBILANTS = set("жшчщцЖШЧЩЦ")
 HARD_CONSONANTS = set("бвгджзклмнпрстфхцчшщБВГДЖЗКЛМНПРСТФХЦЧШЩ")
 
 # Cyrillic vowels for pre-reform decimal 'і' replacement rules
-CYRILLIC_VOWELS = set("аеиоуыэюяѣАЕИОУЫЭЮЯѢіІ")
+CYRILLIC_VOWELS = set("аеиоуыэюяѣАЕИОУЫЭЮЯѢіІйЙ")
 
 # Epoch constants for chronological period classification
 EPOCH_PRE_1917 = "pre_1917"
@@ -31,21 +31,6 @@ SLAVIC_SURNAME_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-
-def determine_epoch(year: Optional[int]) -> str:
-    """
-    Determines the historical epoch based on the reference year.
-
-    Args:
-        year: Reference year, or None for default (post-1917)
-
-    Returns:
-        Epoch constant string (EPOCH_PRE_1917 or EPOCH_POST_1917)
-    """
-    if year is None:
-        return EPOCH_POST_1917
-
-    return EPOCH_PRE_1917 if year < 1917 else EPOCH_POST_1917
 
 def apply_pre_reform_orthography(text: str) -> str:
     """
@@ -129,19 +114,23 @@ def parse_stem(father_name: str) -> Tuple[str, str, str]:
     # Normalize case (Title Case)
     name = name[0].upper() + name[1:].lower() if len(name) > 1 else name.upper()
 
-# Exact mappings for irregular historical names (fleet vowels, intrusive 'л', contractions, colloquialisms)
+    # Exact mappings for irregular historical names
+    # Note: Павел, Лев, and Пётр rely on unpredictable fleeting vowels (беглые гласные),
+    #       and Яков utilizes an intrusive 'л'. These are genuine morphological
+    #       irregularities in Russian and should remain in the dictionary.
     irregular_names = {
         "Яков": ("hard_irregular", "Яковлев", "Яковлев"),
         "Иаков": ("hard_irregular", "Иаковлев", "Иаковлев"),
         "Павел": ("hard", "Павлов", "Павл"),
         "Лев": ("hard", "Львов", "Льв"),
         "Михаил": ("hard", "Михайлов", "Михайл"),
+        "Пётр": ("hard", "Петров", "Петр"),
         "Гаврила": ("hard", "Гаврилин", "Гаврил"),
         "Данила": ("hard", "Данилин", "Данил"),
         "Михайла": ("hard", "Михайлин", "Михайл"),
-        "Пётр": ("hard", "Петров", "Петр"),
+        "Иона": ("hard", "Ионин", "Ион"),
     }
-    
+
     if name in irregular_names:
         return irregular_names[name]
 
@@ -155,11 +144,13 @@ def parse_stem(father_name: str) -> Tuple[str, str, str]:
         base = name[:-1]  # "Никит", "Савв", "Фом"
         return ("contracted_a", base + "ин", base)
 
-# 3. Yod stems ending in -ий (e.g., Дмитрий, Василий, Григорий)
+    # 3. Yod stems ending in -ий (e.g., Дмитрий, Василий, Григорий)
     elif name.endswith("ий"):
         base_stem = name[:-2]  # Strip "ий"
         # Handle soft-yod shifts historically used in records (expanded to include 'дий', 'вий', 'пий', 'бий')
-        if name.endswith(("лий", "рий", "ний", "тий", "сий", "дий", "вий", "пий", "бий")) and name not in ("Дмитрий", "Димитрий"):
+        if name.endswith(
+            ("лий", "рий", "ний", "тий", "сий", "дий", "вий", "пий", "бий")
+        ) and name not in ("Дмитрий", "Димитрий"):
             # Василий -> Василь-, Григорий -> Григорь-
             genitive_base = base_stem + "ьев"
             formal_base = base_stem + "ь"
@@ -234,7 +225,7 @@ def generate_east_slavic_patronymic(
         elif stem_type == "contracted_a":
             # Никита -> Никитич / Никитична
             # Фома -> Фомич / Фоминична
-            if father_name.strip().lower() in ("фома", "лука"):
+            if father_name.strip().lower() in ("фома", "лука", "кузьма"):
                 result = formal_base + "ич" if is_male else formal_base + "инична"
             else:
                 result = formal_base + "ич" if is_male else formal_base + "ична"
