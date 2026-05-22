@@ -329,32 +329,146 @@ We utilize property-based testing in the morphological engine to ensure that any
 
 ---
 
-## Section 5: Phased Implementation Roadmap
+## Section 5: Quality & Consistency Auditing (The Linter)
 
-```txt
-                                  PHASED ROADMAP TIMELINE
+To implement the database linting and consistency checks effectively, this module functions as a read-only evaluation pipeline that reuses the morphological and temporal engines built for the Inference Tool. Instead of generating new data, the engine runs in "verify" mode, comparing the existing database value against the algorithmically expected value.
 
-   Phase 1: Engine & Dry-Run           Phase 2: The Batch Tool (P1)       Phase 3: The Gramplet (P2)
-◄──────────────────────────────────┼─────────────────────────────────┼──────────────────────────────►
-  - Suffix generation engines.       - Full GTK Wizard UI.             - Sidebar/Bottombar Gramplet.
-  - Centralized JSON logging.        - Multi-signal calculations.      - Active navigation listeners
-  - Immutability dry-run tests.      - Real-time previews.             - Quick-apply controls.
+### 5.1 Integration Strategy
+
+The Linter will be integrated directly into the **Phase 1 Database Tool (P1)**, but strictly excluded from the **Phase 2 Sidebar Gramplet (P2)**.
+
+Because both generation and auditing are batch operations over the database, they belong in the `TOOL` plugin space. To prevent UI clutter, the main tool utilizes a tabbed architecture, separating the distinct workflows while running on a unified backend engine. This ensures both tools share the exact same morphological parser, exception dictionaries, and `DbTxn` offline transaction log.
+
+### 5.2 UI Integration (The GTK Tool Window)
+
+The main Tool Addon window uses a `Gtk.Notebook` (tabbed interface) to split the two primary views:
+
+- **Tab 1: Batch Inference** (Finding missing patronymics).
+- **Tab 2: Database Auditor** (Linting existing patronymics).
+
+**Auditor Tab UI Layout:**
+
+1. **Filter Header:** Dropdowns to narrow the linting scope (e.g., "Entire Database", "Filter by Tag", "Filter by Place").
+2. **Rule Configuration (Settings):** Instead of a complex, opaque priority weighting system, the UI provides a "Configure Rules" dialog where users can toggle specific rules (e.g., disable `WARN_MISSING_HARD_SIGN` entirely) before running the scan.
+3. **Audit Button & Progress Bar:** Triggers the read-only scan.
+4. **Results `Gtk.TreeView`:** A multi-column list displaying `Person ID | Current Value | Triggered Rule | Suggested Fix`. If multiple rules trigger on a single person, they appear as separate line items. The `Suggested Fix` column uses Pango markup to visually highlight the specific characters being modified.
+5. **Action Footer:** A global checkbox to "Select All Safe Corrections" and an `[Apply Selected to Transaction Log]` button.
+
+### 5.3 Validation Rules Engine & API
+
+To support future linguistic expansions and shifting historical borders, the auditing engine uses a decoupled Strategy-pattern design.
+
+#### 5.3.1 Evaluation Context & Session Caching
+
+Instead of passing discrete variables, the engine passes a frozen `Context` dataclass to each rule. Rules do not explicitly declare their dependencies; instead, heavy database operations (like geographical lookups) use lazy evaluation.
+
+To prevent stale data without the overhead of Gramps database event listeners, the `place_context` utilizes a **session-scoped LRU cache**. The cache is instantiated when the user clicks "Audit" and is completely destroyed when the batch run completes.
+
+```python
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass(frozen=True)
+class RuleContext:
+    person_id: str
+    current_patronymic: str
+    father_given_name: str
+    gramps_gender: int  # Gramps internal enum (Person.MALE, Person.FEMALE, Person.UNKNOWN)
+    reference_year: int # Computed Y_ref
+    locale: str         # ISO 639-1 (e.g., 'ru', 'uk', 'be')
+
+    @property
+    def place_context(self) -> list[str]:
+        # Lazy evaluation: fetches from the session-scoped LRU cache only when invoked by a rule
+        pass
+
 ```
 
-### Phase 1: Engine Core, Dry-Run Simulation, & Local Logging (v0.1)
+#### 5.3.2 Rule Interface (`BaseRule`)
 
-- **Deliverables:** Suffix generation engines, the centralized JSON log engine, the chronological pivot rules, and a command-line wrapper script.
-- **Validation:** $100\%$ test coverage on morphological edge cases. No GUI integration is introduced.
+All rules inherit from an Abstract Base Class. The routing attributes (`supported_locales` and `active_era`) are centralized on the interface, allowing rules to dynamically declare their historical and geographical applicability.
 
-### Phase 2: GTK Batch Refinement Tool (P1) (v1.0)
+```python
+from abc import ABC, abstractmethod
+from typing import Optional, Tuple, Set
 
-- **Deliverables:** A standard Gramps Tool Addon (`TOOL` type) accessible via the application menu.
-- **UI Components:** A GTK wizard window providing database filtering, a preview screen showing confidence scores with historical rules, a dry-run report exporter, and a rollback interface.
+@dataclass
+class ProposedChange:
+    explanation: str
+    suggested_string: str
+    diff_markup: str # For GTK Pango rendering
 
-### Phase 3: Sidebar Suggestion Gramplet (P2) (v2.0)
+class BaseRule(ABC):
+    @property
+    @abstractmethod
+    def rule_id(self) -> str:
+        pass
 
-- **Deliverables:** A Gramplet Addon (`GRAMPLET` type) for the sidebar or bottombar.
-- **Behavior:** Monitors active person signals in Gramps, displaying a suggested patronymic and a one-click apply button for quick inline workflow.
+    @property
+    @abstractmethod
+    def severity(self) -> str: # 'ERROR', 'WARNING', 'INFO'
+        pass
+
+    @property
+    @abstractmethod
+    def supported_locales(self) -> Set[str]:
+        """ Defines applicable linguistic spaces, e.g., {'ru', 'uk'} or {'*'} for universal """
+        pass
+
+    @property
+    @abstractmethod
+    def active_era(self) -> Tuple[Optional[int], Optional[int]]:
+        """ Defines the historical years this rule applies to e.g., (1850, 1918) """
+        pass
+
+    @abstractmethod
+    def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
+        """
+        Evaluates the context.
+        Returns None if the rule passes.
+        Returns a ProposedChange object if the rule fails.
+        """
+        pass
+
+```
+
+#### 5.3.3 Engine Registry & Dispatcher
+
+The `RuleEngine` dispatcher handles batch routing:
+
+- **Dynamic Indexing:** During initialization, the dispatcher indexes all registered rules by their `supported_locales`.
+- **Targeted Execution:** As the engine iterates through the database, it cross-references the individual's `ctx.locale` and `ctx.reference_year` against the registered rules, building a targeted execution stack for that specific person.
+- **Fail-Safes:** The `evaluate()` call is wrapped in a `try/except` block. If a malformed name crashes a specific rule, the dispatcher gracefully fails that single evaluation without crashing the entire batch linting job.
+
+### 5.4 Base Ruleset (v1.0 Scope)
+
+The following core rules are evaluated.
+
+#### Category A: Biological & Lineage Mismatches
+
+| Rule ID | Trigger Condition | Example Failure | Linter Action |
+| --- | --- | --- | --- |
+| `ERR_GENDER_MISMATCH` | Gramps Gender does not match the linguistic gender of the suffix. | Male person with patronymic **Ивановна**. | Flag error; suggest male suffix variant (**Иванович**). |
+| `ERR_LINEAGE_MISMATCH` | The patronymic root does not match the linked father's given name. | Father is **Петр**, but person's patronymic is **Иванович**. | Flag error; suggest root correction (**Петрович**). |
+
+#### Category B: Temporal Anachronisms
+
+| Rule ID | Trigger Condition | Example Failure | Linter Action |
+| --- | --- | --- | --- |
+| `WARN_MODERN_SUFFIX_ARCHAIC_ERA` | $Y_{ref}$ is pre-1918, but the suffix uses a modern formal ending. | $Y_{ref}$ is 1850; name is **Иванович**. | Flag warning; suggest archaic genitive (**Ивановъ**). |
+| `WARN_ARCHAIC_SUFFIX_MODERN_ERA` | $Y_{ref}$ is post-1918, but the suffix uses an archaic/informal ending. | $Y_{ref}$ is 1950; name is **Иванов**. | Flag warning; suggest formal modern suffix (**Иванович**). |
+
+#### Category C: Orthographic & Typographical Anomalies
+
+| Rule ID | Trigger Condition | Example Failure | Linter Action |
+| --- | --- | --- | --- |
+| `ERR_MIXED_SCRIPTS` | The string contains a mixture of Cyrillic and Latin unicode blocks. | **Петрoвич** (where 'o' is Latin U+006F). | Flag error; suggest pure Cyrillic normalization. |
+| `WARN_MORPHOLOGICAL_TYPO` | The string contains an invalid morphological joint. | **Андрееевич** (extra 'е'). | Flag warning; suggest algorithmically clean stem join. |
+| `WARN_MISSING_HARD_SIGN` | Pre-reform orthography is expected based on $Y_{ref}$, but terminal hard signs (ъ) are absent. | $Y_{ref}$ is 1890; name is **Иванов**. | Flag warning; suggest pre-reform spelling (**Ивановъ**). |
+
+### 5.5 Resolution Workflow
+
+Once the user completes their review of the `TreeView` list, clicking **[Apply Selected Corrections]** routes the selected fixes through the existing Phase 1 architecture. This ensures that every correction is treated identically to a new inference: it is safely wrapped in a database transaction (`DbTxn`) and serialized to the immutable JSON transaction log, guaranteeing total reversibility.
 
 ---
 
