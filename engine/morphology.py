@@ -129,14 +129,19 @@ def parse_stem(father_name: str) -> Tuple[str, str, str]:
     # Normalize case (Title Case)
     name = name[0].upper() + name[1:].lower() if len(name) > 1 else name.upper()
 
-    # Exact mappings for irregular historical names (fleet vowels, intrusive 'л', contractions)
+# Exact mappings for irregular historical names (fleet vowels, intrusive 'л', contractions, colloquialisms)
     irregular_names = {
         "Яков": ("hard_irregular", "Яковлев", "Яковлев"),
         "Иаков": ("hard_irregular", "Иаковлев", "Иаковлев"),
         "Павел": ("hard", "Павлов", "Павл"),
         "Лев": ("hard", "Львов", "Льв"),
         "Михаил": ("hard", "Михайлов", "Михайл"),
+        "Гаврила": ("hard", "Гаврилин", "Гаврил"),
+        "Данила": ("hard", "Данилин", "Данил"),
+        "Михайла": ("hard", "Михайлин", "Михайл"),
+        "Пётр": ("hard", "Петров", "Петр"),
     }
+    
     if name in irregular_names:
         return irregular_names[name]
 
@@ -150,11 +155,11 @@ def parse_stem(father_name: str) -> Tuple[str, str, str]:
         base = name[:-1]  # "Никит", "Савв", "Фом"
         return ("contracted_a", base + "ин", base)
 
-    # 3. Yod stems ending in -ий (e.g., Дмитрий, Василий, Григорий)
+# 3. Yod stems ending in -ий (e.g., Дмитрий, Василий, Григорий)
     elif name.endswith("ий"):
         base_stem = name[:-2]  # Strip "ий"
-        # Handle soft-yod shifts historically used in records
-        if name.endswith(("лий", "рий", "ний", "тий", "сий")) and name not in ("Дмитрий", "Димитрий"):
+        # Handle soft-yod shifts historically used in records (expanded to include 'дий', 'вий', 'пий', 'бий')
+        if name.endswith(("лий", "рий", "ний", "тий", "сий", "дий", "вий", "пий", "бий")) and name not in ("Дмитрий", "Димитрий"):
             # Василий -> Василь-, Григорий -> Григорь-
             genitive_base = base_stem + "ьев"
             formal_base = base_stem + "ь"

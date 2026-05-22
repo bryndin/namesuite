@@ -217,6 +217,93 @@ class TestEastSlavicMorphology(unittest.TestCase):
                 f"Expected surname '{s}' NOT to match SLAVIC_SURNAME_PATTERN, but it did.",
             )
 
+    def test_male_names_dataset(self):
+        """
+        Validates the morphology algorithm against the third-party male_names.txt dataset.
+        Accumulates all mismatches and reports them simultaneously.
+        """
+        import os
+
+        # Dynamic path resolution to find the dataset relative to root or test folders
+        possible_paths = [
+            "male_names.txt",
+            os.path.join(os.path.dirname(__file__), "male_names.txt"),
+            os.path.join(os.path.dirname(__file__), "..", "male_names.txt"),
+        ]
+
+        filepath = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                filepath = path
+                break
+
+        if not filepath:
+            self.skipTest("Dataset 'male_names.txt' not found in standard paths.")
+
+        failures = []
+
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line_idx, line in enumerate(f, 1):
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+
+                parts = line.split("\t")
+                if len(parts) < 3:
+                    failures.append(f"Line {line_idx}: Malformed line. Expected 3 tab-separated columns, got: {repr(line)}")
+                    continue
+
+                father_name = parts[0].strip()
+
+                # Column 2: Modern (comma-separated: son, daughter)
+                modern_parts = [p.strip() for p in parts[1].split(",")]
+                if len(modern_parts) != 2:
+                    failures.append(f"Line {line_idx}: Malformed modern patronymic column: {repr(parts[1])}")
+                    continue
+                expected_mod_m, expected_mod_f = modern_parts
+
+                # Column 3: Old (comma-separated: son, daughter)
+                old_parts = [p.strip() for p in parts[2].split(",")]
+                if len(old_parts) != 2:
+                    failures.append(f"Line {line_idx}: Malformed old patronymic column: {repr(parts[2])}")
+                    continue
+                expected_old_m, expected_old_f = old_parts
+
+                # 1. Test Modern Male (post-1917, e.g., year=1950)
+                actual_mod_m = generate_east_slavic_patronymic(father_name, is_male=True, year=1950)
+                if actual_mod_m != expected_mod_m:
+                    failures.append(
+                        f"Line {line_idx}: Modern Male for '{father_name}' -> Expected '{expected_mod_m}', got '{actual_mod_m}'"
+                    )
+
+                # 2. Test Modern Female (post-1917, e.g., year=1950)
+                actual_mod_f = generate_east_slavic_patronymic(father_name, is_male=False, year=1950)
+                if actual_mod_f != expected_mod_f:
+                    failures.append(
+                        f"Line {line_idx}: Modern Female for '{father_name}' -> Expected '{expected_mod_f}', got '{actual_mod_f}'"
+                    )
+
+                # 3. Test Old Male (pre-1917, e.g., year=1850)
+                actual_old_m = generate_east_slavic_patronymic(father_name, is_male=True, year=1850)
+                if actual_old_m != expected_old_m:
+                    failures.append(
+                        f"Line {line_idx}: Old Male for '{father_name}' -> Expected '{expected_old_m}', got '{actual_old_m}'"
+                    )
+
+                # 4. Test Old Female (pre-1917, e.g., year=1850)
+                actual_old_f = generate_east_slavic_patronymic(father_name, is_male=False, year=1850)
+                if actual_old_f != expected_old_f:
+                    failures.append(
+                        f"Line {line_idx}: Old Female for '{father_name}' -> Expected '{expected_old_f}', got '{actual_old_f}'"
+                    )
+
+        # If failures are collected, report all of them in a structured assertion dump
+        if failures:
+            error_report = (
+                f"\nFound {len(failures)} discrepancy/discrepancies in morphological calculations against the dataset:\n"
+                + "\n".join(failures)
+            )
+            self.fail(error_report)
 
 if __name__ == "__main__":
     unittest.main()
