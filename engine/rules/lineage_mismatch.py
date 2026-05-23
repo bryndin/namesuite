@@ -9,7 +9,7 @@ Flags if the patronymic base/root does not match the linked biological father's 
 from typing import Optional, Set, Tuple
 
 from engine.compat import Person
-from engine.rule import BaseRule, RuleContext, ProposedChange
+from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_ERROR
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff
 
@@ -23,7 +23,7 @@ class ErrLineageMismatch(BaseRule):
 
     @property
     def severity(self) -> str:
-        return "ERROR"
+        return SEVERITY_ERROR
 
     @property
     def supported_locales(self) -> Set[str]:

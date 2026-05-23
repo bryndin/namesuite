@@ -9,6 +9,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional, Set, Tuple, List, Callable
 
+# Severity level constants
+SEVERITY_ERROR = "ERROR"
+SEVERITY_WARNING = "WARNING"
+SEVERITY_INFO = "INFO"
+
 
 @dataclass(frozen=True)
 class RuleContext:

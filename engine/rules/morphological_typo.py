@@ -10,7 +10,7 @@ import re
 from typing import Optional, Set, Tuple
 
 from engine.compat import Person
-from engine.rule import BaseRule, RuleContext, ProposedChange
+from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_WARNING
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff
 
@@ -24,7 +24,7 @@ class WarnMorphologicalTypo(BaseRule):
 
     @property
     def severity(self) -> str:
-        return "WARNING"
+        return SEVERITY_WARNING
 
     @property
     def supported_locales(self) -> Set[str]:
