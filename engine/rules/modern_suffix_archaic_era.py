@@ -34,7 +34,7 @@ class WarnModernSuffixArchaicEra(BaseRule):
         return (None, 1917)
 
     def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
-        if not ctx.current_patronymic or ctx.reference_year >= 1918:
+        if not ctx.current_patronymic or (ctx.reference_year is not None and ctx.reference_year >= 1918):
             return None
 
         modern_suffixes = ("ович", "евич", "ич", "овна", "евна", "ична", "инична")

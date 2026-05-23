@@ -572,7 +572,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                         True,
                         primary_name.get_regular_name(),
                         father_first_name,
-                        ref_year if ref_year else 0,
+                        ref_year,
                         patronymic,
                         f"{int(confidence * 100)}%",
                         rule_source,
@@ -651,6 +651,8 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                         father_name = father.get_primary_name().get_first_name() or ""
 
                 ref_year, rule_source = self.resolve_reference_year(person)
+                if ref_year is None:
+                    continue
                 locale = "ru"  # V1.0 focuses on Russian locale rulesets
 
                 ctx = RuleContext(

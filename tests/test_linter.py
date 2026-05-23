@@ -516,5 +516,17 @@ class TestLinterEngineAndRules(unittest.TestCase):
 #         self.fail("Dummy fail to inspect stdout")
 
 
+    def test_linter_handles_none_reference_year(self):
+        """Verifies that all linter rules handle None reference year without crashing."""
+        engine = RuleEngine()
+        # Context with reference_year = None
+        ctx = RuleContext("p1", "Иванович", "Иван", Person.MALE, None, "ru")
+
+        # This should not raise TypeError
+        try:
+            engine.evaluate_person(ctx)
+        except TypeError as e:
+            self.fail(f"evaluate_person raised TypeError with reference_year=None: {e}")
+
 if __name__ == "__main__":
     unittest.main()

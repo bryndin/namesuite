@@ -34,7 +34,7 @@ class WarnArchaicSuffixModernEra(BaseRule):
         return (1918, None)
 
     def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
-        if not ctx.current_patronymic or ctx.reference_year < 1918:
+        if not ctx.current_patronymic or (ctx.reference_year is not None and ctx.reference_year < 1918):
             return None
 
         # Archaic endings (including pre-reform orthographic variants)

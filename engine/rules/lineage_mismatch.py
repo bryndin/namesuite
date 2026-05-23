@@ -38,7 +38,7 @@ class ErrLineageMismatch(BaseRule):
             return None
 
         is_male = (ctx.gramps_gender == Person.MALE)
-        pre_reform = (ctx.locale == LOCALE_RU and ctx.reference_year < 1918 and ctx.use_pre_reform)
+        pre_reform = (ctx.locale == LOCALE_RU and ctx.reference_year is not None and ctx.reference_year < 1918 and ctx.use_pre_reform)
         
         # Resolve target expected patronymic for active context
         expected = generate_east_slavic_patronymic(

@@ -111,6 +111,8 @@ class RuleEngine:
                 continue
 
             # 3. Match era bounds
+            if ctx.reference_year is None:
+                continue
             start, end = rule.active_era
             if start is not None and ctx.reference_year < start:
                 continue

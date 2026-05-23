@@ -45,7 +45,7 @@ class WarnMorphologicalTypo(BaseRule):
             # Re-generate from father's name if present for maximum accuracy
             if ctx.father_given_name:
                 is_male = (ctx.gramps_gender == Person.MALE)
-                pre_reform = (ctx.locale == LOCALE_RU and ctx.reference_year < 1918 and ctx.use_pre_reform)
+                pre_reform = (ctx.locale == LOCALE_RU and ctx.reference_year is not None and ctx.reference_year < 1918 and ctx.use_pre_reform)
                 gen_expected = generate_east_slavic_patronymic(
                     ctx.father_given_name, is_male=is_male, year=ctx.reference_year, pre_reform_script=pre_reform
                 )
@@ -62,7 +62,7 @@ class WarnMorphologicalTypo(BaseRule):
         # 2. Check if a duplicate letter differs only from morphological standard
         if ctx.father_given_name:
             is_male = (ctx.gramps_gender == Person.MALE)
-            pre_reform = (ctx.locale == LOCALE_RU and ctx.reference_year < 1918 and ctx.use_pre_reform)
+            pre_reform = (ctx.locale == LOCALE_RU and (ctx.reference_year or 0) < 1918 and ctx.use_pre_reform)
             expected = generate_east_slavic_patronymic(
                 ctx.father_given_name, is_male=is_male, year=ctx.reference_year, pre_reform_script=pre_reform
             )
