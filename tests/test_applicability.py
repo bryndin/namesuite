@@ -109,7 +109,6 @@ sys.modules["gramps.gui.dialog"] = gramps_gui_dialog_mock
 
 # Now we can safely import patronymics_tool and morphology components
 from patronymics_tool import InferPatronymicsTool
-from engine.morphology import SLAVIC_SURNAME_PATTERN
 
 
 # -------------------------------------------------------------------------

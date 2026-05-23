@@ -108,18 +108,15 @@ sys.modules["gramps.gui.dialog"] = gramps_gui_dialog_mock
 
 # Now we can safely import components
 from gramps.gen.lib import Surname, NameOriginType
-from patronymics_tool import (
-    InferPatronymicsTool,
-    get_patronymic_value,
-    has_patronymic_surname,
-)
 
+from engine.rule import RuleContext
 from engine.linter import (
-    RuleContext,
     RuleEngine,
     PlaceCache,
-    generate_pango_diff,
-    swap_patronymic_gender,
+    Person,
+)
+from engine.rule_utils import generate_pango_diff, swap_patronymic_gender
+from engine.rules import (
     ErrGenderMismatch,
     ErrLineageMismatch,
     WarnModernSuffixArchaicEra,
@@ -127,7 +124,6 @@ from engine.linter import (
     ErrMixedScripts,
     WarnMorphologicalTypo,
     WarnMissingHardSign,
-    Person,
 )
 
 
