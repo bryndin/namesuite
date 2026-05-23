@@ -9,7 +9,7 @@ Flags pre-1918 records using modern formal endings and suggests possessive genit
 from typing import Optional, Set, Tuple
 
 from engine.compat import Person
-from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_WARNING, LOCALE_EAST_SLAVIC
+from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_WARNING, LOCALE_EAST_SLAVIC, LOCALE_RU
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff, modern_to_archaic
 
@@ -41,7 +41,8 @@ class WarnModernSuffixArchaicEra(BaseRule):
         
         if any(ctx.current_patronymic.endswith(s) for s in modern_suffixes):
             is_male = (ctx.gramps_gender == Person.MALE)
-            pre_reform = (ctx.locale == 'ru')
+            # Adjust condition to respect the user toggle
+            pre_reform = (ctx.locale == LOCALE_RU and ctx.use_pre_reform)
             
             if ctx.father_given_name:
                 suggested = generate_east_slavic_patronymic(

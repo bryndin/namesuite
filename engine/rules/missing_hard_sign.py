@@ -33,7 +33,8 @@ class WarnMissingHardSign(BaseRule):
         return (None, 1917)
 
     def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
-        if not ctx.current_patronymic or ctx.reference_year >= 1918 or ctx.locale != 'ru':
+        # Short-circuit if pre-reform rules are disabled by the user
+        if not ctx.current_patronymic or not ctx.use_pre_reform or ctx.reference_year >= 1918 or ctx.locale != LOCALE_RU:
             return None
 
         # Re-apply pre-reform orthography mapping on the current value

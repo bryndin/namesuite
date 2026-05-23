@@ -9,7 +9,7 @@ Flags if the grammatical gender of the patronymic suffix conflicts with person's
 from typing import Optional, Set, Tuple
 
 from engine.compat import Person
-from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_ERROR, LOCALE_EAST_SLAVIC
+from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_ERROR, LOCALE_EAST_SLAVIC, LOCALE_RU
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff, swap_patronymic_gender
 
@@ -41,7 +41,7 @@ class ErrGenderMismatch(BaseRule):
         
         # 1. Evaluate with father's name if present
         if ctx.father_given_name:
-            pre_reform = (ctx.locale == 'ru' and ctx.reference_year < 1918)
+            pre_reform = (ctx.locale == LOCALE_RU and ctx.reference_year < 1918 and ctx.use_pre_reform)
             expected = generate_east_slavic_patronymic(
                 ctx.father_given_name, is_male=is_male, year=ctx.reference_year, pre_reform_script=pre_reform
             )
@@ -61,7 +61,7 @@ class ErrGenderMismatch(BaseRule):
         
         if is_male:
             if ctx.current_patronymic.endswith(female_endings):
-                pre_reform = (ctx.locale == 'ru' and ctx.reference_year < 1918)
+                pre_reform = (ctx.locale == LOCALE_RU and ctx.reference_year < 1918 and ctx.use_pre_reform)
                 suggested = swap_patronymic_gender(ctx.current_patronymic, to_male=True, pre_reform=pre_reform)
                 return ProposedChange(
                     explanation="Linguistic gender mismatch: Suffix is grammatically female for a male individual.",

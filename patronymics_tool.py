@@ -152,7 +152,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.script_check = Gtk.CheckButton(
             label=_("Automatically match Pre-Revolutionary Orthography (ъ/і)")
         )
-        self.script_check.set_active(True)
+        self.script_check.set_active(False)
         config_box.pack_start(self.script_check, False, False, 0)
 
         # Scan trigger button
@@ -208,6 +208,13 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.rules_config_btn = Gtk.Button(label=_("Configure Rules..."))
         self.rules_config_btn.connect("clicked", self.on_configure_rules_clicked)
         audit_header_box.pack_start(self.rules_config_btn, False, False, 0)
+
+        # Create the check button
+        self.audit_pre_reform_check = Gtk.CheckButton(
+            label=_("Automatically match Pre-Revolutionary Orthography (ъ/і)")
+        )
+        self.audit_pre_reform_check.set_active(False)
+        audit_header_box.pack_start(self.audit_pre_reform_check, False, False, 0)
 
         # Progress panel & trigger button
         audit_action_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -289,75 +296,95 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         """Creates table headers and columns for scanned candidates."""
         renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect("toggled", self.on_row_toggled)
-        col_toggle = Gtk.TreeViewColumn(_("Apply"), renderer_toggle, active=0)
+        col_toggle = Gtk.TreeViewColumn(_("Use"), renderer_toggle, active=0)
+        col_toggle.set_resizable(True)
         self.tree_view.append_column(col_toggle)
 
         col_person = Gtk.TreeViewColumn(_("Individual"), Gtk.CellRendererText(), text=1)
+        col_person.set_resizable(True)
+        col_person.set_expand(True)
         self.tree_view.append_column(col_person)
 
         col_father = Gtk.TreeViewColumn(_("Father"), Gtk.CellRendererText(), text=2)
+        col_father.set_resizable(True)
         self.tree_view.append_column(col_father)
 
         col_year = Gtk.TreeViewColumn(
-            _("Reference Year"), Gtk.CellRendererText(), text=3
+            _("Ref Year"), Gtk.CellRendererText(), text=3
         )
+        col_year.set_resizable(True)
         self.tree_view.append_column(col_year)
 
         col_pat = Gtk.TreeViewColumn(
             _("Inferred Patronymic"), Gtk.CellRendererText(), text=4
         )
+        col_pat.set_resizable(True)
         self.tree_view.append_column(col_pat)
 
-        col_conf = Gtk.TreeViewColumn(_("Confidence"), Gtk.CellRendererText(), text=5)
+        col_conf = Gtk.TreeViewColumn(_("Conf"), Gtk.CellRendererText(), text=5)
+        col_conf.set_resizable(True)
         self.tree_view.append_column(col_conf)
 
         col_rules = Gtk.TreeViewColumn(
             _("Historical Context Rule"), Gtk.CellRendererText(), text=6
         )
+        col_rules.set_resizable(True)
+        col_rules.set_expand(True)
         self.tree_view.append_column(col_rules)
 
     def setup_audit_columns(self):
         """Creates table headers and renderers for the Auditor results."""
         renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect("toggled", self.on_audit_row_toggled)
-        col_toggle = Gtk.TreeViewColumn(_("Apply"), renderer_toggle, active=0)
+        col_toggle = Gtk.TreeViewColumn(_("Use"), renderer_toggle, active=0)
+        col_toggle.set_resizable(True)
         self.audit_tree.append_column(col_toggle)
 
         col_person = Gtk.TreeViewColumn(
             _("Individual ID / Name"), Gtk.CellRendererText(), text=1
         )
+        col_person.set_resizable(True)
+        col_person.set_expand(True)
         self.audit_tree.append_column(col_person)
 
         col_current = Gtk.TreeViewColumn(
             _("Current Value"), Gtk.CellRendererText(), text=2
         )
+        col_current.set_resizable(True)
         self.audit_tree.append_column(col_current)
 
         col_rule = Gtk.TreeViewColumn(
             _("Triggered Rule"), Gtk.CellRendererText(), text=3
         )
+        col_rule.set_resizable(True)
         self.audit_tree.append_column(col_rule)
 
         # Render suggested fixes with Pango markup
         col_suggested = Gtk.TreeViewColumn(
             _("Suggested Fix"), Gtk.CellRendererText(), markup=4
         )
+        col_suggested.set_resizable(True)
+        col_suggested.set_expand(True)
         self.audit_tree.append_column(col_suggested)
 
     def setup_log_columns(self):
         """Creates table headers for rollback histories."""
-        self.log_tree.append_column(
-            Gtk.TreeViewColumn(_("Execution ID"), Gtk.CellRendererText(), text=0)
-        )
-        self.log_tree.append_column(
-            Gtk.TreeViewColumn(_("Execution Timestamp"), Gtk.CellRendererText(), text=1)
-        )
-        self.log_tree.append_column(
-            Gtk.TreeViewColumn(_("Changes Written"), Gtk.CellRendererText(), text=2)
-        )
-        self.log_tree.append_column(
-            Gtk.TreeViewColumn(_("Plugin Applied"), Gtk.CellRendererText(), text=3)
-        )
+        col_exec_id = Gtk.TreeViewColumn(_("Execution ID"), Gtk.CellRendererText(), text=0)
+        col_exec_id.set_resizable(True)
+        self.log_tree.append_column(col_exec_id)
+
+        col_timestamp = Gtk.TreeViewColumn(_("Execution Timestamp"), Gtk.CellRendererText(), text=1)
+        col_timestamp.set_resizable(True)
+        col_timestamp.set_expand(True)
+        self.log_tree.append_column(col_timestamp)
+
+        col_changes = Gtk.TreeViewColumn(_("Changes Written"), Gtk.CellRendererText(), text=2)
+        col_changes.set_resizable(True)
+        self.log_tree.append_column(col_changes)
+
+        col_plugin = Gtk.TreeViewColumn(_("Plugin Applied"), Gtk.CellRendererText(), text=3)
+        col_plugin.set_resizable(True)
+        self.log_tree.append_column(col_plugin)
 
     def on_dry_run_toggled(self, widget):
         self.update_action_buttons()
@@ -563,6 +590,9 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             self.audit_run_btn.set_sensitive(True)
             return
 
+        # 1. Capture the configuration state at runtime execution
+        use_pre_reform = self.audit_pre_reform_check.get_active()
+
         self.audit_progress.set_fraction(0.0)
         self.audit_progress.set_text(f"0 / {total}")
 
@@ -622,6 +652,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                     gramps_gender=gender_val,
                     reference_year=ref_year,
                     locale=locale,
+                    use_pre_reform=use_pre_reform,
                     _place_resolver=place_cache.get_places,
                 )
 

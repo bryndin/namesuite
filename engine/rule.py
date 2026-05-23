@@ -32,6 +32,7 @@ class RuleContext:
     gramps_gender: int
     reference_year: int
     locale: str
+    use_pre_reform: bool = True
     _place_resolver: Optional[Callable[[str], List[str]]] = None
 
     @property
