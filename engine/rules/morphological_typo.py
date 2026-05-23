@@ -10,7 +10,7 @@ import re
 from typing import Optional, Set, Tuple
 
 from engine.compat import Person
-from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_WARNING
+from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_WARNING, LOCALE_EAST_SLAVIC
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff
 
@@ -28,7 +28,7 @@ class WarnMorphologicalTypo(BaseRule):
 
     @property
     def supported_locales(self) -> Set[str]:
-        return {"ru", "uk", "be", "*"}
+        return LOCALE_EAST_SLAVIC
 
     @property
     def active_era(self) -> Tuple[Optional[int], Optional[int]]:

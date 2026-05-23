@@ -9,7 +9,7 @@ Detects and corrects mixed Cyrillic and Latin homoglyphs in patronymic strings.
 import re
 from typing import Optional, Set, Tuple
 
-from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_ERROR
+from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_ERROR, LOCALE_EAST_SLAVIC
 from engine.rule_utils import generate_pango_diff
 
 # Cyrillic and Latin Unicode blocks to detect homoglyph mixing
@@ -44,7 +44,7 @@ class ErrMixedScripts(BaseRule):
 
     @property
     def supported_locales(self) -> Set[str]:
-        return {"ru", "uk", "be"}
+        return LOCALE_EAST_SLAVIC
 
     @property
     def active_era(self) -> Tuple[Optional[int], Optional[int]]:

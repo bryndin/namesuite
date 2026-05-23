@@ -11,7 +11,13 @@ import functools
 import logging
 from typing import Optional, List, Any, Set, Tuple
 
-from engine.rule import BaseRule, RuleContext, ProposedChange
+
+from engine.rule import (
+    BaseRule,
+    RuleContext,
+    ProposedChange,
+    LOCALE_UNIVERSAL,
+)
 from engine.rules import (
     ErrGenderMismatch,
     ErrLineageMismatch,
@@ -99,7 +105,7 @@ class RuleEngine:
 
             # 2. Match locale
             if (
-                rule.supported_locales != {"*"}
+                rule.supported_locales != LOCALE_UNIVERSAL
                 and ctx.locale not in rule.supported_locales
             ):
                 continue

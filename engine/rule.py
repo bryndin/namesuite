@@ -14,6 +14,11 @@ SEVERITY_ERROR = "ERROR"
 SEVERITY_WARNING = "WARNING"
 SEVERITY_INFO = "INFO"
 
+# Locale constants
+LOCALE_RUSSIAN = {"ru"}
+LOCALE_EAST_SLAVIC = {"ru", "uk", "be"}
+LOCALE_UNIVERSAL = {"*"}
+
 
 @dataclass(frozen=True)
 class RuleContext:

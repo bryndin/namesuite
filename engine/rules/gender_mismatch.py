@@ -9,7 +9,7 @@ Flags if the grammatical gender of the patronymic suffix conflicts with person's
 from typing import Optional, Set, Tuple
 
 from engine.compat import Person
-from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_ERROR
+from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_ERROR, LOCALE_EAST_SLAVIC
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff, swap_patronymic_gender
 
@@ -27,7 +27,7 @@ class ErrGenderMismatch(BaseRule):
 
     @property
     def supported_locales(self) -> Set[str]:
-        return {"ru", "uk", "be", "*"}
+        return LOCALE_EAST_SLAVIC
 
     @property
     def active_era(self) -> Tuple[Optional[int], Optional[int]]:
