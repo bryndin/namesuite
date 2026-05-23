@@ -116,7 +116,7 @@ from engine.linter import (
     BaseRule,
     ProposedChange,
 )
-from engine.rule import RuleContext
+from engine.rule import RuleContext, LOCALE_RU, LOCALE_UK, LOCALE_UNIVERSAL
 from engine.rule_utils import generate_pango_diff, swap_patronymic_gender
 from engine.rules import (
     ErrGenderMismatch,
@@ -203,19 +203,19 @@ class TestLinterEngineAndRules(unittest.TestCase):
         rule = ErrGenderMismatch()
 
         # 1. Male with female suffix (modern)
-        ctx1 = RuleContext("p1", "Ивановна", "Иван", Person.MALE, 1950, "ru")
+        ctx1 = RuleContext("p1", "Ивановна", "Иван", Person.MALE, 1950, LOCALE_RU)
         change1 = rule.evaluate(ctx1)
         self.assertIsNotNone(change1)
         self.assertEqual(change1.suggested_string, "Иванович")
 
         # 2. Female with male suffix (modern)
-        ctx2 = RuleContext("p2", "Иванович", "Иван", Person.FEMALE, 1950, "ru")
+        ctx2 = RuleContext("p2", "Иванович", "Иван", Person.FEMALE, 1950, LOCALE_RU)
         change2 = rule.evaluate(ctx2)
         self.assertIsNotNone(change2)
         self.assertEqual(change2.suggested_string, "Ивановна")
 
         # 3. No mismatch
-        ctx3 = RuleContext("p3", "Иванович", "Иван", Person.MALE, 1950, "ru")
+        ctx3 = RuleContext("p3", "Иванович", "Иван", Person.MALE, 1950, LOCALE_RU)
         self.assertIsNone(rule.evaluate(ctx3))
 
     def test_rule_err_lineage_mismatch(self):
@@ -223,17 +223,17 @@ class TestLinterEngineAndRules(unittest.TestCase):
         rule = ErrLineageMismatch()
 
         # 1. Father is Petr, patronymic is Ivanovich -> Mismatch
-        ctx1 = RuleContext("p1", "Иванович", "Петр", Person.MALE, 1950, "ru")
+        ctx1 = RuleContext("p1", "Иванович", "Петр", Person.MALE, 1950, LOCALE_RU)
         change1 = rule.evaluate(ctx1)
         self.assertIsNotNone(change1)
         self.assertEqual(change1.suggested_string, "Петрович")
 
         # 2. Gender mismatch but same root -> Handled by gender rule, not lineage
-        ctx2 = RuleContext("p2", "Петровна", "Петр", Person.MALE, 1950, "ru")
+        ctx2 = RuleContext("p2", "Петровна", "Петр", Person.MALE, 1950, LOCALE_RU)
         self.assertIsNone(rule.evaluate(ctx2))
 
         # 3. Correct lineage
-        ctx3 = RuleContext("p3", "Петрович", "Петр", Person.MALE, 1950, "ru")
+        ctx3 = RuleContext("p3", "Петрович", "Петр", Person.MALE, 1950, LOCALE_RU)
         self.assertIsNone(rule.evaluate(ctx3))
 
     def test_rule_warn_modern_suffix_archaic_era(self):
@@ -241,13 +241,13 @@ class TestLinterEngineAndRules(unittest.TestCase):
         rule = WarnModernSuffixArchaicEra()
 
         # Pre-1918 (1850) and modern suffix
-        ctx1 = RuleContext("p1", "Иванович", "Иван", Person.MALE, 1850, "ru")
+        ctx1 = RuleContext("p1", "Иванович", "Иван", Person.MALE, 1850, LOCALE_RU)
         change1 = rule.evaluate(ctx1)
         self.assertIsNotNone(change1)
         self.assertEqual(change1.suggested_string, "Ивановъ")
 
         # Post-1918 (1950) with modern suffix -> OK
-        ctx2 = RuleContext("p2", "Иванович", "Иван", Person.MALE, 1950, "ru")
+        ctx2 = RuleContext("p2", "Иванович", "Иван", Person.MALE, 1950, LOCALE_RU)
         self.assertIsNone(rule.evaluate(ctx2))
 
     def test_rule_warn_archaic_suffix_modern_era(self):
@@ -255,13 +255,13 @@ class TestLinterEngineAndRules(unittest.TestCase):
         rule = WarnArchaicSuffixModernEra()
 
         # Post-1918 (1950) and archaic suffix
-        ctx1 = RuleContext("p1", "Иванов", "Иван", Person.MALE, 1950, "ru")
+        ctx1 = RuleContext("p1", "Иванов", "Иван", Person.MALE, 1950, LOCALE_RU)
         change1 = rule.evaluate(ctx1)
         self.assertIsNotNone(change1)
         self.assertEqual(change1.suggested_string, "Иванович")
 
         # Pre-1918 (1850) with archaic suffix -> OK
-        ctx2 = RuleContext("p2", "Ивановъ", "Иван", Person.MALE, 1850, "ru")
+        ctx2 = RuleContext("p2", "Ивановъ", "Иван", Person.MALE, 1850, LOCALE_RU)
         self.assertIsNone(rule.evaluate(ctx2))
 
     def test_rule_err_mixed_scripts(self):
@@ -270,7 +270,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
 
         # Latin 'o' (U+006F) inside Cyrillic "Петрович"
         mixed_str = "Петр" + "o" + "вич"
-        ctx1 = RuleContext("p1", mixed_str, "", Person.MALE, 1950, "ru")
+        ctx1 = RuleContext("p1", mixed_str, "", Person.MALE, 1950, LOCALE_RU)
         change1 = rule.evaluate(ctx1)
         self.assertIsNotNone(change1)
         self.assertEqual(change1.suggested_string, "Петрович")
@@ -283,7 +283,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
         rule = WarnMorphologicalTypo()
 
         # Extra repeats
-        ctx1 = RuleContext("p1", "Андрееевич", "Андрей", Person.MALE, 1950, "ru")
+        ctx1 = RuleContext("p1", "Андрееевич", "Андрей", Person.MALE, 1950, LOCALE_RU)
         change1 = rule.evaluate(ctx1)
         self.assertIsNotNone(change1)
         self.assertEqual(change1.suggested_string, "Андреевич")
@@ -293,7 +293,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
         rule = WarnMissingHardSign()
 
         # Pre-1918 (1850) missing 'ъ'
-        ctx1 = RuleContext("p1", "Иванов", "", Person.MALE, 1850, "ru")
+        ctx1 = RuleContext("p1", "Иванов", "", Person.MALE, 1850, LOCALE_RU)
         change1 = rule.evaluate(ctx1)
         self.assertIsNotNone(change1)
         self.assertEqual(change1.suggested_string, "Ивановъ")
@@ -306,7 +306,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
         self.assertEqual(len(engine.rules), 7)
 
         # Context for a Russian pre-reform individual
-        ctx = RuleContext("p1", "Иванович", "Иван", Person.MALE, 1850, "ru")
+        ctx = RuleContext("p1", "Иванович", "Иван", Person.MALE, 1850, LOCALE_RU)
 
         # Evaluating this should trigger multiple rules: WarnModernSuffixArchaicEra, WarnMissingHardSign
         results = engine.evaluate_person(ctx)
@@ -326,7 +326,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
 
             @property
             def supported_locales(self):
-                return {"*"}
+                return {LOCALE_UNIVERSAL}
 
             @property
             def active_era(self):
@@ -346,7 +346,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
 
             @property
             def supported_locales(self):
-                return {"*"}
+                return {LOCALE_UNIVERSAL}
 
             @property
             def active_era(self):
@@ -356,7 +356,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
                 return ProposedChange("Safe", "SafeString", "SafeDiff")
 
         engine = RuleEngine(rules=[MockCrashRule(), MockSafeRule()])
-        ctx = RuleContext("p1", "Test", "Test", Person.MALE, 1900, "ru")
+        ctx = RuleContext("p1", "Test", "Test", Person.MALE, 1900, LOCALE_RU)
 
         # Should not raise an exception, and should return the result of the SafeRule
         results = engine.evaluate_person(ctx)
@@ -375,7 +375,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
 
             @property
             def supported_locales(self):
-                return {"*"}
+                return {LOCALE_UNIVERSAL}
 
             @property
             def active_era(self):
@@ -395,7 +395,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
 
             @property
             def supported_locales(self):
-                return {"uk"}
+                return {LOCALE_UK}
 
             @property
             def active_era(self):
@@ -407,17 +407,17 @@ class TestLinterEngineAndRules(unittest.TestCase):
         engine = RuleEngine(rules=[MockEraRule(), MockLocaleRule()])
 
         # Context: Year 1950 (Fails Era), Locale 'ru' (Fails Locale)
-        ctx_miss = RuleContext("p1", "Test", "Test", Person.MALE, 1950, "ru")
+        ctx_miss = RuleContext("p1", "Test", "Test", Person.MALE, 1950, LOCALE_RU)
         self.assertEqual(len(engine.evaluate_person(ctx_miss)), 0)
 
         # Context: Year 1850 (Passes Era), Locale 'uk' (Passes Locale)
-        ctx_hit = RuleContext("p2", "Test", "Test", Person.MALE, 1850, "uk")
+        ctx_hit = RuleContext("p2", "Test", "Test", Person.MALE, 1850, LOCALE_UK)
         self.assertEqual(len(engine.evaluate_person(ctx_hit)), 2)
 
     def test_engine_enabled_rules_toggle(self):
         engine = RuleEngine()  # Loads default 7 rules
         ctx = RuleContext(
-            "p1", "Иванович", "Иван", Person.FEMALE, 1950, "ru"
+            "p1", "Иванович", "Иван", Person.FEMALE, 1950, LOCALE_RU
         )  # Will trigger ErrGenderMismatch
 
         # Run with all rules
@@ -520,7 +520,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
         """Verifies that all linter rules handle None reference year without crashing."""
         engine = RuleEngine()
         # Context with reference_year = None
-        ctx = RuleContext("p1", "Иванович", "Иван", Person.MALE, None, "ru")
+        ctx = RuleContext("p1", "Иванович", "Иван", Person.MALE, None, LOCALE_RU)
 
         # This should not raise TypeError
         try:

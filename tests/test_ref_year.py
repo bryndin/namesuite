@@ -17,9 +17,6 @@ tests/test_ref_year.py
 Verifies the Reference Year resolution algorithm.
 """
 
-import sys
-import unittest
-from unittest.mock import MagicMock
 
 # -------------------------------------------------------------------------
 # Headless Decoupling Mocks

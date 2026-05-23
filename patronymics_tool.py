@@ -23,6 +23,7 @@ from gramps.gui.dialog import OkDialog, ErrorDialog
 from engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PATTERN
 from engine.logging import InferenceLogManager, generate_execution_id
 from engine.linter import RuleEngine, RuleContext, PlaceCache
+from engine.rule import LOCALE_RU
 from utils import PatronymicMixin, has_patronymic_surname
 
 _ = glocale.translation.gettext
@@ -653,7 +654,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                 ref_year, rule_source = self.resolve_reference_year(person)
                 if ref_year is None:
                     continue
-                locale = "ru"  # V1.0 focuses on Russian locale rulesets
+                locale = LOCALE_RU  # V1.0 focuses on Russian locale rulesets
 
                 ctx = RuleContext(
                     person_id=person.handle,
