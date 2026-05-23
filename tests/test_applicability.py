@@ -122,6 +122,8 @@ class MockPatronymicsTool(PatronymicMixin):
 
     def __init__(self, db):
         self.db = db
+        self.dbstate = MagicMock()
+        self.dbstate.db = db
 
     evaluate_confidence = InferPatronymicsTool.evaluate_confidence
     has_cyrillic = InferPatronymicsTool.has_cyrillic

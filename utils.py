@@ -42,11 +42,11 @@ class PatronymicMixin:
         """
         Returns the father's handle for a given person, or None if not found.
         """
-        if not self.db:
+        if not self.dbstate or not self.dbstate.db:
             return None
 
         for fam_handle in person.get_parent_family_handle_list():
-            fam = self.db.get_family_from_handle(fam_handle)
+            fam = self.dbstate.db.get_family_from_handle(fam_handle)
             if fam and fam.get_father_handle() != "":
                 return fam.get_father_handle()
         return None
