@@ -8,14 +8,7 @@ Flags post-1918 records using archaic/informal possessive endings.
 
 from typing import Optional, Set, Tuple
 
-try:
-    from gramps.gen.lib import Person
-except ImportError:
-    class Person:
-        MALE = 0
-        FEMALE = 1
-        UNKNOWN = 2
-
+from engine.compat import Person
 from engine.rule import BaseRule, RuleContext, ProposedChange
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff, archaic_to_modern

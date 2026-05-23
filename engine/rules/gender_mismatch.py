@@ -8,14 +8,7 @@ Flags if the grammatical gender of the patronymic suffix conflicts with person's
 
 from typing import Optional, Set, Tuple
 
-try:
-    from gramps.gen.lib import Person
-except ImportError:
-    class Person:
-        MALE = 0
-        FEMALE = 1
-        UNKNOWN = 2
-
+from engine.compat import Person
 from engine.rule import BaseRule, RuleContext, ProposedChange
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff, swap_patronymic_gender

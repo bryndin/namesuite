@@ -11,21 +11,7 @@ import functools
 import logging
 from typing import Optional, List, Any, Set, Tuple
 
-logger = logging.getLogger(__name__)
-
-# Gramps dependency stubs/constants mapped from core or safely fallback
-try:
-    from gramps.gen.lib import Person
-except ImportError:
-
-    class Person:
-        MALE = 0
-        FEMALE = 1
-        UNKNOWN = 2
-
-
 from engine.rule import BaseRule, RuleContext, ProposedChange
-
 from engine.rules import (
     ErrGenderMismatch,
     ErrLineageMismatch,
@@ -35,6 +21,8 @@ from engine.rules import (
     WarnMorphologicalTypo,
     WarnMissingHardSign,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class PlaceCache:
