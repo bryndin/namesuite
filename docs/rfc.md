@@ -475,8 +475,7 @@ Once the user completes their review of the `TreeView` list, clicking **[Apply S
 ## Future Work
 
 1. **Linguistic Expansion:** Add full support for Ukrainian (`-ovych`/`-ivna` shifts) and Belarusian (`-avich`/`-auna` shifts) patronymic systems (v1.1+).
-2. **Quality & Consistency Auditing:** Implement database linting checks to scan existing, manually entered patronymic names, flagging potential orthographic spelling anomalies, archaic leftovers, or suffix/gender mismatches, and suggesting corrections.
-3. **First Name Normalization:** Develop heuristics and dictionary mappings to normalize variant historical spellings or diminutive nicknames in father first names (e.g., normalising `Дмитрій`/`Митрий` $\rightarrow$ `Дмитрий`) before morphological stem parsing, raising base applicability.
+2. **First Name Normalization:** Develop heuristics and dictionary mappings to normalize variant historical spellings or diminutive nicknames in father first names (e.g., normalising `Дмитрій`/`Митрий` $\rightarrow$ `Дмитрий`) before morphological stem parsing, raising base applicability.
 
 ---
 
