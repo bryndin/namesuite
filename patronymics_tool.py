@@ -167,8 +167,8 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         scroll_win.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scan_box.pack_start(scroll_win, True, True, 0)
 
-        # TreeView Model structure: [Include, PersonName, FatherName, ReferenceYear, InferredPatronymic, Confidence, RulesString, Handle]
-        self.list_store = Gtk.ListStore(bool, str, str, int, str, str, str, str)
+        # TreeView Model structure: [Include, PersonName, FatherName, ReferenceYear, InferredPatronymic, Confidence, RulesString, GrampsID, Handle]
+        self.list_store = Gtk.ListStore(bool, str, str, int, str, str, str, str, str)
         self.tree_view = Gtk.TreeView(model=self.list_store)
         scroll_win.add(self.tree_view)
         self.setup_tree_columns()
@@ -235,8 +235,8 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         audit_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         audit_tab_box.pack_start(audit_scroll, True, True, 0)
 
-        # Auditor ListStore: [Include, Person ID/Name, Current Value, Ref Year, Triggered Rule, Suggested Fix (Markup), Handle, Rule ID, Suggested String]
-        self.audit_store = Gtk.ListStore(bool, str, str, int, str, str, str, str, str)
+        # Auditor ListStore: [Include, Person Name, GrampsID, Current Value, Ref Year, Triggered Rule, Suggested Fix (Markup), Handle, Rule ID, Suggested String]
+        self.audit_store = Gtk.ListStore(bool, str, str, str, int, str, str, str, str, str)
         self.audit_tree = Gtk.TreeView(model=self.audit_store)
         audit_scroll.add(self.audit_tree)
         self.setup_audit_columns()
@@ -302,6 +302,10 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_toggle.set_resizable(True)
         self.tree_view.append_column(col_toggle)
 
+        col_id = Gtk.TreeViewColumn(_("ID"), Gtk.CellRendererText(), text=7)
+        col_id.set_resizable(True)
+        self.tree_view.append_column(col_id)
+
         col_person = Gtk.TreeViewColumn(_("Individual"), Gtk.CellRendererText(), text=1)
         col_person.set_resizable(True)
         col_person.set_expand(True)
@@ -340,38 +344,42 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_toggle.set_resizable(True)
         self.audit_tree.append_column(col_toggle)
 
+        col_id = Gtk.TreeViewColumn(_("ID"), Gtk.CellRendererText(), text=2)
+        col_id.set_resizable(True)
+        self.audit_tree.append_column(col_id)
+
         col_person = Gtk.TreeViewColumn(
-            _("Individual ID / Name"), Gtk.CellRendererText(), text=1
+            _("Individual"), Gtk.CellRendererText(), text=1
         )
         col_person.set_resizable(True)
         col_person.set_expand(True)
         self.audit_tree.append_column(col_person)
 
         col_current = Gtk.TreeViewColumn(
-            _("Current Value"), Gtk.CellRendererText(), text=2
+            _("Current Value"), Gtk.CellRendererText(), text=3
         )
         col_current.set_resizable(True)
         self.audit_tree.append_column(col_current)
 
         renderer_year = Gtk.CellRendererText()
-        col_year = Gtk.TreeViewColumn(_("Ref Year"), renderer_year, text=3)
-        col_year.set_sort_column_id(3)
+        col_year = Gtk.TreeViewColumn(_("Ref Year"), renderer_year, text=4)
+        col_year.set_sort_column_id(4)
         col_year.set_resizable(True)
         self.audit_tree.append_column(col_year)
 
-        col_rule = Gtk.TreeViewColumn(
-            _("Triggered Rule"), Gtk.CellRendererText(), text=4
-        )
-        col_rule.set_resizable(True)
-        self.audit_tree.append_column(col_rule)
-
         # Render suggested fixes with Pango markup
         col_suggested = Gtk.TreeViewColumn(
-            _("Suggested Fix"), Gtk.CellRendererText(), markup=5
+            _("Suggested Fix"), Gtk.CellRendererText(), markup=6
         )
         col_suggested.set_resizable(True)
         col_suggested.set_expand(True)
         self.audit_tree.append_column(col_suggested)
+
+        col_rule = Gtk.TreeViewColumn(
+            _("Triggered Rule"), Gtk.CellRendererText(), text=5
+        )
+        col_rule.set_resizable(True)
+        self.audit_tree.append_column(col_rule)
 
     def setup_log_columns(self):
         """Creates table headers for rollback histories."""
@@ -584,6 +592,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                         patronymic,
                         f"{int(confidence * 100)}%",
                         rule_source,
+                        person.gramps_id,
                         handle,
                     ]
                 )
@@ -683,7 +692,8 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                     self.audit_store.append(
                         [
                             True,
-                            f"{name_displayer.display_formal(person)} ({person.gramps_id})",
+                            name_displayer.display_formal(person),
+                            person.gramps_id,
                             current_pat,
                             ref_year,
                             rule.rule_id,
