@@ -801,6 +801,36 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             median_parent_year = sorted(parent_years)[len(parent_years) // 2]
             return median_parent_year + 25, _("Generational Estimation (Parents)")
 
+        # Tier 3: Spouse and Family Events
+        # If no personal/parent events, check marriage events or spouse's events
+        family_years = []
+        for fam_handle in person.get_family_handle_list():
+            fam = self.db.get_family_from_handle(fam_handle)
+            if fam:
+                # Family events (Marriage, etc.)
+                for event_ref in fam.get_event_ref_list():
+                    event = self.db.get_event_from_handle(event_ref.ref)
+                    if event:
+                        date_obj = event.get_date_object()
+                        if date_obj and date_obj.get_year():
+                            family_years.append(date_obj.get_year())
+
+                # Spouse events
+                spouse_handle = fam.get_father_handle() if person.get_gender() == Person.FEMALE else fam.get_mother_handle()
+                if spouse_handle:
+                    spouse = self.db.get_person_from_handle(spouse_handle)
+                    if spouse:
+                        for event_ref in spouse.get_event_ref_list():
+                            event = self.db.get_event_from_handle(event_ref.ref)
+                            if event:
+                                date_obj = event.get_date_object()
+                                if date_obj and date_obj.get_year():
+                                    family_years.append(date_obj.get_year())
+
+        if family_years:
+            median_family_year = sorted(family_years)[len(family_years) // 2]
+            return median_family_year, _("Generational Estimation (Spouse/Family)")
+
         # Siblings: Median year of sibling events
         sibling_years = []
         for fam_handle in person.get_parent_family_handle_list():
