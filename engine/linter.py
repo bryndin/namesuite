@@ -105,7 +105,7 @@ class RuleEngine:
 
             # 2. Match locale
             if (
-                rule.supported_locales != LOCALE_UNIVERSAL
+                rule.supported_locales != {LOCALE_UNIVERSAL}
                 and ctx.locale not in rule.supported_locales
             ):
                 continue
