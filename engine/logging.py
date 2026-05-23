@@ -10,7 +10,7 @@ to isolate data and prevent database pollution.
 import os
 import json
 import platform
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
 
@@ -116,7 +116,7 @@ class InferenceLogManager:
         
         execution_record = {
             "execution_id": execution_id,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "plugin_id": plugin_id,
             "changes": changes
         }
