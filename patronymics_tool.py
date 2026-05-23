@@ -4,12 +4,13 @@
 patronymics_tool.py
 
 Batch Tool Addon for Gramps. Scan records, evaluate multi-signal confidence,
-and batch-apply inferred patronymic name fields with clean reversibility logs.
+batch-apply inferred patronymics, and run morphological consistency audits (linter)
+with clean transaction logging and total reversibility.
 """
 
 import os
 import re
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 
 # Gramps modules
 from gramps.gen.const import GRAMPS_LOCALE as glocale
@@ -21,6 +22,7 @@ from gramps.gui.dialog import OkDialog, ErrorDialog
 # Custom modular imports
 from engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PATTERN
 from engine.logging import InferenceLogManager, generate_execution_id
+from engine.linter import RuleEngine, RuleContext, PlaceCache
 
 _ = glocale.translation.gettext
 
@@ -56,10 +58,44 @@ def get_patronymic_value(name_obj) -> str:
     return ""
 
 
+def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:
+    """
+    Updates an existing patronymic Surname object in the list, or adds a new one.
+    Returns the original patronymic value (or empty string).
+    """
+    surnames = primary_name.get_surname_list()
+    orig_pat = ""
+    found = False
+
+    for s in surnames:
+        orig = s.get_origintype()
+        is_patro = (
+            orig == NameOriginType.PATRONYMIC
+            or orig == 5
+            or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
+            or getattr(orig, "value", None) == 5
+            or str(orig).strip() == "Patronymic"
+        )
+        if is_patro:
+            orig_pat = s.get_surname()
+            s.set_surname(new_patronymic_value)
+            found = True
+            break
+
+    if not found:
+        surn_obj = Surname()
+        surn_obj.set_surname(new_patronymic_value)
+        surn_obj.set_origintype(NameOriginType.PATRONYMIC)
+        surn_obj.set_primary(False)
+        primary_name.add_surname(surn_obj)
+
+    return orig_pat
+
+
 class InferPatronymicsTool(tool.Tool):
     """
     GTK Batch Processing Wizard to evaluate, filter, and write
-    inferred patronymic records safely.
+    inferred patronymic records safely, alongside morphological linter audits.
     """
 
     def __init__(self, dbstate, user, options_class, name, callback=None, **kwargs):
@@ -82,12 +118,16 @@ class InferPatronymicsTool(tool.Tool):
         # In-memory storage of calculated candidates
         self.scanned_candidates = []
 
-        # Build GTK Window UI+
+        # Initialize Linter Engine and active rules list
+        self.linter_engine = RuleEngine()
+        self.enabled_rules = {rule.rule_id: True for rule in self.linter_engine.rules}
+
+        # Build GTK Window UI
         self.build_window()
 
     def build_window(self):
         self.window = Gtk.Window(title=_("Infer East Slavic Patronymics"))
-        self.window.set_default_size(850, 550)
+        self.window.set_default_size(900, 600)
         self.window.set_position(Gtk.WindowPosition.CENTER)
         self.window.set_border_width(12)
 
@@ -102,7 +142,7 @@ class InferPatronymicsTool(tool.Tool):
         notebook = Gtk.Notebook()
         main_box.pack_start(notebook, True, True, 0)
 
-        # --- TAB 1: Scan & Apply ---
+        # --- TAB 1: Scan & Apply (Inference Engine) ---
         scan_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         scan_box.set_border_width(8)
         notebook.append_page(scan_box, Gtk.Label(label=_("Inference Engine")))
@@ -155,7 +195,73 @@ class InferPatronymicsTool(tool.Tool):
         self.apply_btn.connect("clicked", self.on_apply_clicked)
         self.exec_box.pack_end(self.apply_btn, False, False, 0)
 
-        # --- TAB 2: Reversibility & Rollbacks ---
+        # --- TAB 2: Database Auditor (The Linter) ---
+        audit_tab_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        audit_tab_box.set_border_width(8)
+        notebook.append_page(audit_tab_box, Gtk.Label(label=_("Database Auditor")))
+
+        # Filter and Configuration Header Frame
+        audit_header_frame = Gtk.Frame(label=_("Auditing Settings"))
+        audit_tab_box.pack_start(audit_header_frame, False, False, 0)
+
+        audit_header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
+        audit_header_box.set_border_width(8)
+        audit_header_frame.add(audit_header_box)
+
+        # Filter Dropdown Scope
+        filter_label = Gtk.Label(label=_("Target Scope:"))
+        audit_header_box.pack_start(filter_label, False, False, 0)
+
+        self.audit_scope_combo = Gtk.ComboBoxText()
+        self.audit_scope_combo.append_text(_("All Records"))
+        self.audit_scope_combo.append_text(_("Males Only"))
+        self.audit_scope_combo.append_text(_("Females Only"))
+        self.audit_scope_combo.set_active(0)
+        audit_header_box.pack_start(self.audit_scope_combo, False, False, 0)
+
+        # Rules config trigger button
+        self.rules_config_btn = Gtk.Button(label=_("Configure Rules..."))
+        self.rules_config_btn.connect("clicked", self.on_configure_rules_clicked)
+        audit_header_box.pack_start(self.rules_config_btn, False, False, 0)
+
+        # Progress panel & trigger button
+        audit_action_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        audit_tab_box.pack_start(audit_action_box, False, False, 0)
+
+        self.audit_run_btn = Gtk.Button(label=_("Audit Database"))
+        self.audit_run_btn.connect("clicked", self.on_audit_clicked)
+        audit_action_box.pack_start(self.audit_run_btn, False, False, 0)
+
+        self.audit_progress = Gtk.ProgressBar()
+        self.audit_progress.set_show_text(True)
+        audit_action_box.pack_start(self.audit_progress, True, True, 0)
+
+        # Scrolled TreeView panel for Auditor
+        audit_scroll = Gtk.ScrolledWindow()
+        audit_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        audit_tab_box.pack_start(audit_scroll, True, True, 0)
+
+        # Auditor ListStore: [Include, Person ID/Name, Current Value, Triggered Rule, Suggested Fix (Markup), Handle, Rule ID, Suggested String]
+        self.audit_store = Gtk.ListStore(bool, str, str, str, str, str, str, str)
+        self.audit_tree = Gtk.TreeView(model=self.audit_store)
+        audit_scroll.add(self.audit_tree)
+        self.setup_audit_columns()
+
+        # Action Footer
+        audit_footer_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        audit_tab_box.pack_start(audit_footer_box, False, False, 0)
+
+        self.audit_select_all = Gtk.CheckButton(label=_("Select All Safe Corrections"))
+        self.audit_select_all.set_active(True)
+        self.audit_select_all.connect("toggled", self.on_audit_select_all_toggled)
+        audit_footer_box.pack_start(self.audit_select_all, False, False, 0)
+
+        self.audit_apply_btn = Gtk.Button(label=_("Apply Selected Corrections"))
+        self.audit_apply_btn.set_sensitive(False)
+        self.audit_apply_btn.connect("clicked", self.on_audit_apply_clicked)
+        audit_footer_box.pack_end(self.audit_apply_btn, False, False, 0)
+
+        # --- TAB 3: Reversibility & Rollbacks ---
         rollback_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         rollback_box.set_border_width(8)
         notebook.append_page(rollback_box, Gtk.Label(label=_("Transaction Reversions")))
@@ -225,6 +331,34 @@ class InferPatronymicsTool(tool.Tool):
         )
         self.tree_view.append_column(col_rules)
 
+    def setup_audit_columns(self):
+        """Creates table headers and renderers for the Auditor results."""
+        renderer_toggle = Gtk.CellRendererToggle()
+        renderer_toggle.connect("toggled", self.on_audit_row_toggled)
+        col_toggle = Gtk.TreeViewColumn(_("Apply"), renderer_toggle, active=0)
+        self.audit_tree.append_column(col_toggle)
+
+        col_person = Gtk.TreeViewColumn(
+            _("Individual ID / Name"), Gtk.CellRendererText(), text=1
+        )
+        self.audit_tree.append_column(col_person)
+
+        col_current = Gtk.TreeViewColumn(
+            _("Current Value"), Gtk.CellRendererText(), text=2
+        )
+        self.audit_tree.append_column(col_current)
+
+        col_rule = Gtk.TreeViewColumn(
+            _("Triggered Rule"), Gtk.CellRendererText(), text=3
+        )
+        self.audit_tree.append_column(col_rule)
+
+        # Render suggested fixes with Pango markup
+        col_suggested = Gtk.TreeViewColumn(
+            _("Suggested Fix"), Gtk.CellRendererText(), markup=4
+        )
+        self.audit_tree.append_column(col_suggested)
+
     def setup_log_columns(self):
         """Creates table headers for rollback histories."""
         self.log_tree.append_column(
@@ -246,8 +380,18 @@ class InferPatronymicsTool(tool.Tool):
     def on_row_toggled(self, widget, path):
         self.list_store[path][0] = not self.list_store[path][0]
 
+    def on_audit_row_toggled(self, widget, path):
+        self.audit_store[path][0] = not self.audit_store[path][0]
+        self.update_audit_apply_button()
+
+    def on_audit_select_all_toggled(self, widget):
+        is_active = self.audit_select_all.get_active()
+        for row in self.audit_store:
+            row[0] = is_active
+        self.update_audit_apply_button()
+
     def update_action_buttons(self):
-        """Sets sensitive states of GTK controls dynamically."""
+        """Sets sensitive states of GTK controls dynamically for Tab 1."""
         has_results = len(self.list_store) > 0
         is_dry_run = self.dry_run_check.get_active()
 
@@ -257,6 +401,11 @@ class InferPatronymicsTool(tool.Tool):
         else:
             self.apply_btn.set_sensitive(has_results)
             self.apply_btn.set_label(_("Commit Checked Inferences"))
+
+    def update_audit_apply_button(self):
+        """Sets sensitive states of GTK controls dynamically for Tab 2."""
+        has_checked = any(row[0] for row in self.audit_store)
+        self.audit_apply_btn.set_sensitive(has_checked)
 
     def refresh_log_history(self):
         """Reloads and binds the list of prior JSON logged execution profiles."""
@@ -284,7 +433,6 @@ class InferPatronymicsTool(tool.Tool):
         score = 0.0
 
         # Signal 1: Cyrillic Script Check (+0.50)
-        # Direct indicator of East Slavic localizations
         full_name_str = primary_name.get_regular_name()
         if self.has_cyrillic(full_name_str):
             score += 0.50
@@ -308,8 +456,41 @@ class InferPatronymicsTool(tool.Tool):
 
         return min(score, 1.0)
 
+    def on_configure_rules_clicked(self, widget):
+        """Opens settings dialog allowing users to toggle specific rules."""
+        dialog = Gtk.Dialog(
+            title=_("Configure Validation Rules"),
+            parent=self.window,
+            flags=Gtk.DialogFlags.MODAL,
+        )
+        dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        dialog.set_default_size(320, 320)
+
+        content = dialog.get_content_area()
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        content.pack_start(scroll, True, True, 10)
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        vbox.set_border_width(10)
+        scroll.add(vbox)
+
+        checks = {}
+        for rule in self.linter_engine.rules:
+            chk = Gtk.CheckButton(label=f"{rule.rule_id} ({rule.severity})")
+            chk.set_active(self.enabled_rules[rule.rule_id])
+            vbox.pack_start(chk, False, False, 0)
+            checks[rule.rule_id] = chk
+
+        dialog.show_all()
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            for r_id, chk in checks.items():
+                self.enabled_rules[r_id] = chk.get_active()
+        dialog.destroy()
+
     def on_scan_clicked(self, widget):
-        """Scans the database and populates our list of candidates."""
+        """Scans the database and populates our list of candidates (Tab 1)."""
         self.list_store.clear()
         self.scanned_candidates = []
 
@@ -380,6 +561,171 @@ class InferPatronymicsTool(tool.Tool):
                 )
 
         self.update_action_buttons()
+
+    def on_audit_clicked(self, widget):
+        """Performs database-wide consistency scan using GLib.idle_add for responsive chunking."""
+        self.audit_store.clear()
+        self.audit_run_btn.set_sensitive(False)
+        self.audit_apply_btn.set_sensitive(False)
+
+        scope_idx = (
+            self.audit_scope_combo.get_active()
+        )  # 0: All, 1: Males Only, 2: Females Only
+        handles = list(self.db.get_person_handles())
+        total = len(handles)
+
+        if total == 0:
+            self.audit_run_btn.set_sensitive(True)
+            return
+
+        self.audit_progress.set_fraction(0.0)
+        self.audit_progress.set_text(f"0 / {total}")
+
+        # Instantiate dynamic session-scoped PlaceCache
+        place_cache = PlaceCache(self.db)
+
+        # Track our progress iterator in mutable box
+        idx = [0]
+        active_rules = {r_id for r_id, val in self.enabled_rules.items() if val}
+
+        def audit_idle():
+            if idx[0] >= total:
+                self.audit_progress.set_fraction(1.0)
+                self.audit_progress.set_text(_("Audit Complete!"))
+                self.audit_run_btn.set_sensitive(True)
+                self.update_audit_apply_button()
+                return False  # Stops the idle worker
+
+            chunk_size = 50
+            end = min(idx[0] + chunk_size, total)
+
+            for i in range(idx[0], end):
+                handle = handles[i]
+                person = self.db.get_person_from_handle(handle)
+                if not person:
+                    continue
+
+                gender_val = person.get_gender()
+
+                # Filter gender scope
+                if scope_idx == 1 and gender_val != Person.MALE:
+                    continue
+                if scope_idx == 2 and gender_val != Person.FEMALE:
+                    continue
+
+                primary_name = person.get_primary_name()
+                current_pat = get_patronymic_value(primary_name)
+
+                # We only audit individuals with existing patronymic Surnames
+                if not current_pat:
+                    continue
+
+                father_handle = self.get_father_handle(person)
+                father_name = ""
+                if father_handle:
+                    father = self.db.get_person_from_handle(father_handle)
+                    if father:
+                        father_name = father.get_primary_name().get_first_name() or ""
+
+                ref_year, rule_source = self.resolve_reference_year(person)
+                locale = "ru"  # V1.0 focuses on Russian locale rulesets
+
+                ctx = RuleContext(
+                    person_id=person.handle,
+                    current_patronymic=current_pat,
+                    father_given_name=father_name,
+                    gramps_gender=gender_val,
+                    reference_year=ref_year,
+                    locale=locale,
+                    _place_resolver=place_cache.get_places,
+                )
+
+                # Run dispatcher engine
+                triggered = self.linter_engine.evaluate_person(
+                    ctx, enabled_rules=active_rules
+                )
+
+                for rule, change in triggered:
+                    self.audit_store.append(
+                        [
+                            True,
+                            f"{primary_name.get_regular_name()} ({person.gramps_id})",
+                            current_pat,
+                            rule.rule_id,
+                            change.diff_markup,
+                            handle,
+                            rule.rule_id,
+                            change.suggested_string,
+                        ]
+                    )
+
+            idx[0] = end
+            fraction = idx[0] / total
+            self.audit_progress.set_fraction(fraction)
+            self.audit_progress.set_text(f"{idx[0]} / {total}")
+            return True  # Continues the idle handler
+
+        GLib.idle_add(audit_idle)
+
+    def on_audit_apply_clicked(self, widget):
+        """Commits selected auditor suggestions inside transaction & records log."""
+        changes_to_apply = []
+        for row in self.audit_store:
+            if row[0]:
+                changes_to_apply.append(
+                    {"handle": row[5], "suggested_string": row[7], "rule_id": row[6]}
+                )
+
+        if not changes_to_apply:
+            OkDialog(
+                _("No Checked Records"),
+                _("Please select at least one correction to apply."),
+                self.window,
+            )
+            return
+
+        exec_id = generate_execution_id()
+        logged_changes = []
+
+        with DbTxn(_("Apply Linter Corrections"), self.db) as txn:
+            for item in changes_to_apply:
+                person = self.db.get_person_from_handle(item["handle"])
+                if person:
+                    primary_name = person.get_primary_name()
+
+                    # Update existing Surname or append new one
+                    orig_pat = update_or_add_patronymic(
+                        primary_name, item["suggested_string"]
+                    )
+                    self.db.commit_person(person, txn)
+
+                    logged_changes.append(
+                        {
+                            "person_handle": item["handle"],
+                            "original_value": orig_pat,
+                            "inferred_value": item["suggested_string"],
+                            "father_handle": self.get_father_handle(person),
+                            "reference_year": 1950,  # Default proxy year
+                            "pre_reform": False,
+                            "confidence_score": 1.0,  # Complete linter certainty
+                            "applied_heuristics": [item["rule_id"]],
+                        }
+                    )
+
+        # Append to localized reversibility log
+        self.log_manager.log_execution(
+            exec_id, "east_slavic_patronymic_linter", logged_changes
+        )
+
+        self.audit_store.clear()
+        self.audit_apply_btn.set_sensitive(False)
+        self.refresh_log_history()
+
+        OkDialog(
+            _("Success"),
+            _("Auditor corrections applied and logged successfully."),
+            self.window,
+        )
 
     def get_father_handle(self, person):
         for fam_handle in person.get_parent_family_handle_list():
