@@ -544,6 +544,8 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                 continue
 
             ref_year, rule_source = self.resolve_reference_year(person)
+            if ref_year is None:
+                continue
             pre_reform = (
                 self.script_check.get_active()
                 if self.script_check.get_active()
@@ -870,7 +872,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             median_child_year = sorted(child_years)[len(child_years) // 2]
             return median_child_year - 25, _("Generational Estimation (Children)")
 
-        return 1920, _("Default Modern Era")
+        return None, None
 
     def on_apply_clicked(self, widget):
         changes_to_apply = []

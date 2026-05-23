@@ -173,8 +173,8 @@ class TestReferenceYearResolution(unittest.TestCase):
         person.get_family_handle_list.return_value = []
         
         year, source = self.tool.resolve_reference_year(person)
-        self.assertEqual(year, 1920)
-        self.assertIn("Default Modern Era", source)
+        self.assertIsNone(year)
+        self.assertIsNone(source)
 
 if __name__ == "__main__":
     unittest.main()
