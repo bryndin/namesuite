@@ -42,9 +42,16 @@ gramps_gen_mock = MagicMock()
 gramps_gen_const_mock = MagicMock()
 gramps_gen_db_mock = MagicMock()
 gramps_gen_lib_mock = MagicMock()
+gramps_gen_display_name_mock = MagicMock()
 gramps_gui_mock = MagicMock()
 gramps_gui_plug_mock = MagicMock()
 gramps_gui_dialog_mock = MagicMock()
+
+# Mock displayer
+gramps_gen_display_name_mock.displayer.display_formal.return_value = "Mock Name"
+
+# Gramps localization mock
+gramps_gen_const_mock.GRAMPS_LOCALE.translation.gettext = lambda x: x
 
 
 # Mock gramps.gen.lib
@@ -79,9 +86,6 @@ gramps_gen_lib_mock.NameOriginType = NameOriginType
 gramps_gen_lib_mock.Surname = Surname
 gramps_gen_lib_mock.Person = MagicMock()
 
-# Gramps localization mock
-gramps_gen_const_mock.GRAMPS_LOCALE.translation.gettext = lambda x: x
-
 
 class MockToolBase:
     def __init__(self, *args, **kwargs):
@@ -103,6 +107,7 @@ sys.modules["gramps.gen"] = gramps_gen_mock
 sys.modules["gramps.gen.const"] = gramps_gen_const_mock
 sys.modules["gramps.gen.db"] = gramps_gen_db_mock
 sys.modules["gramps.gen.lib"] = gramps_gen_lib_mock
+sys.modules["gramps.gen.display.name"] = gramps_gen_display_name_mock
 sys.modules["gramps.gui"] = gramps_gui_mock
 sys.modules["gramps.gui.plug"] = gramps_gui_plug_mock
 sys.modules["gramps.gui.dialog"] = gramps_gui_dialog_mock

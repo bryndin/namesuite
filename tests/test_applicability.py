@@ -32,49 +32,23 @@ sys.modules["gi.repository.Gtk"] = gtk_mock
 # Create parent package mocks
 gramps_mock = MagicMock()
 gramps_gen_mock = MagicMock()
+gramps_gen_const_mock = MagicMock()
 gramps_gen_db_mock = MagicMock()
+gramps_gen_lib_mock = MagicMock()
+gramps_gen_display_name_mock = MagicMock()
 gramps_gui_mock = MagicMock()
 gramps_gui_plug_mock = MagicMock()
 gramps_gui_dialog_mock = MagicMock()
 
-
-# Simple context manager stub for transactions
-class DbTxn:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-
-
-gramps_gen_db_mock.DbTxn = DbTxn
-
-
-# Simple base class stubs to prevent inheritance errors
-class MockToolBase:
-    def __init__(self, *args, **kwargs):
-        pass
-
-
-class MockToolOptionsBase:
-    def __init__(self, *args, **kwargs):
-        pass
-
-
-tool_module = MagicMock()
-tool_module.Tool = MockToolBase
-tool_module.ToolOptions = MockToolOptionsBase
-gramps_gui_plug_mock.tool = tool_module
+# Mock displayer
+gramps_gen_display_name_mock.displayer.display_formal.return_value = "Mock Name"
 
 # Gramps localization mock
 gen_const = MagicMock()
 gen_const.GRAMPS_LOCALE.translation.gettext = lambda x: x
 
 
-# Gramps model stubs
+# Mock gramps.gen.lib
 class NameOriginType:
     UNKNOWN = 0
     CUSTOM = 1
@@ -93,16 +67,33 @@ class Surname:
         return self._origin
 
 
-gen_lib = MagicMock()
-gen_lib.NameOriginType = NameOriginType
-gen_lib.Surname = Surname
+gramps_gen_lib_mock.NameOriginType = NameOriginType
+gramps_gen_lib_mock.Surname = Surname
+gramps_gen_lib_mock.Person = MagicMock()
+
+
+class MockToolBase:
+    def __init__(self, *args, **kwargs):
+        pass
+
+
+class MockToolOptionsBase:
+    def __init__(self, *args, **kwargs):
+        pass
+
+
+tool_module = MagicMock()
+tool_module.Tool = MockToolBase
+tool_module.ToolOptions = MockToolOptionsBase
+gramps_gui_plug_mock.tool = tool_module
 
 # Populate sys.modules for all required levels to prevent ModuleNotFoundError
 sys.modules["gramps"] = gramps_mock
 sys.modules["gramps.gen"] = gramps_gen_mock
 sys.modules["gramps.gen.const"] = gen_const
 sys.modules["gramps.gen.db"] = gramps_gen_db_mock
-sys.modules["gramps.gen.lib"] = gen_lib
+sys.modules["gramps.gen.lib"] = gramps_gen_lib_mock
+sys.modules["gramps.gen.display.name"] = gramps_gen_display_name_mock
 sys.modules["gramps.gui"] = gramps_gui_mock
 sys.modules["gramps.gui.plug"] = gramps_gui_plug_mock
 sys.modules["gramps.gui.dialog"] = gramps_gui_dialog_mock

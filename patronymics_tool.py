@@ -17,6 +17,7 @@ from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gui.plug import tool
 from gramps.gen.db import DbTxn
 from gramps.gen.lib import Surname, NameOriginType, Person
+from gramps.gen.display.name import displayer as name_displayer
 from gramps.gui.dialog import OkDialog, ErrorDialog
 
 # Custom modular imports
@@ -310,9 +311,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_father.set_resizable(True)
         self.tree_view.append_column(col_father)
 
-        col_year = Gtk.TreeViewColumn(
-            _("Ref Year"), Gtk.CellRendererText(), text=3
-        )
+        col_year = Gtk.TreeViewColumn(_("Ref Year"), Gtk.CellRendererText(), text=3)
         col_year.set_resizable(True)
         self.tree_view.append_column(col_year)
 
@@ -376,20 +375,28 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
 
     def setup_log_columns(self):
         """Creates table headers for rollback histories."""
-        col_exec_id = Gtk.TreeViewColumn(_("Execution ID"), Gtk.CellRendererText(), text=0)
+        col_exec_id = Gtk.TreeViewColumn(
+            _("Execution ID"), Gtk.CellRendererText(), text=0
+        )
         col_exec_id.set_resizable(True)
         self.log_tree.append_column(col_exec_id)
 
-        col_timestamp = Gtk.TreeViewColumn(_("Execution Timestamp"), Gtk.CellRendererText(), text=1)
+        col_timestamp = Gtk.TreeViewColumn(
+            _("Execution Timestamp"), Gtk.CellRendererText(), text=1
+        )
         col_timestamp.set_resizable(True)
         col_timestamp.set_expand(True)
         self.log_tree.append_column(col_timestamp)
 
-        col_changes = Gtk.TreeViewColumn(_("Changes Written"), Gtk.CellRendererText(), text=2)
+        col_changes = Gtk.TreeViewColumn(
+            _("Changes Written"), Gtk.CellRendererText(), text=2
+        )
         col_changes.set_resizable(True)
         self.log_tree.append_column(col_changes)
 
-        col_plugin = Gtk.TreeViewColumn(_("Plugin Applied"), Gtk.CellRendererText(), text=3)
+        col_plugin = Gtk.TreeViewColumn(
+            _("Plugin Applied"), Gtk.CellRendererText(), text=3
+        )
         col_plugin.set_resizable(True)
         self.log_tree.append_column(col_plugin)
 
@@ -571,7 +578,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                 self.list_store.append(
                     [
                         True,
-                        primary_name.get_regular_name(),
+                        name_displayer.display_formal(person),
                         father_first_name,
                         ref_year,
                         patronymic,
@@ -676,7 +683,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                     self.audit_store.append(
                         [
                             True,
-                            f"{primary_name.get_regular_name()} ({person.gramps_id})",
+                            f"{name_displayer.display_formal(person)} ({person.gramps_id})",
                             current_pat,
                             ref_year,
                             rule.rule_id,
@@ -821,7 +828,11 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                             family_years.append(date_obj.get_year())
 
                 # Spouse events
-                spouse_handle = fam.get_father_handle() if person.get_gender() == Person.FEMALE else fam.get_mother_handle()
+                spouse_handle = (
+                    fam.get_father_handle()
+                    if person.get_gender() == Person.FEMALE
+                    else fam.get_mother_handle()
+                )
                 if spouse_handle:
                     spouse = self.db.get_person_from_handle(spouse_handle)
                     if spouse:
