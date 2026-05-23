@@ -19,22 +19,31 @@ LATIN_PATTERN = re.compile(r"[a-zA-Z]")
 
 # Common Cyrillic-Latin homoglyph mapping dictionary
 HOMOGLYPHS = {
-    'a': 'а', 'A': 'А',
-    'c': 'с', 'C': 'С',
-    'e': 'е', 'E': 'Е',
-    'o': 'о', 'O': 'О',
-    'p': 'р', 'P': 'Р',
-    'x': 'х', 'X': 'Х',
-    'y': 'у', 'Y': 'У',
-    'H': 'Н', 'K': 'К',
-    'M': 'М', 'T': 'Т',
-    'B': 'В',
+    "a": "а",
+    "A": "А",
+    "c": "с",
+    "C": "С",
+    "e": "е",
+    "E": "Е",
+    "o": "о",
+    "O": "О",
+    "p": "р",
+    "P": "Р",
+    "x": "х",
+    "X": "Х",
+    "y": "у",
+    "Y": "У",
+    "H": "Н",
+    "K": "К",
+    "M": "М",
+    "T": "Т",
+    "B": "В",
 }
 
 
 class ErrMixedScripts(BaseRule):
     """Detects and corrects mixed Cyrillic and Latin homoglyphs in patronymic strings."""
-    
+
     @property
     def rule_id(self) -> str:
         return "ERR_MIXED_SCRIPTS"
@@ -57,19 +66,19 @@ class ErrMixedScripts(BaseRule):
 
         has_cyr = bool(CYRILLIC_PATTERN.search(ctx.current_patronymic))
         has_lat = bool(LATIN_PATTERN.search(ctx.current_patronymic))
-        
+
         if has_cyr and has_lat:
             # Map Latin characters to Cyrillic homoglyphs
             chars = []
             for char in ctx.current_patronymic:
                 chars.append(HOMOGLYPHS.get(char, char))
             suggested = "".join(chars)
-            
+
             if suggested != ctx.current_patronymic:
                 return ProposedChange(
                     explanation="Typographical error: Contains a mixture of Cyrillic and Latin homoglyph Unicode characters.",
                     suggested_string=suggested,
-                    diff_markup=generate_pango_diff(ctx.current_patronymic, suggested)
+                    diff_markup=generate_pango_diff(ctx.current_patronymic, suggested),
                 )
 
         return None

@@ -10,14 +10,19 @@ from typing import Optional, Set, Tuple
 
 from engine.compat import Person
 from engine.rule import BaseRule, RuleContext, ProposedChange
-from engine.constants import SEVERITY_ERROR, LOCALE_EAST_SLAVIC, LOCALE_RU, REFORM_YEAR_1918
+from engine.constants import (
+    SEVERITY_ERROR,
+    LOCALE_EAST_SLAVIC,
+    LOCALE_RU,
+    REFORM_YEAR_1918,
+)
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff
 
 
 class ErrLineageMismatch(BaseRule):
     """Flags if the patronymic base/root does not match the linked biological father's name."""
-    
+
     @property
     def rule_id(self) -> str:
         return "ERR_LINEAGE_MISMATCH"
@@ -38,23 +43,48 @@ class ErrLineageMismatch(BaseRule):
         if not ctx.father_given_name or not ctx.current_patronymic:
             return None
 
-        is_male = (ctx.gramps_gender == Person.MALE)
-        pre_reform = (ctx.locale == LOCALE_RU and ctx.reference_year is not None and ctx.reference_year < REFORM_YEAR_1918 and ctx.use_pre_reform)
-        
+        is_male = ctx.gramps_gender == Person.MALE
+        pre_reform = (
+            ctx.locale == LOCALE_RU
+            and ctx.reference_year is not None
+            and ctx.reference_year < REFORM_YEAR_1918
+            and ctx.use_pre_reform
+        )
+
         # Resolve target expected patronymic for active context
         expected = generate_east_slavic_patronymic(
-            ctx.father_given_name, is_male=is_male, year=ctx.reference_year, pre_reform_script=pre_reform
+            ctx.father_given_name,
+            is_male=is_male,
+            year=ctx.reference_year,
+            pre_reform_script=pre_reform,
         )
 
         if not expected or ctx.current_patronymic == expected:
             return None
 
         # Cross-reference pre-1918 and post-1918 variant states to avoid flagging anachronisms as lineage mismatch
-        expected_modern = generate_east_slavic_patronymic(ctx.father_given_name, is_male=is_male, year=1950, pre_reform_script=False)
-        expected_archaic = generate_east_slavic_patronymic(ctx.father_given_name, is_male=is_male, year=1850, pre_reform_script=(ctx.locale == LOCALE_RU))
-        
-        opposite_modern = generate_east_slavic_patronymic(ctx.father_given_name, is_male=not is_male, year=1950, pre_reform_script=False)
-        opposite_archaic = generate_east_slavic_patronymic(ctx.father_given_name, is_male=not is_male, year=1850, pre_reform_script=(ctx.locale == LOCALE_RU))
+        expected_modern = generate_east_slavic_patronymic(
+            ctx.father_given_name, is_male=is_male, year=1950, pre_reform_script=False
+        )
+        expected_archaic = generate_east_slavic_patronymic(
+            ctx.father_given_name,
+            is_male=is_male,
+            year=1850,
+            pre_reform_script=(ctx.locale == LOCALE_RU),
+        )
+
+        opposite_modern = generate_east_slavic_patronymic(
+            ctx.father_given_name,
+            is_male=not is_male,
+            year=1950,
+            pre_reform_script=False,
+        )
+        opposite_archaic = generate_east_slavic_patronymic(
+            ctx.father_given_name,
+            is_male=not is_male,
+            year=1850,
+            pre_reform_script=(ctx.locale == LOCALE_RU),
+        )
 
         # If it matches the opposite gender expected base, route it to ERR_GENDER_MISMATCH instead
         if ctx.current_patronymic in (opposite_modern, opposite_archaic):
@@ -67,5 +97,5 @@ class ErrLineageMismatch(BaseRule):
         return ProposedChange(
             explanation=f"Lineage mismatch: The patronymic does not match father's given name '{ctx.father_given_name}'.",
             suggested_string=expected,
-            diff_markup=generate_pango_diff(ctx.current_patronymic, expected)
+            diff_markup=generate_pango_diff(ctx.current_patronymic, expected),
         )

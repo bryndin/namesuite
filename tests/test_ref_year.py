@@ -46,21 +46,34 @@ gramps_gui_mock = MagicMock()
 gramps_gui_plug_mock = MagicMock()
 gramps_gui_dialog_mock = MagicMock()
 
+
 # Mock gramps.gen.lib
 class NameOriginType:
     UNKNOWN = 0
     CUSTOM = 1
     PATRONYMIC = 5
 
+
 class Surname:
     def __init__(self, surname_str="", origin=NameOriginType.UNKNOWN):
         self._surname = surname_str
         self._origin = origin
-    def get_surname(self) -> str: return self._surname
-    def set_surname(self, val): self._surname = val
-    def get_origintype(self): return self._origin
-    def set_origintype(self, val): self._origin = val
-    def set_primary(self, val): pass
+
+    def get_surname(self) -> str:
+        return self._surname
+
+    def set_surname(self, val):
+        self._surname = val
+
+    def get_origintype(self):
+        return self._origin
+
+    def set_origintype(self, val):
+        self._origin = val
+
+    def set_primary(self, val):
+        pass
+
 
 gramps_gen_lib_mock.NameOriginType = NameOriginType
 gramps_gen_lib_mock.Surname = Surname
@@ -69,13 +82,16 @@ gramps_gen_lib_mock.Person = MagicMock()
 # Gramps localization mock
 gramps_gen_const_mock.GRAMPS_LOCALE.translation.gettext = lambda x: x
 
+
 class MockToolBase:
     def __init__(self, *args, **kwargs):
         pass
 
+
 class MockToolOptionsBase:
     def __init__(self, *args, **kwargs):
         pass
+
 
 tool_module = MagicMock()
 tool_module.Tool = MockToolBase
@@ -92,21 +108,20 @@ sys.modules["gramps.gui.plug"] = gramps_gui_plug_mock
 sys.modules["gramps.gui.dialog"] = gramps_gui_dialog_mock
 
 
-
 # Now import the tool
 from patronymics_tool import InferPatronymicsTool
 from gramps.gen.lib import Person
 
 
-
-
 class MockEvent:
     def __init__(self, year):
         self.year = year
+
     def get_date_object(self):
         date_obj = MagicMock()
         date_obj.get_year.return_value = self.year
         return date_obj
+
 
 class TestReferenceYearResolution(unittest.TestCase):
     def setUp(self):
@@ -115,16 +130,25 @@ class TestReferenceYearResolution(unittest.TestCase):
         self.tool = MagicMock(spec=InferPatronymicsTool)
         self.tool.db = self.mock_db
         # Re-bind the method we want to test
-        self.tool.resolve_reference_year = InferPatronymicsTool.resolve_reference_year.__get__(self.tool, InferPatronymicsTool)
+        self.tool.resolve_reference_year = (
+            InferPatronymicsTool.resolve_reference_year.__get__(
+                self.tool, InferPatronymicsTool
+            )
+        )
 
     def test_tier1_latest_event_year(self):
         person = MagicMock()
         event1 = MockEvent(1850)
         event2 = MockEvent(1880)
-        person.get_event_ref_list.return_value = [MagicMock(ref="E1"), MagicMock(ref="E2")]
-        
-        self.mock_db.get_event_from_handle.side_effect = lambda h: event1 if h == "E1" else event2
-        
+        person.get_event_ref_list.return_value = [
+            MagicMock(ref="E1"),
+            MagicMock(ref="E2"),
+        ]
+
+        self.mock_db.get_event_from_handle.side_effect = lambda h: (
+            event1 if h == "E1" else event2
+        )
+
         year, source = self.tool.resolve_reference_year(person)
         self.assertEqual(year, 1880)
         self.assertIn("Latest Event Year", source)
@@ -132,27 +156,29 @@ class TestReferenceYearResolution(unittest.TestCase):
     def test_tier3_spouse_marriage_heuristic(self):
         """
         Scenario: Person has no events, but married in 1836 and wife born in 1814.
-        Ref year should be median of [1836, 1814] -> 1836? 
+        Ref year should be median of [1836, 1814] -> 1836?
         """
         person = MagicMock()
         person.get_event_ref_list.return_value = []
-        person.get_parent_family_handle_list.return_value = [] # No parents
+        person.get_parent_family_handle_list.return_value = []  # No parents
         person.get_family_handle_list.return_value = ["F1"]
         person.get_gender.return_value = Person.MALE
 
         family = MagicMock()
         family.get_event_ref_list.return_value = [MagicMock(ref="E_MARR")]
         family.get_mother_handle.return_value = "WIFE_H"
-        
+
         wife = MagicMock()
         wife.get_event_ref_list.return_value = [MagicMock(ref="E_WIFE_BIRTH")]
-        
+
         marr_event = MockEvent(1836)
         wife_birth = MockEvent(1814)
 
         def db_get_event(h):
-            if h == "E_MARR": return marr_event
-            if h == "E_WIFE_BIRTH": return wife_birth
+            if h == "E_MARR":
+                return marr_event
+            if h == "E_WIFE_BIRTH":
+                return wife_birth
             return None
 
         self.mock_db.get_family_from_handle.return_value = family
@@ -168,10 +194,11 @@ class TestReferenceYearResolution(unittest.TestCase):
         person.get_event_ref_list.return_value = []
         person.get_parent_family_handle_list.return_value = []
         person.get_family_handle_list.return_value = []
-        
+
         year, source = self.tool.resolve_reference_year(person)
         self.assertIsNone(year)
         self.assertIsNone(source)
+
 
 if __name__ == "__main__":
     unittest.main()

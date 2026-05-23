@@ -11,14 +11,19 @@ from typing import Optional, Set, Tuple
 
 from engine.compat import Person
 from engine.rule import BaseRule, RuleContext, ProposedChange
-from engine.constants import SEVERITY_WARNING, LOCALE_EAST_SLAVIC, LOCALE_RU, REFORM_YEAR_1918
+from engine.constants import (
+    SEVERITY_WARNING,
+    LOCALE_EAST_SLAVIC,
+    LOCALE_RU,
+    REFORM_YEAR_1918,
+)
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff
 
 
 class WarnMorphologicalTypo(BaseRule):
     """Detects invalid consecutive duplicate characters at joint boundaries (e.g. Андрееевич)."""
-    
+
     @property
     def rule_id(self) -> str:
         return "WARN_MORPHOLOGICAL_TYPO"
@@ -45,10 +50,18 @@ class WarnMorphologicalTypo(BaseRule):
             suggested = re.sub(r"(.)\1\1+", r"\1", ctx.current_patronymic)
             # Re-generate from father's name if present for maximum accuracy
             if ctx.father_given_name:
-                is_male = (ctx.gramps_gender == Person.MALE)
-                pre_reform = (ctx.locale == LOCALE_RU and ctx.reference_year is not None and ctx.reference_year < REFORM_YEAR_1918 and ctx.use_pre_reform)
+                is_male = ctx.gramps_gender == Person.MALE
+                pre_reform = (
+                    ctx.locale == LOCALE_RU
+                    and ctx.reference_year is not None
+                    and ctx.reference_year < REFORM_YEAR_1918
+                    and ctx.use_pre_reform
+                )
                 gen_expected = generate_east_slavic_patronymic(
-                    ctx.father_given_name, is_male=is_male, year=ctx.reference_year, pre_reform_script=pre_reform
+                    ctx.father_given_name,
+                    is_male=is_male,
+                    year=ctx.reference_year,
+                    pre_reform_script=pre_reform,
                 )
                 if gen_expected:
                     suggested = gen_expected
@@ -57,15 +70,22 @@ class WarnMorphologicalTypo(BaseRule):
                 return ProposedChange(
                     explanation="Spelling anomaly: Contains invalid duplicate letter repetitions at morphological boundaries.",
                     suggested_string=suggested,
-                    diff_markup=generate_pango_diff(ctx.current_patronymic, suggested)
+                    diff_markup=generate_pango_diff(ctx.current_patronymic, suggested),
                 )
 
         # 2. Check if a duplicate letter differs only from morphological standard
         if ctx.father_given_name:
-            is_male = (ctx.gramps_gender == Person.MALE)
-            pre_reform = (ctx.locale == LOCALE_RU and (ctx.reference_year or 0) < REFORM_YEAR_1918 and ctx.use_pre_reform)
+            is_male = ctx.gramps_gender == Person.MALE
+            pre_reform = (
+                ctx.locale == LOCALE_RU
+                and (ctx.reference_year or 0) < REFORM_YEAR_1918
+                and ctx.use_pre_reform
+            )
             expected = generate_east_slavic_patronymic(
-                ctx.father_given_name, is_male=is_male, year=ctx.reference_year, pre_reform_script=pre_reform
+                ctx.father_given_name,
+                is_male=is_male,
+                year=ctx.reference_year,
+                pre_reform_script=pre_reform,
             )
             if expected and ctx.current_patronymic != expected:
                 # Check if they are identical after stripping consecutive repeats
@@ -73,12 +93,14 @@ class WarnMorphologicalTypo(BaseRule):
                 # to avoid masking valid typos in the root name (e.g., double consonants)
                 def compress(s: str) -> str:
                     return re.sub(r"([еиоа])\1+", r"\1", s)
-                
+
                 if compress(ctx.current_patronymic) == compress(expected):
                     return ProposedChange(
                         explanation="Spelling anomaly: Joint spelling differs from standard naming morphology.",
                         suggested_string=expected,
-                        diff_markup=generate_pango_diff(ctx.current_patronymic, expected)
+                        diff_markup=generate_pango_diff(
+                            ctx.current_patronymic, expected
+                        ),
                     )
 
         return None

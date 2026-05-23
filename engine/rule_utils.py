@@ -10,7 +10,7 @@ import difflib
 
 def pango_escape(text: str) -> str:
     """Escapes XML special characters to prevent GTK Pango parsing crashes."""
-    return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def generate_pango_diff(old_str: str, new_str: str) -> str:
@@ -20,7 +20,7 @@ def generate_pango_diff(old_str: str, new_str: str) -> str:
     """
     old_esc = pango_escape(old_str)
     new_esc = pango_escape(new_str)
-    
+
     if not old_esc:
         return f"<span foreground='green'>{new_esc}</span>" if new_esc else ""
     if not new_esc:
@@ -29,20 +29,30 @@ def generate_pango_diff(old_str: str, new_str: str) -> str:
     matcher = difflib.SequenceMatcher(None, old_str, new_str)
     markup_parts = []
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-        if tag == 'equal':
+        if tag == "equal":
             markup_parts.append(pango_escape(old_str[i1:i2]))
-        elif tag == 'replace':
-            markup_parts.append(f"<span foreground='red'><s>{pango_escape(old_str[i1:i2])}</s></span>")
-            markup_parts.append(f"<span foreground='green'>{pango_escape(new_str[j1:j2])}</span>")
-        elif tag == 'delete':
-            markup_parts.append(f"<span foreground='red'><s>{pango_escape(old_str[i1:i2])}</s></span>")
-        elif tag == 'insert':
-            markup_parts.append(f"<span foreground='green'>{pango_escape(new_str[j1:j2])}</span>")
-            
+        elif tag == "replace":
+            markup_parts.append(
+                f"<span foreground='red'><s>{pango_escape(old_str[i1:i2])}</s></span>"
+            )
+            markup_parts.append(
+                f"<span foreground='green'>{pango_escape(new_str[j1:j2])}</span>"
+            )
+        elif tag == "delete":
+            markup_parts.append(
+                f"<span foreground='red'><s>{pango_escape(old_str[i1:i2])}</s></span>"
+            )
+        elif tag == "insert":
+            markup_parts.append(
+                f"<span foreground='green'>{pango_escape(new_str[j1:j2])}</span>"
+            )
+
     return "".join(markup_parts)
 
 
-def swap_patronymic_gender(patronymic: str, to_male: bool, pre_reform: bool = False) -> str:
+def swap_patronymic_gender(
+    patronymic: str, to_male: bool, pre_reform: bool = False
+) -> str:
     """Swaps the grammatical gender of an existing patronymic suffix."""
     if not patronymic:
         return patronymic
@@ -87,7 +97,7 @@ def swap_patronymic_gender(patronymic: str, to_male: bool, pre_reform: bool = Fa
             return patronymic[:-2] + "ева"
         elif patronymic.endswith("ин"):
             return patronymic[:-2] + "ина"
-            
+
     return patronymic
 
 
@@ -112,7 +122,7 @@ def modern_to_archaic(patronymic: str, is_male: bool, pre_reform: bool = False) 
             return patronymic[:-4] + "ина"
         elif patronymic.endswith("инична"):
             return patronymic[:-6] + "ина"
-            
+
     return patronymic
 
 
@@ -122,7 +132,7 @@ def archaic_to_modern(patronymic: str, is_male: bool) -> str:
         return patronymic
 
     from engine.morphology import normalize_to_modern
-    
+
     # Strip terminal hard sign ъ
     pat = normalize_to_modern(patronymic)
     if is_male:
@@ -139,5 +149,5 @@ def archaic_to_modern(patronymic: str, is_male: bool) -> str:
             return pat[:-3] + "евна"
         elif pat.endswith("ина"):
             return pat[:-3] + "ична"
-            
+
     return patronymic

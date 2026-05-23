@@ -26,13 +26,17 @@ class TestLinterRules(unittest.TestCase):
         rule = ErrGenderMismatch()
 
         # Test 1: Male person with Female suffix
-        ctx_male_error = RuleContext("p1", "Ивановна", "Иван", Person.MALE, 1950, LOCALE_RU)
+        ctx_male_error = RuleContext(
+            "p1", "Ивановна", "Иван", Person.MALE, 1950, LOCALE_RU
+        )
         res_male = rule.evaluate(ctx_male_error)
         self.assertIsNotNone(res_male)
         self.assertEqual(res_male.suggested_string, "Иванович")
 
         # Test 2: Female person with Male suffix
-        ctx_female_error = RuleContext("p2", "Иванович", "Иван", Person.FEMALE, 1950, LOCALE_RU)
+        ctx_female_error = RuleContext(
+            "p2", "Иванович", "Иван", Person.FEMALE, 1950, LOCALE_RU
+        )
         res_female = rule.evaluate(ctx_female_error)
         self.assertIsNotNone(res_female)
         self.assertEqual(res_female.suggested_string, "Ивановна")
@@ -49,7 +53,9 @@ class TestLinterRules(unittest.TestCase):
         rule = ErrLineageMismatch()
 
         # Test 1: Root doesn't match father's name
-        ctx_mismatch = RuleContext("p1", "Петрович", "Иван", Person.MALE, 1950, LOCALE_RU)
+        ctx_mismatch = RuleContext(
+            "p1", "Петрович", "Иван", Person.MALE, 1950, LOCALE_RU
+        )
         res = rule.evaluate(ctx_mismatch)
         self.assertIsNotNone(res)
         self.assertEqual(res.suggested_string, "Иванович")

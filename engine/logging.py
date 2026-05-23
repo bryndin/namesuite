@@ -22,6 +22,7 @@ def get_default_log_dir() -> str:
     """
     try:
         from gramps.gen.const import USER_DIR
+
         return os.path.join(USER_DIR, "reversibility_logs")
     except ImportError:
         # Fallback for offline testing outside active Gramps runtime
@@ -29,7 +30,9 @@ def get_default_log_dir() -> str:
             appdata = os.environ.get("APPDATA", os.path.expanduser("~"))
             return os.path.join(appdata, "gramps", "reversibility_logs")
         else:
-            return os.path.join(os.path.expanduser("~"), ".gramps", "reversibility_logs")
+            return os.path.join(
+                os.path.expanduser("~"), ".gramps", "reversibility_logs"
+            )
 
 
 def generate_execution_id() -> str:
@@ -44,6 +47,7 @@ class InferenceLogManager:
     """
     Manages loading, updating, and writing database-isolated inference transaction logs.
     """
+
     def __init__(self, db_id: str, log_dir: Optional[str] = None):
         """
         Args:
@@ -53,7 +57,7 @@ class InferenceLogManager:
         # Ensure db_id is safe for file names
         self.db_id = "".join(c for c in db_id if c.isalnum() or c in ("-", "_")).strip()
         self.log_dir = log_dir if log_dir else get_default_log_dir()
-        
+
         # Ensure target logging directory exists
         os.makedirs(self.log_dir, exist_ok=True)
 
@@ -88,10 +92,7 @@ class InferenceLogManager:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
     def log_execution(
-        self,
-        execution_id: str,
-        plugin_id: str,
-        changes: List[Dict[str, Any]]
+        self, execution_id: str, plugin_id: str, changes: List[Dict[str, Any]]
     ) -> None:
         """
         Appends an execution transaction run record to the log.
@@ -113,12 +114,12 @@ class InferenceLogManager:
                 }
         """
         log_data = self.load_log()
-        
+
         execution_record = {
             "execution_id": execution_id,
             "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "plugin_id": plugin_id,
-            "changes": changes
+            "changes": changes,
         }
 
         # Keep latest runs at the head of the list
@@ -144,10 +145,12 @@ class InferenceLogManager:
         """
         log_data = self.load_log()
         executions = log_data.get("executions", [])
-        
+
         initial_len = len(executions)
-        executions = [run for run in executions if run.get("execution_id") != execution_id]
-        
+        executions = [
+            run for run in executions if run.get("execution_id") != execution_id
+        ]
+
         if len(executions) < initial_len:
             log_data["executions"] = executions
             self.save_log(log_data)

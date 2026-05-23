@@ -208,7 +208,11 @@ def generate_east_slavic_patronymic(
     stem_type, genitive_base, formal_base = parse_stem(father_name)
 
     # Determine Chronological Epoch (Pivot Windows)
-    epoch = EPOCH_PRE_REFORM if (year is not None and year < REFORM_YEAR_1918) else EPOCH_POST_REFORM
+    epoch = (
+        EPOCH_PRE_REFORM
+        if (year is not None and year < REFORM_YEAR_1918)
+        else EPOCH_POST_REFORM
+    )
 
     # Apply Epoch Strategies
     result = ""

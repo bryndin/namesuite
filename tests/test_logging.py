@@ -10,7 +10,6 @@ from engine.logging import InferenceLogManager, generate_execution_id
 
 
 class TestInferenceLogging(unittest.TestCase):
-
     def setUp(self):
         # Create a isolated temporary directory for testing filesystem operations
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -28,7 +27,7 @@ class TestInferenceLogging(unittest.TestCase):
     def test_empty_log_initialization(self):
         # File should not exist initially
         self.assertFalse(os.path.exists(self.manager.log_filepath))
-        
+
         log_data = self.manager.load_log()
         self.assertEqual(log_data["database_id"], self.db_id)
         self.assertEqual(log_data["executions"], [])
@@ -36,7 +35,7 @@ class TestInferenceLogging(unittest.TestCase):
     def test_log_execution_and_retrieval(self):
         exec_id = generate_execution_id()
         plugin_id = "east_slavic_patronymic"
-        
+
         changes = [
             {
                 "person_handle": "p1",
@@ -47,7 +46,7 @@ class TestInferenceLogging(unittest.TestCase):
                 "reference_year": 1920,
                 "pre_reform": False,
                 "confidence_score": 0.95,
-                "applied_heuristics": ["DEATH_YEAR_POST_1918"]
+                "applied_heuristics": ["DEATH_YEAR_POST_1918"],
             }
         ]
 
@@ -71,7 +70,7 @@ class TestInferenceLogging(unittest.TestCase):
     def test_multiple_executions_ordering(self):
         exec_1 = "exec_1_first"
         exec_2 = "exec_2_second"
-        
+
         self.manager.log_execution(exec_1, "p_id", [])
         self.manager.log_execution(exec_2, "p_id", [])
 
@@ -89,7 +88,7 @@ class TestInferenceLogging(unittest.TestCase):
         self.manager.log_execution(exec_2, "p_id", [])
 
         self.assertTrue(self.manager.remove_execution(exec_2))
-        
+
         runs = self.manager.get_executions()
         self.assertEqual(len(runs), 1)
         self.assertEqual(runs[0]["execution_id"], exec_1)

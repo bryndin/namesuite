@@ -433,90 +433,6 @@ class TestLinterEngineAndRules(unittest.TestCase):
             any(r[0].rule_id == "ERR_GENDER_MISMATCH" for r in restricted_results)
         )
 
-
-# class TestLinterUIIntegration(unittest.TestCase):
-#     """Verifies linter integration within the GTK Tool window and its event loops."""
-
-#     def test_ui_audit_flow(self):
-#         """Mocks GTK's GLib.idle_add event loop to execute and assert the database audit workflow."""
-#         # Setup clean mocks
-#         mock_db = MagicMock()
-#         mock_db.get_dbname.return_value = "/mock/db/path"
-
-#         mock_dbstate = MagicMock()
-#         mock_dbstate.db = mock_db
-
-#         # Mock Person with a gender mismatch
-#         person = MagicMock()
-#         person.handle = "p_001"
-#         person.gramps_id = "I0001"
-#         person.get_gender.return_value = Person.MALE
-#         person.get_event_ref_list.return_value = []
-
-#         primary_name = MagicMock()
-#         primary_name.get_regular_name.return_value = "Иван Ивановна"
-
-#         # Existing patronymic Surname object
-#         patronymic_surname = Surname("Ивановна", NameOriginType.PATRONYMIC)
-#         primary_name.get_surname_list.return_value = [patronymic_surname]
-#         person.get_primary_name.return_value = primary_name
-
-#         # Father link
-#         person.get_parent_family_handle_list.return_value = ["f_001"]
-#         family = MagicMock()
-#         family.get_father_handle.return_value = "father_001"
-
-#         father = MagicMock()
-#         father.get_primary_name().get_first_name.return_value = "Иван"
-#         father.get_event_ref_list.return_value = []
-
-#         # Mock DB returns
-#         mock_db.get_person_handles.return_value = ["p_001"]
-#         mock_db.get_person_from_handle.side_effect = lambda h: {
-#             "p_001": person,
-#             "father_001": father,
-#         }.get(h)
-#         mock_db.get_family_from_handle.return_value = family
-
-#         # Instantiate Tool
-#         tool = InferPatronymicsTool(mock_dbstate, MagicMock(), MagicMock(), "TestTool")
-#         tool.audit_scope_combo.get_active.return_value = 0
-
-#         # Trigger the audit click event
-#         tool.on_audit_clicked(None)
-
-#         # Since GLib.idle_add is mocked in headless, manually capture and run the callback!
-#         import patronymics_tool
-
-#         glib_ref = getattr(patronymics_tool, "GLib", None)
-#         self.assertTrue(glib_ref is not None)
-#         self.assertTrue(glib_ref.idle_add.called)
-#         idle_callback = glib_ref.idle_add.call_args[0][0]
-
-#         # Run loop to completion
-#         keep_going = True
-#         while keep_going:
-#             keep_going = idle_callback()
-
-#         print("MOCK DEBUG - audit_store len:", len(tool.audit_store))
-#         print(
-#             "MOCK DEBUG - person primary_name regular name:",
-#             person.get_primary_name().get_regular_name(),
-#         )
-#         print(
-#             "MOCK DEBUG - get_patronymic_value:",
-#             repr(get_patronymic_value(person.get_primary_name())),
-#         )
-#         print(
-#             "MOCK DEBUG - has_patronymic_surname:",
-#             has_patronymic_surname(person.get_primary_name()),
-#         )
-#         for row in tool.audit_store:
-#             print("MOCK DEBUG - row:", row)
-
-#         self.fail("Dummy fail to inspect stdout")
-
-
     def test_linter_handles_none_reference_year(self):
         """Verifies that all linter rules handle None reference year without crashing."""
         engine = RuleEngine()
@@ -528,6 +444,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
             engine.evaluate_person(ctx)
         except TypeError as e:
             self.fail(f"evaluate_person raised TypeError with reference_year=None: {e}")
+
 
 if __name__ == "__main__":
     unittest.main()

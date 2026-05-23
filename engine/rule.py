@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from typing import Optional, Set, Tuple, List, Callable
 
 
-
 @dataclass(frozen=True)
 class RuleContext:
     """Frozen evaluation context for linter validation rules."""

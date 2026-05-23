@@ -14,20 +14,16 @@ class TestEastSlavicMorphology(unittest.TestCase):
             # Hard stem
             ("Иван (male)", ("Иван", True, year), "Иванович"),
             ("Иван (female)", ("Иван", False, year), "Ивановна"),
-
             # Soft stem
             ("Игорь (male)", ("Игорь", True, year), "Игоревич"),
             ("Игорь (female)", ("Игорь", False, year), "Игоревна"),
-
             # Yod -ий ending
             ("Дмитрий (male)", ("Дмитрий", True, year), "Дмитриевич"),
             ("Василий (male)", ("Василий", True, year), "Васильевич"),
             ("Василий (female)", ("Василий", False, year), "Васильевна"),
-
             # Yod -ей ending
             ("Сергей (male)", ("Сергей", True, year), "Сергеевич"),
             ("Сергей (female)", ("Сергей", False, year), "Сергеевна"),
-
             # Contracted endings
             ("Илья (male)", ("Илья", True, year), "Ильич"),
             ("Илья (female)", ("Илья", False, year), "Ильинична"),
@@ -72,7 +68,12 @@ class TestEastSlavicMorphology(unittest.TestCase):
         test_cases = [
             # Suffix with terminal 'ъ' and decimal 'і' before vowels
             ("Иванъ", ("Иванъ", True, year), "Ивановъ", {"pre_reform_script": True}),
-            ("Дмитрій", ("Дмитрій", True, year), "Дмитріевъ", {"pre_reform_script": True}),
+            (
+                "Дмитрій",
+                ("Дмитрій", True, year),
+                "Дмитріевъ",
+                {"pre_reform_script": True},
+            ),
         ]
 
         failures = []
@@ -129,13 +130,11 @@ class TestEastSlavicMorphology(unittest.TestCase):
             ("Павел (female, 1821)", ("Павел", False, 1821), "Павлова"),
             ("Павел (male, 1960)", ("Павел", True, 1960), "Павлович"),
             ("Павел (female, 1960)", ("Павел", False, 1960), "Павловна"),
-
             # 2. Fleet vowel dropped in "Лев"
             ("Лев (male, 1812)", ("Лев", True, 1812), "Львов"),
             ("Лев (female, 1812)", ("Лев", False, 1812), "Львова"),
             ("Лев (male, 1950)", ("Лев", True, 1950), "Львович"),
             ("Лев (female, 1950)", ("Лев", False, 1950), "Львовна"),
-
             # 3. Intrusive 'л' in "Яков" / "Иаков"
             ("Яков (male, 1803)", ("Яков", True, 1803), "Яковлев"),
             ("Яков (female, 1803)", ("Яков", False, 1803), "Яковлева"),
@@ -143,13 +142,11 @@ class TestEastSlavicMorphology(unittest.TestCase):
             ("Яков (female, 1920)", ("Яков", False, 1920), "Яковлевна"),
             ("Иаков (male, 1826)", ("Иаков", True, 1826), "Иаковлев"),
             ("Иаков (female, 1826)", ("Иаков", False, 1826), "Иаковлева"),
-
             # 4. Contraction in "Михаил"
             ("Михаил (male, 1812)", ("Михаил", True, 1812), "Михайлов"),
             ("Михаил (female, 1812)", ("Михаил", False, 1812), "Михайлова"),
             ("Михаил (male, 1950)", ("Михаил", True, 1950), "Михайлович"),
             ("Михаил (female, 1950)", ("Михаил", False, 1950), "Михайловна"),
-
             # 5. Spelling preservation in "Димитрий" vs. "Дмитрий"
             ("Димитрий (male, 1850)", ("Димитрий", True, 1850), "Димитриев"),
             ("Димитрий (male, 1950)", ("Димитрий", True, 1950), "Димитриевич"),
@@ -250,7 +247,9 @@ class TestEastSlavicMorphology(unittest.TestCase):
 
                 parts = line.split("\t")
                 if len(parts) < 3:
-                    failures.append(f"Line {line_idx}: Malformed line. Expected 3 tab-separated columns, got: {repr(line)}")
+                    failures.append(
+                        f"Line {line_idx}: Malformed line. Expected 3 tab-separated columns, got: {repr(line)}"
+                    )
                     continue
 
                 father_name = parts[0].strip()
@@ -258,40 +257,52 @@ class TestEastSlavicMorphology(unittest.TestCase):
                 # Column 2: Modern (comma-separated: son, daughter)
                 modern_parts = [p.strip() for p in parts[1].split(",")]
                 if len(modern_parts) != 2:
-                    failures.append(f"Line {line_idx}: Malformed modern patronymic column: {repr(parts[1])}")
+                    failures.append(
+                        f"Line {line_idx}: Malformed modern patronymic column: {repr(parts[1])}"
+                    )
                     continue
                 expected_mod_m, expected_mod_f = modern_parts
 
                 # Column 3: Old (comma-separated: son, daughter)
                 old_parts = [p.strip() for p in parts[2].split(",")]
                 if len(old_parts) != 2:
-                    failures.append(f"Line {line_idx}: Malformed old patronymic column: {repr(parts[2])}")
+                    failures.append(
+                        f"Line {line_idx}: Malformed old patronymic column: {repr(parts[2])}"
+                    )
                     continue
                 expected_old_m, expected_old_f = old_parts
 
                 # 1. Test Modern Male (post-1918, e.g., year=1950)
-                actual_mod_m = generate_east_slavic_patronymic(father_name, is_male=True, year=1950)
+                actual_mod_m = generate_east_slavic_patronymic(
+                    father_name, is_male=True, year=1950
+                )
                 if actual_mod_m != expected_mod_m:
                     failures.append(
                         f"Line {line_idx}: Modern Male for '{father_name}' -> Expected '{expected_mod_m}', got '{actual_mod_m}'"
                     )
 
                 # 2. Test Modern Female (post-1918, e.g., year=1950)
-                actual_mod_f = generate_east_slavic_patronymic(father_name, is_male=False, year=1950)
+                actual_mod_f = generate_east_slavic_patronymic(
+                    father_name, is_male=False, year=1950
+                )
                 if actual_mod_f != expected_mod_f:
                     failures.append(
                         f"Line {line_idx}: Modern Female for '{father_name}' -> Expected '{expected_mod_f}', got '{actual_mod_f}'"
                     )
 
                 # 3. Test Old Male (pre-1918, e.g., year=1850)
-                actual_old_m = generate_east_slavic_patronymic(father_name, is_male=True, year=1850)
+                actual_old_m = generate_east_slavic_patronymic(
+                    father_name, is_male=True, year=1850
+                )
                 if actual_old_m != expected_old_m:
                     failures.append(
                         f"Line {line_idx}: Old Male for '{father_name}' -> Expected '{expected_old_m}', got '{actual_old_m}'"
                     )
 
                 # 4. Test Old Female (pre-1918, e.g., year=1850)
-                actual_old_f = generate_east_slavic_patronymic(father_name, is_male=False, year=1850)
+                actual_old_f = generate_east_slavic_patronymic(
+                    father_name, is_male=False, year=1850
+                )
                 if actual_old_f != expected_old_f:
                     failures.append(
                         f"Line {line_idx}: Old Female for '{father_name}' -> Expected '{expected_old_f}', got '{actual_old_f}'"
@@ -304,6 +315,7 @@ class TestEastSlavicMorphology(unittest.TestCase):
                 + "\n".join(failures)
             )
             self.fail(error_report)
+
 
 if __name__ == "__main__":
     unittest.main()

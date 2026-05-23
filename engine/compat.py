@@ -9,8 +9,10 @@ Provides fallback stubs for Gramps types when running outside of Gramps environm
 try:
     from gramps.gen.lib import Person
 except ImportError:
+
     class Person:
         """Fallback stub for gramps.gen.lib.Person when Gramps is not available."""
+
         OTHER = 3
         UNKNOWN = 2
         MALE = 1

@@ -16,7 +16,7 @@ from engine.rule_utils import generate_pango_diff
 
 class WarnMissingHardSign(BaseRule):
     """Flags pre-1918 Russian names missing a terminal orthographic hard sign 'ъ'."""
-    
+
     @property
     def rule_id(self) -> str:
         return "WARN_MISSING_HARD_SIGN"
@@ -35,17 +35,25 @@ class WarnMissingHardSign(BaseRule):
 
     def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
         # Short-circuit if pre-reform rules are disabled by the user
-        if not ctx.current_patronymic or not ctx.use_pre_reform or (ctx.reference_year is not None and ctx.reference_year >= REFORM_YEAR_1918) or ctx.locale != LOCALE_RU:
+        if (
+            not ctx.current_patronymic
+            or not ctx.use_pre_reform
+            or (
+                ctx.reference_year is not None
+                and ctx.reference_year >= REFORM_YEAR_1918
+            )
+            or ctx.locale != LOCALE_RU
+        ):
             return None
 
         # Re-apply pre-reform orthography mapping on the current value
         reformed = apply_pre_reform_orthography(ctx.current_patronymic)
-        
+
         if reformed != ctx.current_patronymic:
             return ProposedChange(
                 explanation="Orthographical anomaly: Missing historical pre-revolutionary terminal hard signs (ъ) or decimal (і).",
                 suggested_string=reformed,
-                diff_markup=generate_pango_diff(ctx.current_patronymic, reformed)
+                diff_markup=generate_pango_diff(ctx.current_patronymic, reformed),
             )
 
         return None
