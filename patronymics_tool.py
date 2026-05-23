@@ -233,8 +233,8 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         audit_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         audit_tab_box.pack_start(audit_scroll, True, True, 0)
 
-        # Auditor ListStore: [Include, Person ID/Name, Current Value, Triggered Rule, Suggested Fix (Markup), Handle, Rule ID, Suggested String]
-        self.audit_store = Gtk.ListStore(bool, str, str, str, str, str, str, str)
+        # Auditor ListStore: [Include, Person ID/Name, Current Value, Ref Year, Triggered Rule, Suggested Fix (Markup), Handle, Rule ID, Suggested String]
+        self.audit_store = Gtk.ListStore(bool, str, str, int, str, str, str, str, str)
         self.audit_tree = Gtk.TreeView(model=self.audit_store)
         audit_scroll.add(self.audit_tree)
         self.setup_audit_columns()
@@ -353,15 +353,21 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_current.set_resizable(True)
         self.audit_tree.append_column(col_current)
 
+        renderer_year = Gtk.CellRendererText()
+        col_year = Gtk.TreeViewColumn(_("Ref Year"), renderer_year, text=3)
+        col_year.set_sort_column_id(3)
+        col_year.set_resizable(True)
+        self.audit_tree.append_column(col_year)
+
         col_rule = Gtk.TreeViewColumn(
-            _("Triggered Rule"), Gtk.CellRendererText(), text=3
+            _("Triggered Rule"), Gtk.CellRendererText(), text=4
         )
         col_rule.set_resizable(True)
         self.audit_tree.append_column(col_rule)
 
         # Render suggested fixes with Pango markup
         col_suggested = Gtk.TreeViewColumn(
-            _("Suggested Fix"), Gtk.CellRendererText(), markup=4
+            _("Suggested Fix"), Gtk.CellRendererText(), markup=5
         )
         col_suggested.set_resizable(True)
         col_suggested.set_expand(True)
@@ -667,6 +673,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                             True,
                             f"{primary_name.get_regular_name()} ({person.gramps_id})",
                             current_pat,
+                            ref_year,
                             rule.rule_id,
                             change.diff_markup,
                             handle,
@@ -689,7 +696,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         for row in self.audit_store:
             if row[0]:
                 changes_to_apply.append(
-                    {"handle": row[5], "suggested_string": row[7], "rule_id": row[6]}
+                    {"handle": row[6], "suggested_string": row[8], "rule_id": row[7]}
                 )
 
         if not changes_to_apply:
