@@ -9,7 +9,8 @@ Flags pre-1918 records using modern formal endings and suggests possessive genit
 from typing import Optional, Set, Tuple
 
 from engine.compat import Person
-from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_WARNING, LOCALE_EAST_SLAVIC, LOCALE_RU
+from engine.rule import BaseRule, RuleContext, ProposedChange
+from engine.constants import SEVERITY_WARNING, LOCALE_EAST_SLAVIC, LOCALE_RU, REFORM_YEAR_1918
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff, modern_to_archaic
 
@@ -34,7 +35,7 @@ class WarnModernSuffixArchaicEra(BaseRule):
         return (None, 1917)
 
     def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
-        if not ctx.current_patronymic or (ctx.reference_year is not None and ctx.reference_year >= 1918):
+        if not ctx.current_patronymic or (ctx.reference_year is not None and ctx.reference_year >= REFORM_YEAR_1918):
             return None
 
         modern_suffixes = ("ович", "евич", "ич", "овна", "евна", "ична", "инична")
@@ -53,7 +54,7 @@ class WarnModernSuffixArchaicEra(BaseRule):
 
             if suggested and suggested != ctx.current_patronymic:
                 return ProposedChange(
-                    explanation=f"Historical anachronism: Modern patronymic suffix in pre-1918 era ({ctx.reference_year}).",
+                    explanation=f"Historical anachronism: Modern patronymic suffix in pre-{REFORM_YEAR_1918} era ({ctx.reference_year}).",
                     suggested_string=suggested,
                     diff_markup=generate_pango_diff(ctx.current_patronymic, suggested)
                 )

@@ -10,6 +10,8 @@ orthographic script preferences.
 import re
 from typing import Optional, Tuple
 
+from engine.constants import REFORM_YEAR_1918
+
 # Sibilant characters that trigger -evich/-evna instead of -ovich/-ovna
 SIBILANTS = set("жшчщцЖШЧЩЦ")
 
@@ -20,8 +22,8 @@ HARD_CONSONANTS = set("бвгджзклмнпрстфхцчшщБВГДЖЗКЛ�
 CYRILLIC_VOWELS = set("аеиоуыэюяѣАЕИОУЫЭЮЯѢіІйЙ")
 
 # Epoch constants for chronological period classification
-EPOCH_PRE_1918 = "pre_1918"
-EPOCH_POST_1918 = "post_1918"
+EPOCH_PRE_REFORM = "pre_reform"
+EPOCH_POST_REFORM = "post_reform"
 
 # Slavic surname regex markers (Cyrillic and Latin transliterated)
 # Expanded to include feminine Latin suffixes (ova, eva, ina, yna) and Cyrillic adjectival endings (ский, ская, цкий, цкая)
@@ -34,7 +36,7 @@ SLAVIC_SURNAME_PATTERN = re.compile(
 
 def apply_pre_reform_orthography(text: str) -> str:
     """
-    Applies historical pre-1918 orthography rules to Cyrillic text:
+    Applies historical pre-reform orthography rules to Cyrillic text:
     1. Replaces 'и' with 'і' if immediately followed by another vowel (e.g., Дмитріевичъ).
     2. Appends terminal hard sign 'ъ' to any word ending in a hard consonant (e.g., сынъ, Петровъ).
     """
@@ -193,8 +195,8 @@ def generate_east_slavic_patronymic(
         father_name (str): Given name of the father (e.g., "Иван", "Дмитрий").
         is_male (bool): Target's gender.
         year (int, optional): Reference year (Y_ref) calculated via resolution hierarchy.
-                              Defaults to modern standard (Post-1918) if None.
-        pre_reform_script (bool): If True, re-enables pre-1918 Cyrillic spelling rules.
+                              Defaults to modern standard (Post-reform) if None.
+        pre_reform_script (bool): If True, re-enables pre-reform Cyrillic spelling rules.
 
     Returns:
         str: Correctly generated patronymic, or None if generation is impossible.
@@ -206,16 +208,16 @@ def generate_east_slavic_patronymic(
     stem_type, genitive_base, formal_base = parse_stem(father_name)
 
     # Determine Chronological Epoch (Pivot Windows)
-    epoch = EPOCH_PRE_1918 if (year is not None and year < 1918) else EPOCH_POST_1918
+    epoch = EPOCH_PRE_REFORM if (year is not None and year < REFORM_YEAR_1918) else EPOCH_POST_REFORM
 
     # Apply Epoch Strategies
     result = ""
 
-    # 1. Pre-1918: Direct Class-Agnostic Genitive Suffix (e.g. Иван Сергеев Коваль)
-    if epoch == EPOCH_PRE_1918:
+    # 1. Pre-reform: Direct Class-Agnostic Genitive Suffix (e.g. Иван Сергеев Коваль)
+    if epoch == EPOCH_PRE_REFORM:
         result = genitive_base if is_male else genitive_base + "а"
 
-    # 2. Post-1918: Modern Formal Gender Suffix (-ovich / -ovna)
+    # 2. Post-reform: Modern Formal Gender Suffix (-ovich / -ovna)
     else:
         if stem_type == "hard_irregular":
             result = formal_base + "ич" if is_male else formal_base + "на"
@@ -238,8 +240,8 @@ def generate_east_slavic_patronymic(
         else:  # hard stems (Иван)
             result = formal_base + "ович" if is_male else formal_base + "овна"
 
-    # Apply historical orthography replacements if requested (Only valid pre-1918)
-    if pre_reform_script and epoch != EPOCH_POST_1918:
+    # Apply historical orthography replacements if requested (Only valid pre-reform)
+    if pre_reform_script and epoch != EPOCH_POST_REFORM:
         result = apply_pre_reform_orthography(result)
 
     return result

@@ -23,7 +23,7 @@ from gramps.gui.dialog import OkDialog, ErrorDialog
 from engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PATTERN
 from engine.logging import InferenceLogManager, generate_execution_id
 from engine.linter import RuleEngine, RuleContext, PlaceCache
-from engine.rule import LOCALE_RU
+from engine.constants import LOCALE_RU
 from utils import PatronymicMixin, has_patronymic_surname
 
 _ = glocale.translation.gettext

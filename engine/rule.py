@@ -9,17 +9,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional, Set, Tuple, List, Callable
 
-# Severity level constants
-SEVERITY_ERROR = "ERROR"
-SEVERITY_WARNING = "WARNING"
-SEVERITY_INFO = "INFO"
-
-# Locale constants
-LOCALE_RU = "ru"
-LOCALE_UK = "uk"
-LOCALE_BE = "be"
-LOCALE_UNIVERSAL = "*"
-LOCALE_EAST_SLAVIC = {LOCALE_RU, LOCALE_UK, LOCALE_BE}
 
 
 @dataclass(frozen=True)

@@ -9,7 +9,8 @@ Flags post-1918 records using archaic/informal possessive endings.
 from typing import Optional, Set, Tuple
 
 from engine.compat import Person
-from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_WARNING, LOCALE_EAST_SLAVIC
+from engine.rule import BaseRule, RuleContext, ProposedChange
+from engine.constants import SEVERITY_WARNING, LOCALE_EAST_SLAVIC, REFORM_YEAR_1918
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff, archaic_to_modern
 
@@ -31,10 +32,10 @@ class WarnArchaicSuffixModernEra(BaseRule):
 
     @property
     def active_era(self) -> Tuple[Optional[int], Optional[int]]:
-        return (1918, None)
+        return (REFORM_YEAR_1918, None)
 
     def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
-        if not ctx.current_patronymic or (ctx.reference_year is not None and ctx.reference_year < 1918):
+        if not ctx.current_patronymic or (ctx.reference_year is not None and ctx.reference_year < REFORM_YEAR_1918):
             return None
 
         # Archaic endings (including pre-reform orthographic variants)
@@ -52,7 +53,7 @@ class WarnArchaicSuffixModernEra(BaseRule):
 
             if suggested and suggested != ctx.current_patronymic:
                 return ProposedChange(
-                    explanation=f"Historical anachronism: Archaic genitive suffix in post-1918 era ({ctx.reference_year}).",
+                    explanation=f"Historical anachronism: Archaic genitive suffix in post-{REFORM_YEAR_1918} era ({ctx.reference_year}).",
                     suggested_string=suggested,
                     diff_markup=generate_pango_diff(ctx.current_patronymic, suggested)
                 )

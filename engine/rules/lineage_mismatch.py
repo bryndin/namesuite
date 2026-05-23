@@ -9,7 +9,8 @@ Flags if the patronymic base/root does not match the linked biological father's 
 from typing import Optional, Set, Tuple
 
 from engine.compat import Person
-from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_ERROR, LOCALE_EAST_SLAVIC, LOCALE_RU
+from engine.rule import BaseRule, RuleContext, ProposedChange
+from engine.constants import SEVERITY_ERROR, LOCALE_EAST_SLAVIC, LOCALE_RU, REFORM_YEAR_1918
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff
 
@@ -38,7 +39,7 @@ class ErrLineageMismatch(BaseRule):
             return None
 
         is_male = (ctx.gramps_gender == Person.MALE)
-        pre_reform = (ctx.locale == LOCALE_RU and ctx.reference_year is not None and ctx.reference_year < 1918 and ctx.use_pre_reform)
+        pre_reform = (ctx.locale == LOCALE_RU and ctx.reference_year is not None and ctx.reference_year < REFORM_YEAR_1918 and ctx.use_pre_reform)
         
         # Resolve target expected patronymic for active context
         expected = generate_east_slavic_patronymic(

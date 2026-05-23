@@ -8,7 +8,8 @@ Flags pre-1918 Russian names missing a terminal orthographic hard sign 'ъ'.
 
 from typing import Optional, Set, Tuple
 
-from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_WARNING, LOCALE_RU
+from engine.rule import BaseRule, RuleContext, ProposedChange
+from engine.constants import SEVERITY_WARNING, LOCALE_RU, REFORM_YEAR_1918
 from engine.morphology import apply_pre_reform_orthography
 from engine.rule_utils import generate_pango_diff
 
@@ -34,7 +35,7 @@ class WarnMissingHardSign(BaseRule):
 
     def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
         # Short-circuit if pre-reform rules are disabled by the user
-        if not ctx.current_patronymic or not ctx.use_pre_reform or (ctx.reference_year is not None and ctx.reference_year >= 1918) or ctx.locale != LOCALE_RU:
+        if not ctx.current_patronymic or not ctx.use_pre_reform or (ctx.reference_year is not None and ctx.reference_year >= REFORM_YEAR_1918) or ctx.locale != LOCALE_RU:
             return None
 
         # Re-apply pre-reform orthography mapping on the current value

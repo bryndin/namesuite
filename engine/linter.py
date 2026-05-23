@@ -16,8 +16,8 @@ from engine.rule import (
     BaseRule,
     RuleContext,
     ProposedChange,
-    LOCALE_UNIVERSAL,
 )
+from engine.constants import LOCALE_UNIVERSAL
 from engine.rules import (
     ErrGenderMismatch,
     ErrLineageMismatch,

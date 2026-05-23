@@ -116,7 +116,8 @@ from engine.linter import (
     BaseRule,
     ProposedChange,
 )
-from engine.rule import RuleContext, LOCALE_RU, LOCALE_UK, LOCALE_UNIVERSAL
+from engine.rule import RuleContext
+from engine.constants import LOCALE_RU, LOCALE_UK, LOCALE_UNIVERSAL
 from engine.rule_utils import generate_pango_diff, swap_patronymic_gender
 from engine.rules import (
     ErrGenderMismatch,

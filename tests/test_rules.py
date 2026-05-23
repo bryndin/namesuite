@@ -8,7 +8,8 @@ Headless logic tests for the individual validation rules.
 import unittest
 
 from engine.compat import Person
-from engine.rule import RuleContext, LOCALE_RU
+from engine.rule import RuleContext
+from engine.constants import LOCALE_RU
 
 # Import the rules
 from engine.rules.gender_mismatch import ErrGenderMismatch

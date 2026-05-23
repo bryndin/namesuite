@@ -9,7 +9,8 @@ Detects and corrects mixed Cyrillic and Latin homoglyphs in patronymic strings.
 import re
 from typing import Optional, Set, Tuple
 
-from engine.rule import BaseRule, RuleContext, ProposedChange, SEVERITY_ERROR, LOCALE_EAST_SLAVIC
+from engine.rule import BaseRule, RuleContext, ProposedChange
+from engine.constants import SEVERITY_ERROR, LOCALE_EAST_SLAVIC
 from engine.rule_utils import generate_pango_diff
 
 # Cyrillic and Latin Unicode blocks to detect homoglyph mixing
