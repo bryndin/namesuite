@@ -11,6 +11,9 @@ import sys
 import unittest
 from unittest.mock import MagicMock
 
+# Import utils before patronymics_tool since it's a dependency
+from utils import PatronymicMixin
+
 # -------------------------------------------------------------------------
 # Headless Decoupling Mocks
 # Mock Gramps and GTK dependencies before importing patronymics_tool to
@@ -112,7 +115,7 @@ from engine.morphology import SLAVIC_SURNAME_PATTERN
 # -------------------------------------------------------------------------
 # Test Helper Class
 # -------------------------------------------------------------------------
-class MockPatronymicsTool:
+class MockPatronymicsTool(PatronymicMixin):
     """
     Decoupled tool proxy mapping target inference methods to allow testing
     the core business logic without triggering GTK UI initializations.
@@ -121,7 +124,6 @@ class MockPatronymicsTool:
     def __init__(self, db):
         self.db = db
 
-    get_father_handle = InferPatronymicsTool.get_father_handle
     evaluate_confidence = InferPatronymicsTool.evaluate_confidence
     has_cyrillic = InferPatronymicsTool.has_cyrillic
 

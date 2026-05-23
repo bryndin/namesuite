@@ -23,24 +23,9 @@ from gramps.gui.dialog import OkDialog, ErrorDialog
 from engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PATTERN
 from engine.logging import InferenceLogManager, generate_execution_id
 from engine.linter import RuleEngine, RuleContext, PlaceCache
+from utils import PatronymicMixin, has_patronymic_surname
 
 _ = glocale.translation.gettext
-
-
-# Helpers to navigate the Surname List schema
-def has_patronymic_surname(name_obj) -> bool:
-    """Returns True if the Name object contains any Surname marked as a PATRONYMIC."""
-    for surname in name_obj.get_surname_list():
-        orig = surname.get_origintype()
-        if (
-            orig == NameOriginType.PATRONYMIC
-            or orig == 5
-            or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
-            or getattr(orig, "value", None) == 5
-            or str(orig).strip() == "Patronymic"
-        ):
-            return True
-    return False
 
 
 def get_patronymic_value(name_obj) -> str:
@@ -92,7 +77,7 @@ def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:
     return orig_pat
 
 
-class InferPatronymicsTool(tool.Tool):
+class InferPatronymicsTool(PatronymicMixin, tool.Tool):
     """
     GTK Batch Processing Wizard to evaluate, filter, and write
     inferred patronymic records safely, alongside morphological linter audits.
@@ -726,13 +711,6 @@ class InferPatronymicsTool(tool.Tool):
             _("Auditor corrections applied and logged successfully."),
             self.window,
         )
-
-    def get_father_handle(self, person):
-        for fam_handle in person.get_parent_family_handle_list():
-            fam = self.db.get_family_from_handle(fam_handle)
-            if fam and fam.get_father_handle() != "":
-                return fam.get_father_handle()
-        return None
 
     def resolve_reference_year(self, person):
         # Tier 1: Latest Recorded Event Year

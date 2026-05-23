@@ -17,29 +17,12 @@ from gramps.gen.lib import Surname, NameOriginType, Person
 
 # Local modules
 from engine.morphology import generate_east_slavic_patronymic
+from utils import PatronymicMixin, has_patronymic_surname
 
 _ = glocale.translation.gettext
 
 
-# Schema compatibility check
-def has_patronymic_surname(name_obj) -> bool:
-    """
-    Returns True if the Name object contains any Surname marked as a PATRONYMIC.
-    """
-    for surname in name_obj.get_surname_list():
-        orig = surname.get_origintype()
-        if (
-            orig == NameOriginType.PATRONYMIC
-            or orig == 5
-            or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
-            or getattr(orig, "value", None) == 5
-            or str(orig).strip() == "Patronymic"
-        ):
-            return True
-    return False
-
-
-class InferPatronymicsGramplet(Gramplet):
+class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
     """
     Gramplet sidebar component offering fast inline suggestion matches.
     """
@@ -143,13 +126,6 @@ class InferPatronymicsGramplet(Gramplet):
         else:
             self.label.set_text(_("Could not generate valid morphology patterns."))
             self.apply_btn.set_sensitive(False)
-
-    def get_father_handle(self, person):
-        for fam_handle in person.get_parent_family_handle_list():
-            fam = self.dbstate.db.get_family_from_handle(fam_handle)
-            if fam and fam.get_father_handle() != "":
-                return fam.get_father_handle()
-        return None
 
     def on_apply_clicked(self, widget):
         """Commits the suggested patronymic change directly inside a secure transaction."""
