@@ -2,7 +2,7 @@
 
 register(TOOL,
     id='infer_patronymics_tool',
-    name=_("Infer East Slavic Patronymics..."),
+    name=_("Infer East Slavic Patronymics"),
     category=TOOL_DBPROC,  # Standard database processing category
     description=_("Automatically infers patronymic names from fathers' names."),
     version='1.0',
