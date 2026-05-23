@@ -44,7 +44,7 @@ class ErrMixedScripts(BaseRule):
 
     @property
     def supported_locales(self) -> Set[str]:
-        return {"*"}
+        return {"ru", "uk", "be"}
 
     @property
     def active_era(self) -> Tuple[Optional[int], Optional[int]]:
