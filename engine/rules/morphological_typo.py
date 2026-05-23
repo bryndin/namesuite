@@ -68,8 +68,10 @@ class WarnMorphologicalTypo(BaseRule):
             )
             if expected and ctx.current_patronymic != expected:
                 # Check if they are identical after stripping consecutive repeats
+                # Restrict compression to vowels commonly involved in joint transitions
+                # to avoid masking valid typos in the root name (e.g., double consonants)
                 def compress(s: str) -> str:
-                    return re.sub(r"(.)\1+", r"\1", s)
+                    return re.sub(r"([еиоа])\1+", r"\1", s)
                 
                 if compress(ctx.current_patronymic) == compress(expected):
                     return ProposedChange(
