@@ -8,7 +8,10 @@ the standard linter ruleset.
 """
 
 import functools
+import logging
 from typing import Optional, List, Any, Set, Tuple
+
+logger = logging.getLogger(__name__)
 
 # Gramps dependency stubs/constants mapped from core or safely fallback
 try:
@@ -40,7 +43,7 @@ class PlaceCache:
     def __init__(self, db: Any):
         self.db = db
 
-        @functools.lru_cache(maxsize=1024)
+        @functools.lru_cache(maxsize=None)
         def _get_places(person_handle: str) -> List[str]:
             places = []
             if not self.db or not person_handle:
@@ -80,7 +83,6 @@ class RuleEngine:
     def __init__(self, rules: Optional[List[BaseRule]] = None):
         """Indexes registered rules."""
         if rules is None:
-            # Dynamically discover and load all subclasses of BaseRule
             self.rules = [
                 ErrGenderMismatch(),
                 ErrLineageMismatch(),
@@ -128,8 +130,9 @@ class RuleEngine:
                     triggered.append((rule, change))
             except Exception as e:
                 # Log or print the issue to ensure graceful continuation
-                print(
-                    f"[Linter Error] Rule '{rule.rule_id}' failed on '{ctx.person_id}': {e}"
+                logger.error(
+                    f"[Linter Error] Rule '{rule.rule_id}' failed on '{ctx.person_id}': {e}",
+                    exc_info=True,
                 )
 
         return triggered

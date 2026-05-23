@@ -12,6 +12,8 @@ import sys
 import unittest
 from unittest.mock import MagicMock
 
+from engine.linter import RuleEngine, BaseRule, RuleContext, ProposedChange
+
 # -------------------------------------------------------------------------
 # Headless Decoupling Mocks
 # Mock Gramps and GTK dependencies to ensure tests run 100% headlessly.
@@ -311,6 +313,84 @@ class TestLinterEngineAndRules(unittest.TestCase):
         rule_ids = [r.rule_id for r, _ in results]
 
         self.assertIn("WARN_MODERN_SUFFIX_ARCHAIC_ERA", rule_ids)
+
+    def test_engine_graceful_degradation(self):
+        class MockCrashRule(BaseRule):
+            @property
+            def rule_id(self): return "CRASH_RULE"
+            @property
+            def severity(self): return "ERROR"
+            @property
+            def supported_locales(self): return {"*"}
+            @property
+            def active_era(self): return (None, None)
+            def evaluate(self, ctx):
+                raise ValueError("Intentional crash for testing")
+
+        class MockSafeRule(BaseRule):
+            @property
+            def rule_id(self): return "SAFE_RULE"
+            @property
+            def severity(self): return "INFO"
+            @property
+            def supported_locales(self): return {"*"}
+            @property
+            def active_era(self): return (None, None)
+            def evaluate(self, ctx):
+                return ProposedChange("Safe", "SafeString", "SafeDiff")
+
+        engine = RuleEngine(rules=[MockCrashRule(), MockSafeRule()])
+        ctx = RuleContext("p1", "Test", "Test", Person.MALE, 1900, "ru")
+        
+        # Should not raise an exception, and should return the result of the SafeRule
+        results = engine.evaluate_person(ctx)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0][0].rule_id, "SAFE_RULE")
+
+    def test_engine_routing_filters(self):
+        class MockEraRule(BaseRule):
+            @property
+            def rule_id(self): return "ERA_RULE"
+            @property
+            def severity(self): return "ERROR"
+            @property
+            def supported_locales(self): return {"*"}
+            @property
+            def active_era(self): return (1800, 1900)
+            def evaluate(self, ctx): return ProposedChange("Hit", "Hit", "Hit")
+
+        class MockLocaleRule(BaseRule):
+            @property
+            def rule_id(self): return "LOCALE_RULE"
+            @property
+            def severity(self): return "ERROR"
+            @property
+            def supported_locales(self): return {"uk"}
+            @property
+            def active_era(self): return (None, None)
+            def evaluate(self, ctx): return ProposedChange("Hit", "Hit", "Hit")
+
+        engine = RuleEngine(rules=[MockEraRule(), MockLocaleRule()])
+        
+        # Context: Year 1950 (Fails Era), Locale 'ru' (Fails Locale)
+        ctx_miss = RuleContext("p1", "Test", "Test", Person.MALE, 1950, "ru")
+        self.assertEqual(len(engine.evaluate_person(ctx_miss)), 0)
+
+        # Context: Year 1850 (Passes Era), Locale 'uk' (Passes Locale)
+        ctx_hit = RuleContext("p2", "Test", "Test", Person.MALE, 1850, "uk")
+        self.assertEqual(len(engine.evaluate_person(ctx_hit)), 2)
+
+    def test_engine_enabled_rules_toggle(self):
+        engine = RuleEngine() # Loads default 7 rules
+        ctx = RuleContext("p1", "Иванович", "Иван", Person.FEMALE, 1950, "ru") # Will trigger ErrGenderMismatch
+        
+        # Run with all rules
+        all_results = engine.evaluate_person(ctx, enabled_rules=None)
+        self.assertTrue(any(r[0].rule_id == "ERR_GENDER_MISMATCH" for r in all_results))
+        
+        # Run with gender rule explicitly disabled
+        restricted_results = engine.evaluate_person(ctx, enabled_rules={"ERR_LINEAGE_MISMATCH"})
+        self.assertFalse(any(r[0].rule_id == "ERR_GENDER_MISMATCH" for r in restricted_results))
 
 
 # class TestLinterUIIntegration(unittest.TestCase):
