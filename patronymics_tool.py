@@ -332,35 +332,42 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.tree_view.append_column(col_toggle)
 
         col_id = Gtk.TreeViewColumn(_("ID"), Gtk.CellRendererText(), text=self.LIST_COL_GRAMPS_ID)
+        col_id.set_sort_column_id(self.LIST_COL_GRAMPS_ID)
         col_id.set_resizable(True)
         self.tree_view.append_column(col_id)
 
         col_person = Gtk.TreeViewColumn(_("Individual"), Gtk.CellRendererText(), text=self.LIST_COL_DISPLAY_NAME)
+        col_person.set_sort_column_id(self.LIST_COL_DISPLAY_NAME)
         col_person.set_resizable(True)
         col_person.set_expand(True)
         self.tree_view.append_column(col_person)
 
         col_father = Gtk.TreeViewColumn(_("Father"), Gtk.CellRendererText(), text=self.LIST_COL_FATHER_NAME)
+        col_father.set_sort_column_id(self.LIST_COL_FATHER_NAME)
         col_father.set_resizable(True)
         self.tree_view.append_column(col_father)
 
         col_year = Gtk.TreeViewColumn(_("Ref Year"), Gtk.CellRendererText(), text=self.LIST_COL_REF_YEAR)
+        col_year.set_sort_column_id(self.LIST_COL_REF_YEAR)
         col_year.set_resizable(True)
         self.tree_view.append_column(col_year)
 
         col_pat = Gtk.TreeViewColumn(
             _("Inferred Patronymic"), Gtk.CellRendererText(), text=self.LIST_COL_PATRONYMIC
         )
+        col_pat.set_sort_column_id(self.LIST_COL_PATRONYMIC)
         col_pat.set_resizable(True)
         self.tree_view.append_column(col_pat)
 
         col_conf = Gtk.TreeViewColumn(_("Conf"), Gtk.CellRendererText(), text=self.LIST_COL_CONFIDENCE)
+        col_conf.set_sort_column_id(self.LIST_COL_CONFIDENCE)
         col_conf.set_resizable(True)
         self.tree_view.append_column(col_conf)
 
         col_rules = Gtk.TreeViewColumn(
             _("Historical Context Rule"), Gtk.CellRendererText(), text=self.LIST_COL_RULE_SOURCE
         )
+        col_rules.set_sort_column_id(self.LIST_COL_RULE_SOURCE)
         col_rules.set_resizable(True)
         col_rules.set_expand(True)
         self.tree_view.append_column(col_rules)
@@ -374,12 +381,14 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.audit_tree.append_column(col_toggle)
 
         col_id = Gtk.TreeViewColumn(_("ID"), Gtk.CellRendererText(), text=self.AUDIT_COL_GRAMPS_ID)
+        col_id.set_sort_column_id(self.AUDIT_COL_GRAMPS_ID)
         col_id.set_resizable(True)
         self.audit_tree.append_column(col_id)
 
         col_person = Gtk.TreeViewColumn(
             _("Individual"), Gtk.CellRendererText(), text=self.AUDIT_COL_DISPLAY_NAME
         )
+        col_person.set_sort_column_id(self.AUDIT_COL_DISPLAY_NAME)
         col_person.set_resizable(True)
         col_person.set_expand(True)
         self.audit_tree.append_column(col_person)
@@ -387,6 +396,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_current = Gtk.TreeViewColumn(
             _("Current Value"), Gtk.CellRendererText(), text=self.AUDIT_COL_CURRENT_PAT
         )
+        col_current.set_sort_column_id(self.AUDIT_COL_CURRENT_PAT)
         col_current.set_resizable(True)
         self.audit_tree.append_column(col_current)
 
@@ -400,6 +410,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_suggested = Gtk.TreeViewColumn(
             _("Suggested Fix"), Gtk.CellRendererText(), markup=self.AUDIT_COL_DIFF_MARKUP
         )
+        col_suggested.set_sort_column_id(self.AUDIT_COL_DIFF_MARKUP)
         col_suggested.set_resizable(True)
         col_suggested.set_expand(True)
         self.audit_tree.append_column(col_suggested)
@@ -407,6 +418,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_rule = Gtk.TreeViewColumn(
             _("Triggered Rule"), Gtk.CellRendererText(), text=self.AUDIT_COL_RULE_ID
         )
+        col_rule.set_sort_column_id(self.AUDIT_COL_RULE_ID)
         col_rule.set_resizable(True)
         self.audit_tree.append_column(col_rule)
 
@@ -415,12 +427,14 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_exec_id = Gtk.TreeViewColumn(
             _("Execution ID"), Gtk.CellRendererText(), text=self.LOG_COL_EXEC_ID
         )
+        col_exec_id.set_sort_column_id(self.LOG_COL_EXEC_ID)
         col_exec_id.set_resizable(True)
         self.log_tree.append_column(col_exec_id)
 
         col_timestamp = Gtk.TreeViewColumn(
             _("Execution Timestamp"), Gtk.CellRendererText(), text=self.LOG_COL_TIMESTAMP
         )
+        col_timestamp.set_sort_column_id(self.LOG_COL_TIMESTAMP)
         col_timestamp.set_resizable(True)
         col_timestamp.set_expand(True)
         self.log_tree.append_column(col_timestamp)
@@ -428,12 +442,14 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_changes = Gtk.TreeViewColumn(
             _("Changes Written"), Gtk.CellRendererText(), text=self.LOG_COL_CHANGES_COUNT
         )
+        col_changes.set_sort_column_id(self.LOG_COL_CHANGES_COUNT)
         col_changes.set_resizable(True)
         self.log_tree.append_column(col_changes)
 
         col_plugin = Gtk.TreeViewColumn(
             _("Plugin Applied"), Gtk.CellRendererText(), text=self.LOG_COL_PLUGIN_ID
         )
+        col_plugin.set_sort_column_id(self.LOG_COL_PLUGIN_ID)
         col_plugin.set_resizable(True)
         self.log_tree.append_column(col_plugin)
 
