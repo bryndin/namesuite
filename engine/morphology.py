@@ -26,8 +26,6 @@ EPOCH_PRE_REFORM = "pre_reform"
 EPOCH_POST_REFORM = "post_reform"
 
 # Slavic surname regex markers (Cyrillic and Latin transliterated)
-# Expanded to include feminine Latin suffixes (ova, eva, ina, yna) and Cyrillic adjectival endings (ский, ская, цкий, цкая)
-# Note: Intentionally excludes Polish endings like "ska" (e.g. Skladowska) to avoid false matches.
 SLAVIC_SURNAME_PATTERN = re.compile(
     r"(ов|ев|ин|ын|енко|чук|ко|ова|ева|ина|ына|ский|ская|цкий|цкая|ov|ova|ev|eva|in|ina|yn|yna|enko|chuk|sky|skiy|skaya)$",
     re.IGNORECASE,
@@ -96,15 +94,6 @@ def parse_stem(father_name: str) -> Tuple[str, str, str]:
 
     Returns a tuple of:
         (stem_type, genitive_base, modern_formal_base)
-
-    Stem Types:
-        - "hard": Ends in standard hard consonant (e.g., Иван, Петр)
-        - "sibilant": Ends in ж, ш, ч, щ, ц (e.g., Жорж)
-        - "soft": Ends in ь (e.g., Игорь)
-        - "yod_ii": Ends in -ий (e.g., Дмитрий, Василий)
-        - "yod_ej": Ends in -ей, -ай, -ой (e.g., Сергей, Николай)
-        - "contracted_ya": Ends in -ья (e.g., Илья)
-        - "contracted_a": Ends in standard -а, -я (e.g., Никита, Фома)
     """
     name = father_name.strip()
     if not name:
@@ -131,6 +120,10 @@ def parse_stem(father_name: str) -> Tuple[str, str, str]:
         "Данила": ("hard", "Данилин", "Данил"),
         "Михайла": ("hard", "Михайлин", "Михайл"),
         "Иона": ("hard", "Ионин", "Ион"),
+        "Дмитрий": ("yod_ii", "Дмитриев", "Дмитри"),
+        "Димитрий": ("yod_ii", "Димитриев", "Димитри"),
+        "Онуфрий": ("yod_ii", "Онуфриев", "Онуфри"),
+        "Корний": ("yod_ii", "Корниев", "Корни"),
     }
 
     if name in irregular_names:
@@ -141,6 +134,16 @@ def parse_stem(father_name: str) -> Tuple[str, str, str]:
         base = name[:-1]  # Strip "я" -> "Иль"
         return ("contracted_ya", base + "ин", base)
 
+    # 1b. Church Slavonic names ending in -ия (e.g., Илия, Захария)
+    elif name.endswith("ия"):
+        base = name[:-1]  # Strip "я" -> "Или"
+        return ("soft", base + "ев", base)
+
+    # 1c. Folk/Ukrainian stems ending in -о (e.g., Михайло, Петро, Данило)
+    elif name.endswith("о"):
+        base = name[:-1]  # Strip "о" -> "Михайл"
+        return ("hard", base + "ов", base)
+
     # 2. Contracted hard vowel stems (e.g., Никита, Савва, Фома, Лука)
     elif name.endswith(("а", "я")) and not name.endswith("ия"):
         base = name[:-1]  # "Никит", "Савв", "Фом"
@@ -149,15 +152,17 @@ def parse_stem(father_name: str) -> Tuple[str, str, str]:
     # 3. Yod stems ending in -ий (e.g., Дмитрий, Василий, Григорий)
     elif name.endswith("ий"):
         base_stem = name[:-2]  # Strip "ий"
-        # Handle soft-yod shifts historically used in records (expanded to include 'дий', 'вий', 'пий', 'бий')
+
+        # Handle soft-yod shifts historically used in records.
+        # Excludes strict Church Slavonic names that maintain the 'и' (Онуфрий, Корний)
         if name.endswith(
             ("лий", "рий", "ний", "тий", "сий", "дий", "вий", "пий", "бий")
-        ) and name not in ("Дмитрий", "Димитрий"):
+        ):
             # Василий -> Василь-, Григорий -> Григорь-
             genitive_base = base_stem + "ьев"
             formal_base = base_stem + "ь"
         else:
-            # Дмитрий -> Дмитри-, Димитрий -> Димитри-
+            # Дмитрий -> Дмитри-, Онуфрий -> Онуфри-
             genitive_base = base_stem + "иев"
             formal_base = base_stem + "и"
         return ("yod_ii", genitive_base, formal_base)
@@ -244,7 +249,7 @@ def generate_east_slavic_patronymic(
         else:  # hard stems (Иван)
             result = formal_base + "ович" if is_male else formal_base + "овна"
 
-    # Apply historical orthography replacements if requested (Only valid pre-reform)
+    # Apply historical orthography replacements if requested
     if pre_reform_script and epoch != EPOCH_POST_REFORM:
         result = apply_pre_reform_orthography(result)
 
