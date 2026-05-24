@@ -85,6 +85,35 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
     inferred patronymic records safely, alongside morphological linter audits.
     """
 
+    # Audit store column indices
+    AUDIT_COL_CHECKBOX = 0
+    AUDIT_COL_DISPLAY_NAME = 1
+    AUDIT_COL_GRAMPS_ID = 2
+    AUDIT_COL_CURRENT_PAT = 3
+    AUDIT_COL_REF_YEAR = 4
+    AUDIT_COL_RULE_ID = 5
+    AUDIT_COL_DIFF_MARKUP = 6
+    AUDIT_COL_HANDLE = 7
+    AUDIT_COL_RULE_ID_DUP = 8
+    AUDIT_COL_SUGGESTED_STRING = 9
+
+    # List store column indices (Tab 1 - inference results)
+    LIST_COL_CHECKBOX = 0
+    LIST_COL_DISPLAY_NAME = 1
+    LIST_COL_FATHER_NAME = 2
+    LIST_COL_REF_YEAR = 3
+    LIST_COL_PATRONYMIC = 4
+    LIST_COL_CONFIDENCE = 5
+    LIST_COL_RULE_SOURCE = 6
+    LIST_COL_GRAMPS_ID = 7
+    LIST_COL_HANDLE = 8
+
+    # Log store column indices (Tab 3 - rollback history)
+    LOG_COL_EXEC_ID = 0
+    LOG_COL_TIMESTAMP = 1
+    LOG_COL_CHANGES_COUNT = 2
+    LOG_COL_PLUGIN_ID = 3
+
     def __init__(self, dbstate, user, options_class, name, callback=None, **kwargs):
         """
         Initializes the Gramps Tool window.
@@ -298,39 +327,39 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         """Creates table headers and columns for scanned candidates."""
         renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect("toggled", self.on_row_toggled)
-        col_toggle = Gtk.TreeViewColumn(_("Use"), renderer_toggle, active=0)
+        col_toggle = Gtk.TreeViewColumn(_("Use"), renderer_toggle, active=self.LIST_COL_CHECKBOX)
         col_toggle.set_resizable(True)
         self.tree_view.append_column(col_toggle)
 
-        col_id = Gtk.TreeViewColumn(_("ID"), Gtk.CellRendererText(), text=7)
+        col_id = Gtk.TreeViewColumn(_("ID"), Gtk.CellRendererText(), text=self.LIST_COL_GRAMPS_ID)
         col_id.set_resizable(True)
         self.tree_view.append_column(col_id)
 
-        col_person = Gtk.TreeViewColumn(_("Individual"), Gtk.CellRendererText(), text=1)
+        col_person = Gtk.TreeViewColumn(_("Individual"), Gtk.CellRendererText(), text=self.LIST_COL_DISPLAY_NAME)
         col_person.set_resizable(True)
         col_person.set_expand(True)
         self.tree_view.append_column(col_person)
 
-        col_father = Gtk.TreeViewColumn(_("Father"), Gtk.CellRendererText(), text=2)
+        col_father = Gtk.TreeViewColumn(_("Father"), Gtk.CellRendererText(), text=self.LIST_COL_FATHER_NAME)
         col_father.set_resizable(True)
         self.tree_view.append_column(col_father)
 
-        col_year = Gtk.TreeViewColumn(_("Ref Year"), Gtk.CellRendererText(), text=3)
+        col_year = Gtk.TreeViewColumn(_("Ref Year"), Gtk.CellRendererText(), text=self.LIST_COL_REF_YEAR)
         col_year.set_resizable(True)
         self.tree_view.append_column(col_year)
 
         col_pat = Gtk.TreeViewColumn(
-            _("Inferred Patronymic"), Gtk.CellRendererText(), text=4
+            _("Inferred Patronymic"), Gtk.CellRendererText(), text=self.LIST_COL_PATRONYMIC
         )
         col_pat.set_resizable(True)
         self.tree_view.append_column(col_pat)
 
-        col_conf = Gtk.TreeViewColumn(_("Conf"), Gtk.CellRendererText(), text=5)
+        col_conf = Gtk.TreeViewColumn(_("Conf"), Gtk.CellRendererText(), text=self.LIST_COL_CONFIDENCE)
         col_conf.set_resizable(True)
         self.tree_view.append_column(col_conf)
 
         col_rules = Gtk.TreeViewColumn(
-            _("Historical Context Rule"), Gtk.CellRendererText(), text=6
+            _("Historical Context Rule"), Gtk.CellRendererText(), text=self.LIST_COL_RULE_SOURCE
         )
         col_rules.set_resizable(True)
         col_rules.set_expand(True)
@@ -340,43 +369,43 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         """Creates table headers and renderers for the Auditor results."""
         renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect("toggled", self.on_audit_row_toggled)
-        col_toggle = Gtk.TreeViewColumn(_("Use"), renderer_toggle, active=0)
+        col_toggle = Gtk.TreeViewColumn(_("Use"), renderer_toggle, active=self.AUDIT_COL_CHECKBOX)
         col_toggle.set_resizable(True)
         self.audit_tree.append_column(col_toggle)
 
-        col_id = Gtk.TreeViewColumn(_("ID"), Gtk.CellRendererText(), text=2)
+        col_id = Gtk.TreeViewColumn(_("ID"), Gtk.CellRendererText(), text=self.AUDIT_COL_GRAMPS_ID)
         col_id.set_resizable(True)
         self.audit_tree.append_column(col_id)
 
         col_person = Gtk.TreeViewColumn(
-            _("Individual"), Gtk.CellRendererText(), text=1
+            _("Individual"), Gtk.CellRendererText(), text=self.AUDIT_COL_DISPLAY_NAME
         )
         col_person.set_resizable(True)
         col_person.set_expand(True)
         self.audit_tree.append_column(col_person)
 
         col_current = Gtk.TreeViewColumn(
-            _("Current Value"), Gtk.CellRendererText(), text=3
+            _("Current Value"), Gtk.CellRendererText(), text=self.AUDIT_COL_CURRENT_PAT
         )
         col_current.set_resizable(True)
         self.audit_tree.append_column(col_current)
 
         renderer_year = Gtk.CellRendererText()
-        col_year = Gtk.TreeViewColumn(_("Ref Year"), renderer_year, text=4)
-        col_year.set_sort_column_id(4)
+        col_year = Gtk.TreeViewColumn(_("Ref Year"), renderer_year, text=self.AUDIT_COL_REF_YEAR)
+        col_year.set_sort_column_id(self.AUDIT_COL_REF_YEAR)
         col_year.set_resizable(True)
         self.audit_tree.append_column(col_year)
 
         # Render suggested fixes with Pango markup
         col_suggested = Gtk.TreeViewColumn(
-            _("Suggested Fix"), Gtk.CellRendererText(), markup=6
+            _("Suggested Fix"), Gtk.CellRendererText(), markup=self.AUDIT_COL_DIFF_MARKUP
         )
         col_suggested.set_resizable(True)
         col_suggested.set_expand(True)
         self.audit_tree.append_column(col_suggested)
 
         col_rule = Gtk.TreeViewColumn(
-            _("Triggered Rule"), Gtk.CellRendererText(), text=5
+            _("Triggered Rule"), Gtk.CellRendererText(), text=self.AUDIT_COL_RULE_ID
         )
         col_rule.set_resizable(True)
         self.audit_tree.append_column(col_rule)
@@ -384,26 +413,26 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
     def setup_log_columns(self):
         """Creates table headers for rollback histories."""
         col_exec_id = Gtk.TreeViewColumn(
-            _("Execution ID"), Gtk.CellRendererText(), text=0
+            _("Execution ID"), Gtk.CellRendererText(), text=self.LOG_COL_EXEC_ID
         )
         col_exec_id.set_resizable(True)
         self.log_tree.append_column(col_exec_id)
 
         col_timestamp = Gtk.TreeViewColumn(
-            _("Execution Timestamp"), Gtk.CellRendererText(), text=1
+            _("Execution Timestamp"), Gtk.CellRendererText(), text=self.LOG_COL_TIMESTAMP
         )
         col_timestamp.set_resizable(True)
         col_timestamp.set_expand(True)
         self.log_tree.append_column(col_timestamp)
 
         col_changes = Gtk.TreeViewColumn(
-            _("Changes Written"), Gtk.CellRendererText(), text=2
+            _("Changes Written"), Gtk.CellRendererText(), text=self.LOG_COL_CHANGES_COUNT
         )
         col_changes.set_resizable(True)
         self.log_tree.append_column(col_changes)
 
         col_plugin = Gtk.TreeViewColumn(
-            _("Plugin Applied"), Gtk.CellRendererText(), text=3
+            _("Plugin Applied"), Gtk.CellRendererText(), text=self.LOG_COL_PLUGIN_ID
         )
         col_plugin.set_resizable(True)
         self.log_tree.append_column(col_plugin)
@@ -412,16 +441,21 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.update_action_buttons()
 
     def on_row_toggled(self, widget, path):
-        self.list_store[path][0] = not self.list_store[path][0]
+        self.list_store[path][self.LIST_COL_CHECKBOX] = not self.list_store[path][
+            self.LIST_COL_CHECKBOX
+        ]
+        self.update_action_buttons()
 
     def on_audit_row_toggled(self, widget, path):
-        self.audit_store[path][0] = not self.audit_store[path][0]
+        self.audit_store[path][self.AUDIT_COL_CHECKBOX] = not self.audit_store[path][
+            self.AUDIT_COL_CHECKBOX
+        ]
         self.update_audit_apply_button()
 
     def on_audit_select_all_toggled(self, widget):
         is_active = self.audit_select_all.get_active()
         for row in self.audit_store:
-            row[0] = is_active
+            row[self.AUDIT_COL_CHECKBOX] = is_active
         self.update_audit_apply_button()
 
     def update_action_buttons(self):
@@ -438,7 +472,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
 
     def update_audit_apply_button(self):
         """Sets sensitive states of GTK controls dynamically for Tab 2."""
-        has_checked = any(row[0] for row in self.audit_store)
+        has_checked = any(row[self.AUDIT_COL_CHECKBOX] for row in self.audit_store)
         self.audit_apply_btn.set_sensitive(has_checked)
 
     def refresh_log_history(self):
@@ -446,14 +480,12 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.log_store.clear()
         executions = self.log_manager.get_executions()
         for run in executions:
-            self.log_store.append(
-                [
-                    run.get("execution_id", ""),
-                    run.get("timestamp", ""),
-                    len(run.get("changes", [])),
-                    run.get("plugin_id", ""),
-                ]
-            )
+            row = [None] * 4
+            row[self.LOG_COL_EXEC_ID] = run.get("execution_id", "")
+            row[self.LOG_COL_TIMESTAMP] = run.get("timestamp", "")
+            row[self.LOG_COL_CHANGES_COUNT] = len(run.get("changes", []))
+            row[self.LOG_COL_PLUGIN_ID] = run.get("plugin_id", "")
+            self.log_store.append(row)
 
     def has_cyrillic(self, text):
         return bool(re.search(r"[\u0400-\u04FF]", text))
@@ -583,19 +615,17 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             )
 
             if patronymic:
-                self.list_store.append(
-                    [
-                        True,
-                        name_displayer.display_formal(person),
-                        father_first_name,
-                        ref_year,
-                        patronymic,
-                        f"{int(confidence * 100)}%",
-                        rule_source,
-                        person.gramps_id,
-                        handle,
-                    ]
-                )
+                row = [None] * 9
+                row[self.LIST_COL_CHECKBOX] = True
+                row[self.LIST_COL_DISPLAY_NAME] = name_displayer.display_formal(person)
+                row[self.LIST_COL_FATHER_NAME] = father_first_name
+                row[self.LIST_COL_REF_YEAR] = ref_year
+                row[self.LIST_COL_PATRONYMIC] = patronymic
+                row[self.LIST_COL_CONFIDENCE] = f"{int(confidence * 100)}%"
+                row[self.LIST_COL_RULE_SOURCE] = rule_source
+                row[self.LIST_COL_GRAMPS_ID] = person.gramps_id
+                row[self.LIST_COL_HANDLE] = handle
+                self.list_store.append(row)
 
         self.update_action_buttons()
 
@@ -689,20 +719,18 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                 )
 
                 for rule, change in triggered:
-                    self.audit_store.append(
-                        [
-                            True,
-                            name_displayer.display_formal(person),
-                            person.gramps_id,
-                            current_pat,
-                            ref_year,
-                            rule.rule_id,
-                            change.diff_markup,
-                            handle,
-                            rule.rule_id,
-                            change.suggested_string,
-                        ]
-                    )
+                    row = [None] * 10
+                    row[self.AUDIT_COL_CHECKBOX] = True
+                    row[self.AUDIT_COL_DISPLAY_NAME] = name_displayer.display_formal(person)
+                    row[self.AUDIT_COL_GRAMPS_ID] = person.gramps_id
+                    row[self.AUDIT_COL_CURRENT_PAT] = current_pat
+                    row[self.AUDIT_COL_REF_YEAR] = ref_year
+                    row[self.AUDIT_COL_RULE_ID] = rule.rule_id
+                    row[self.AUDIT_COL_DIFF_MARKUP] = change.diff_markup
+                    row[self.AUDIT_COL_HANDLE] = handle
+                    row[self.AUDIT_COL_RULE_ID_DUP] = rule.rule_id
+                    row[self.AUDIT_COL_SUGGESTED_STRING] = change.suggested_string
+                    self.audit_store.append(row)
 
             idx[0] = end
             fraction = idx[0] / total
@@ -716,9 +744,13 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         """Commits selected auditor suggestions inside transaction & records log."""
         changes_to_apply = []
         for row in self.audit_store:
-            if row[0]:
+            if row[self.AUDIT_COL_CHECKBOX]:
                 changes_to_apply.append(
-                    {"handle": row[6], "suggested_string": row[8], "rule_id": row[7]}
+                    {
+                        "handle": row[self.AUDIT_COL_HANDLE],
+                        "suggested_string": row[self.AUDIT_COL_SUGGESTED_STRING],
+                        "rule_id": row[self.AUDIT_COL_RULE_ID],
+                    }
                 )
 
         if not changes_to_apply:
@@ -901,12 +933,12 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
     def on_apply_clicked(self, widget):
         changes_to_apply = []
         for row in self.list_store:
-            if row[0]:
+            if row[self.LIST_COL_CHECKBOX]:
                 changes_to_apply.append(
                     {
-                        "handle": row[7],
-                        "patronymic": row[4],
-                        "ref_year": row[3],
+                        "handle": row[self.LIST_COL_HANDLE],
+                        "patronymic": row[self.LIST_COL_PATRONYMIC],
+                        "ref_year": row[self.LIST_COL_REF_YEAR],
                         "pre_reform": self.script_check.get_active(),
                     }
                 )
@@ -975,7 +1007,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             )
             return
 
-        exec_id = model.get_value(tree_iter, 0)
+        exec_id = model.get_value(tree_iter, self.LOG_COL_EXEC_ID)
 
         try:
             log_path = self.log_manager.log_filepath
