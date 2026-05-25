@@ -156,11 +156,11 @@ To ensure the family tree database remains completely standard-compliant, we avo
           "inferred_value": "Иванович",
           "father_handle": "c8f9b14d2e0",
           "reference_year": 1945,
+          "is_temporal_fallback": true,
           "pre_reform": false,
-          "confidence_score": 0.94,
+          "confidence_score": 0.20,
           "applied_heuristics": [
-            "DEATH_YEAR_POST_1918",
-            "SIBLING_PATTERN_MATCH"
+            "DATABASE_TEMPORAL_FALLBACK"
           ]
         }
       ]
@@ -195,6 +195,7 @@ To accurately identify the orthographic and naming standards in use, the engine 
     - **Parents:** Median year of parent events + 25 years.
     - **Siblings:** Median year of sibling events.
     - **Children:** Median year of children events - 25 years.
+3. **Tier 3: Database-Wide Trend Fallback:** If Tier 1 and Tier 2 both fail to establish a temporal anchor, the engine resolves the era by calculating the median event year of the entire active Gramps database during initialization. If this global median year is $\ge 1918$, the engine defaults to the Modern Epoch strategy; if $< 1918$, it applies the Pre-1918 Epoch strategy. The resulting name is flagged as `is_temporal_fallback` with a low base confidence score (`0.20`).
 
 ---
 
@@ -453,10 +454,12 @@ The following core rules are evaluated.
 
 #### Category B: Temporal Anachronisms
 
+These rules are crucial for correcting initial temporal guesses. If a person's name was generated using the **Tier 3 Database-Wide Trend Fallback**, and the user subsequently adds a date (e.g., birth, marriage, or death) that establishes a real chronology, these rules will automatically trigger to fix the epoch.
+
 | Rule ID | Trigger Condition | Example Failure | Linter Action |
 | --- | --- | --- | --- |
-| `WARN_MODERN_SUFFIX_ARCHAIC_ERA` | $Y_{ref}$ is pre-1918, but the suffix uses a modern formal ending. | $Y_{ref}$ is 1850; name is **Иванович**. | Flag warning; suggest archaic genitive (**Ивановъ**). |
-| `WARN_ARCHAIC_SUFFIX_MODERN_ERA` | $Y_{ref}$ is post-1918, but the suffix uses an archaic/informal ending. | $Y_{ref}$ is 1950; name is **Иванов**. | Flag warning; suggest formal modern suffix (**Иванович**). |
+| `WARN_MODERN_SUFFIX_ARCHAIC_ERA` | $Y_{ref}$ is resolved as pre-1918, but the suffix uses a modern formal ending (likely from an earlier temporal fallback guess). | $Y_{ref}$ is 1850; name is **Иванович**. | Flag warning; suggest archaic genitive (**Ивановъ**). |
+| `WARN_ARCHAIC_SUFFIX_MODERN_ERA` | $Y_{ref}$ is resolved as post-1918, but the suffix uses an archaic/informal ending (likely from an earlier temporal fallback guess). | $Y_{ref}$ is 1950; name is **Иванов**. | Flag warning; suggest formal modern suffix (**Иванович**). |
 
 #### Category C: Orthographic & Typographical Anomalies
 
