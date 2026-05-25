@@ -98,6 +98,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
     AUDIT_COL_HANDLE = 7
     AUDIT_COL_RULE_ID_DUP = 8
     AUDIT_COL_SUGGESTED_STRING = 9
+    AUDIT_COL_RULE_SOURCE = 10
 
     # List store column indices (Tab 1 - inference results)
     LIST_COL_CHECKBOX = 0
@@ -118,12 +119,8 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
 
     # Reference year resolution source descriptions
     REF_SOURCE_LATEST_EVENT = _("Latest Event Year")
-    REF_SOURCE_GENERATIONAL_PARENTS = _("Generational Estimation (Parents)")
-    REF_SOURCE_GENERATIONAL_SPOUSE_FAMILY = _("Generational Estimation (Spouse/Family)")
-    REF_SOURCE_GENERATIONAL_SIBLINGS = _("Generational Estimation (Siblings)")
-    REF_SOURCE_GENERATIONAL_CHILDREN = _("Generational Estimation (Children)")
-    REF_SOURCE_DB_MEDIAN_FALLBACK = _("Database Median Fallback")
-    REF_SOURCE_GENERATIONAL_GRAPH = _("Generational Graph BFS")
+    REF_SOURCE_DB_MEDIAN_FALLBACK = _("DB Median Fallback")
+    REF_SOURCE_GRAPH_BFS = _("Graph BFS")
 
     def __init__(self, dbstate, user, options_class, name, callback=None, **kwargs):
         """
@@ -301,9 +298,9 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         audit_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         audit_tab_box.pack_start(audit_scroll, True, True, 0)
 
-        # Auditor ListStore: [Include, Person Name, GrampsID, Current Value, Ref Year, Triggered Rule, Suggested Fix (Markup), Handle, Rule ID, Suggested String]
+        # Auditor ListStore: [Include, Person Name, GrampsID, Current Value, Ref Year, Triggered Rule, Suggested Fix (Markup), Handle, Rule ID, Suggested String, Rule Source]
         self.audit_store = Gtk.ListStore(
-            bool, str, str, str, int, str, str, str, str, str
+            bool, str, str, str, int, str, str, str, str, str, str
         )
         self.audit_tree = Gtk.TreeView(model=self.audit_store)
         self.audit_tree.connect("row-activated", self.on_audit_row_activated)
@@ -485,6 +482,16 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_rule.set_sort_column_id(self.AUDIT_COL_RULE_ID)
         col_rule.set_resizable(True)
         self.audit_tree.append_column(col_rule)
+
+        col_rules = Gtk.TreeViewColumn(
+            _("Historical Context Rule"),
+            Gtk.CellRendererText(),
+            text=self.AUDIT_COL_RULE_SOURCE,
+        )
+        col_rules.set_sort_column_id(self.AUDIT_COL_RULE_SOURCE)
+        col_rules.set_resizable(True)
+        col_rules.set_expand(True)
+        self.audit_tree.append_column(col_rules)
 
     def setup_log_columns(self):
         """Creates table headers for rollback histories."""
@@ -811,7 +818,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                 )
 
                 for rule, change in triggered:
-                    row = [None] * 10
+                    row = [None] * 11
                     row[self.AUDIT_COL_CHECKBOX] = True
                     row[self.AUDIT_COL_DISPLAY_NAME] = name_displayer.display_formal(
                         person
@@ -824,6 +831,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                     row[self.AUDIT_COL_HANDLE] = handle
                     row[self.AUDIT_COL_RULE_ID_DUP] = rule.rule_id
                     row[self.AUDIT_COL_SUGGESTED_STRING] = change.suggested_string
+                    row[self.AUDIT_COL_RULE_SOURCE] = rule_source
                     self.audit_store.append(row)
 
             idx[0] = end
@@ -977,7 +985,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                 median_year = sorted(level_estimates)[len(level_estimates) // 2]
                 
                 # Use a unified constant for graph resolution
-                return median_year, self.REF_SOURCE_GENERATIONAL_GRAPH
+                return median_year, self.REF_SOURCE_GRAPH_BFS
             
             current_level = next_level
             if not current_level:

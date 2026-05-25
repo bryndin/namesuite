@@ -136,7 +136,7 @@ class TestReferenceYearResolution(unittest.TestCase):
         self.tool.db_median_year = 1921
         # Copy the REF_SOURCE constants from the actual class
         self.tool.REF_SOURCE_LATEST_EVENT = InferPatronymicsTool.REF_SOURCE_LATEST_EVENT
-        self.tool.REF_SOURCE_GENERATIONAL_GRAPH = InferPatronymicsTool.REF_SOURCE_GENERATIONAL_GRAPH
+        self.tool.REF_SOURCE_GRAPH_BFS = InferPatronymicsTool.REF_SOURCE_GRAPH_BFS
         self.tool.REF_SOURCE_DB_MEDIAN_FALLBACK = InferPatronymicsTool.REF_SOURCE_DB_MEDIAN_FALLBACK
         self.tool.resolve_reference_year = (
             InferPatronymicsTool.resolve_reference_year.__get__(
@@ -190,7 +190,7 @@ class TestReferenceYearResolution(unittest.TestCase):
         year, source = self.tool.resolve_reference_year(person)
         # Father is at delta_g = +1, so 1900 + (1 * 25) = 1925
         self.assertEqual(year, 1925)
-        self.assertEqual(source, self.tool.REF_SOURCE_GENERATIONAL_GRAPH)
+        self.assertEqual(source, self.tool.REF_SOURCE_GRAPH_BFS)
 
     def test_tier2_generational_graph_multiple_relatives(self):
         """Test Tier 2: BFS with multiple relatives uses median of normalized years."""
@@ -240,7 +240,7 @@ class TestReferenceYearResolution(unittest.TestCase):
         # Both parents at delta_g = +1: [1900+25, 1910+25] = [1925, 1935]
         # Implementation uses sorted()[len//2] which for 2 elements picks index 1 (upper value)
         self.assertEqual(year, 1935)
-        self.assertEqual(source, self.tool.REF_SOURCE_GENERATIONAL_GRAPH)
+        self.assertEqual(source, self.tool.REF_SOURCE_GRAPH_BFS)
 
     def test_tier3_database_fallback(self):
         person = MagicMock()
