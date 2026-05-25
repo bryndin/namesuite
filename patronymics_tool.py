@@ -123,6 +123,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
     REF_SOURCE_GENERATIONAL_SIBLINGS = _("Generational Estimation (Siblings)")
     REF_SOURCE_GENERATIONAL_CHILDREN = _("Generational Estimation (Children)")
     REF_SOURCE_DB_MEDIAN_FALLBACK = _("Database Median Fallback")
+    REF_SOURCE_GENERATIONAL_GRAPH = _("Generational Graph BFS")
 
     def __init__(self, dbstate, user, options_class, name, callback=None, **kwargs):
         """
@@ -902,119 +903,87 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         event_years = []
         for event_ref in person.get_event_ref_list():
             event = self.db.get_event_from_handle(event_ref.ref)
-            if event:
-                date_obj = event.get_date_object()
-                if date_obj and date_obj.get_year():
-                    event_years.append(date_obj.get_year())
+            if event and event.get_date_object() and event.get_date_object().get_year():
+                event_years.append(event.get_date_object().get_year())
 
         if event_years:
             return max(event_years), self.REF_SOURCE_LATEST_EVENT
 
-        # Tier 2: Generational Lineage Heuristic
-        parent_years = []
-        for fam_handle in person.get_parent_family_handle_list():
-            fam = self.db.get_family_from_handle(fam_handle)
-            if fam:
-                for h in [fam.get_father_handle(), fam.get_mother_handle()]:
-                    if h:
-                        p = self.db.get_person_from_handle(h)
-                        if p:
-                            for event_ref in p.get_event_ref_list():
-                                event = self.db.get_event_from_handle(event_ref.ref)
-                                if (
-                                    event
-                                    and event.get_date_object()
-                                    and event.get_date_object().get_year()
-                                ):
-                                    parent_years.append(
-                                        event.get_date_object().get_year()
-                                    )
-        if parent_years:
-            return sorted(parent_years)[
-                len(parent_years) // 2
-            ] + 25, self.REF_SOURCE_GENERATIONAL_PARENTS
-
-        # Tier 3: Spouse/Family, Siblings, Children
-        # Spouse/Family
-        family_years = []
-        for fam_handle in person.get_family_handle_list():
-            fam = self.db.get_family_from_handle(fam_handle)
-            if fam:
-                for event_ref in fam.get_event_ref_list():
+        # Tier 2: Generational Graph Traversal (BFS)
+        max_depth = 4
+        visited = {person.handle}
+        current_level = [(person.handle, 0)]  # Queue stores: (person_handle, delta_g)
+        
+        for depth in range(1, max_depth + 1):
+            next_level = []
+            level_estimates = []
+            
+            for handle, delta_g in current_level:
+                p = self.db.get_person_from_handle(handle)
+                if not p:
+                    continue
+                
+                # 1. Parents and Siblings (via parent families)
+                for fam_handle in p.get_parent_family_handle_list():
+                    fam = self.db.get_family_from_handle(fam_handle)
+                    if not fam:
+                        continue
+                    
+                    # Parents (+1 generation)
+                    for parent_handle in (fam.get_father_handle(), fam.get_mother_handle()):
+                        if parent_handle and parent_handle not in visited:
+                            visited.add(parent_handle)
+                            next_level.append((parent_handle, delta_g + 1))
+                            
+                    # Siblings (0 generation difference)
+                    for child_ref in fam.get_child_ref_list():
+                        if child_ref.ref not in visited:
+                            visited.add(child_ref.ref)
+                            next_level.append((child_ref.ref, delta_g))
+                            
+                # 2. Spouses and Children (via own families)
+                for fam_handle in p.get_family_handle_list():
+                    fam = self.db.get_family_from_handle(fam_handle)
+                    if not fam:
+                        continue
+                    
+                    # Spouses (0 generation difference)
+                    for spouse_handle in (fam.get_father_handle(), fam.get_mother_handle()):
+                        if spouse_handle and spouse_handle != handle and spouse_handle not in visited:
+                            visited.add(spouse_handle)
+                            next_level.append((spouse_handle, delta_g))
+                            
+                    # Children (-1 generation)
+                    for child_ref in fam.get_child_ref_list():
+                        if child_ref.ref not in visited:
+                            visited.add(child_ref.ref)
+                            next_level.append((child_ref.ref, delta_g - 1))
+                            
+            # Process events for all newly discovered relatives at this depth
+            for handle, d_g in next_level:
+                rel_p = self.db.get_person_from_handle(handle)
+                if not rel_p:
+                    continue
+                
+                for event_ref in rel_p.get_event_ref_list():
                     event = self.db.get_event_from_handle(event_ref.ref)
-                    if (
-                        event
-                        and event.get_date_object()
-                        and event.get_date_object().get_year()
-                    ):
-                        family_years.append(event.get_date_object().get_year())
-                spouse_handle = (
-                    fam.get_father_handle()
-                    if person.get_gender() == Person.FEMALE
-                    else fam.get_mother_handle()
-                )
-                if spouse_handle:
-                    spouse = self.db.get_person_from_handle(spouse_handle)
-                    if spouse:
-                        for event_ref in spouse.get_event_ref_list():
-                            event = self.db.get_event_from_handle(event_ref.ref)
-                            if (
-                                event
-                                and event.get_date_object()
-                                and event.get_date_object().get_year()
-                            ):
-                                family_years.append(event.get_date_object().get_year())
-        if family_years:
-            return sorted(family_years)[
-                len(family_years) // 2
-            ], self.REF_SOURCE_GENERATIONAL_SPOUSE_FAMILY
+                    if event and event.get_date_object() and event.get_date_object().get_year():
+                        event_year = event.get_date_object().get_year()
+                        # Normalize the event year to the target individual's generation
+                        level_estimates.append(event_year + (d_g * 25))
+                        
+            # If dates were found at this depth, resolve and break recursion
+            if level_estimates:
+                median_year = sorted(level_estimates)[len(level_estimates) // 2]
+                
+                # Use a unified constant for graph resolution
+                return median_year, self.REF_SOURCE_GENERATIONAL_GRAPH
+            
+            current_level = next_level
+            if not current_level:
+                break # Exhausted the connected component before hitting max_depth
 
-        # Siblings
-        sibling_years = []
-        for fam_handle in person.get_parent_family_handle_list():
-            fam = self.db.get_family_from_handle(fam_handle)
-            if fam:
-                for child_ref in fam.get_child_ref_list():
-                    if child_ref.ref != person.handle:
-                        sibling = self.db.get_person_from_handle(child_ref.ref)
-                        if sibling:
-                            for event_ref in sibling.get_event_ref_list():
-                                event = self.db.get_event_from_handle(event_ref.ref)
-                                if (
-                                    event
-                                    and event.get_date_object()
-                                    and event.get_date_object().get_year()
-                                ):
-                                    sibling_years.append(
-                                        event.get_date_object().get_year()
-                                    )
-        if sibling_years:
-            return sorted(sibling_years)[
-                len(sibling_years) // 2
-            ], self.REF_SOURCE_GENERATIONAL_SIBLINGS
-
-        # Children
-        child_years = []
-        for fam_handle in person.get_family_handle_list():
-            fam = self.db.get_family_from_handle(fam_handle)
-            if fam:
-                for child_ref in fam.get_child_ref_list():
-                    child = self.db.get_person_from_handle(child_ref.ref)
-                    if child:
-                        for event_ref in child.get_event_ref_list():
-                            event = self.db.get_event_from_handle(event_ref.ref)
-                            if (
-                                event
-                                and event.get_date_object()
-                                and event.get_date_object().get_year()
-                            ):
-                                child_years.append(event.get_date_object().get_year())
-        if child_years:
-            return sorted(child_years)[len(child_years) // 2] - 25, _(
-                self.REF_SOURCE_GENERATIONAL_CHILDREN
-            )
-
-        # Tier 4: Fallback
+        # Tier 3: Database Fallback
         return getattr(self, "db_median_year", 1920), self.REF_SOURCE_DB_MEDIAN_FALLBACK
 
     def on_apply_clicked(self, widget):

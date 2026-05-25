@@ -136,8 +136,7 @@ class TestReferenceYearResolution(unittest.TestCase):
         self.tool.db_median_year = 1921
         # Copy the REF_SOURCE constants from the actual class
         self.tool.REF_SOURCE_LATEST_EVENT = InferPatronymicsTool.REF_SOURCE_LATEST_EVENT
-        self.tool.REF_SOURCE_GENERATIONAL_PARENTS = InferPatronymicsTool.REF_SOURCE_GENERATIONAL_PARENTS
-        self.tool.REF_SOURCE_GENERATIONAL_SPOUSE_FAMILY = InferPatronymicsTool.REF_SOURCE_GENERATIONAL_SPOUSE_FAMILY
+        self.tool.REF_SOURCE_GENERATIONAL_GRAPH = InferPatronymicsTool.REF_SOURCE_GENERATIONAL_GRAPH
         self.tool.REF_SOURCE_DB_MEDIAN_FALLBACK = InferPatronymicsTool.REF_SOURCE_DB_MEDIAN_FALLBACK
         self.tool.resolve_reference_year = (
             InferPatronymicsTool.resolve_reference_year.__get__(
@@ -158,33 +157,92 @@ class TestReferenceYearResolution(unittest.TestCase):
         self.assertEqual(year, 1880)
         self.assertEqual(source, InferPatronymicsTool.REF_SOURCE_LATEST_EVENT)
 
-    def test_tier2_parents_heuristic(self):
+    def test_tier2_generational_graph_bfs(self):
+        """Test Tier 2: BFS traversal finds father event and normalizes by generation."""
         person = MagicMock()
+        person.handle = "PERSON"
+        person.get_event_ref_list.return_value = []  # No own events
         person.get_parent_family_handle_list.return_value = ["F1"]
+        person.get_family_handle_list.return_value = []
+        
         family = MagicMock()
         family.get_father_handle.return_value = "FATHER"
+        family.get_mother_handle.return_value = None
+        family.get_child_ref_list.return_value = []
         self.mock_db.get_family_from_handle.return_value = family
+        
         father = MagicMock()
+        father.handle = "FATHER"
         father.get_event_ref_list.return_value = [MagicMock(ref="E1")]
-        self.mock_db.get_person_from_handle.return_value = father
+        father.get_parent_family_handle_list.return_value = []
+        father.get_family_handle_list.return_value = []
+        
+        # Mock get_person_from_handle to return the correct person for each handle
+        def mock_get_person(handle):
+            if handle == "PERSON":
+                return person
+            elif handle == "FATHER":
+                return father
+            return None
+        self.mock_db.get_person_from_handle.side_effect = mock_get_person
         self.mock_db.get_event_from_handle.return_value = MockEvent(1900)
+        
         year, source = self.tool.resolve_reference_year(person)
+        # Father is at delta_g = +1, so 1900 + (1 * 25) = 1925
         self.assertEqual(year, 1925)
-        self.assertIn("Parents", source)
+        self.assertEqual(source, self.tool.REF_SOURCE_GENERATIONAL_GRAPH)
 
-    def test_tier3_spouse_family_heuristic(self):
+    def test_tier2_generational_graph_multiple_relatives(self):
+        """Test Tier 2: BFS with multiple relatives uses median of normalized years."""
         person = MagicMock()
-        person.get_event_ref_list.return_value = []
-        person.get_family_handle_list.return_value = ["F1"]
+        person.handle = "PERSON"
+        person.get_event_ref_list.return_value = []  # No own events
+        person.get_parent_family_handle_list.return_value = ["F1"]
+        person.get_family_handle_list.return_value = []
+        
         family = MagicMock()
-        family.get_event_ref_list.return_value = [MagicMock(ref="E1")]
+        family.get_father_handle.return_value = "FATHER"
+        family.get_mother_handle.return_value = "MOTHER"
+        family.get_child_ref_list.return_value = []
         self.mock_db.get_family_from_handle.return_value = family
-        self.mock_db.get_event_from_handle.return_value = MockEvent(1900)
+        
+        father = MagicMock()
+        father.handle = "FATHER"
+        father.get_event_ref_list.return_value = [MagicMock(ref="E1")]
+        father.get_parent_family_handle_list.return_value = []
+        father.get_family_handle_list.return_value = []
+        
+        mother = MagicMock()
+        mother.handle = "MOTHER"
+        mother.get_event_ref_list.return_value = [MagicMock(ref="E2")]
+        mother.get_parent_family_handle_list.return_value = []
+        mother.get_family_handle_list.return_value = []
+        
+        def mock_get_person(handle):
+            if handle == "PERSON":
+                return person
+            elif handle == "FATHER":
+                return father
+            elif handle == "MOTHER":
+                return mother
+            return None
+        self.mock_db.get_person_from_handle.side_effect = mock_get_person
+        
+        def mock_get_event(handle):
+            if handle == "E1":
+                return MockEvent(1900)
+            elif handle == "E2":
+                return MockEvent(1910)
+            return None
+        self.mock_db.get_event_from_handle.side_effect = mock_get_event
+        
         year, source = self.tool.resolve_reference_year(person)
-        self.assertEqual(year, 1900)
-        self.assertIn("Spouse/Family", source)
+        # Both parents at delta_g = +1: [1900+25, 1910+25] = [1925, 1935]
+        # Implementation uses sorted()[len//2] which for 2 elements picks index 1 (upper value)
+        self.assertEqual(year, 1935)
+        self.assertEqual(source, self.tool.REF_SOURCE_GENERATIONAL_GRAPH)
 
-    def test_tier4_fallback_default(self):
+    def test_tier3_database_fallback(self):
         person = MagicMock()
         person.get_event_ref_list.return_value = []
         person.get_parent_family_handle_list.return_value = []

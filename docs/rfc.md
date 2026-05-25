@@ -191,11 +191,11 @@ Because we are working entirely within a standard decoupled addon, we cannot ins
 To accurately identify the orthographic and naming standards in use, the engine determines a **Reference Year ($Y_{ref}$)** by anchoring to the latest available chronological data for the individual.
 
 1. **Tier 1: Latest Recorded Event Year:** The engine scans all events attached to the person (Birth, Baptism, Marriage, Census, Death, Burial). It extracts the maximum (latest) valid year from this pool. Because death or late-census records naturally fall at the end of a life, this guarantees the most mature temporal anchor for that individual.
-2. **Tier 2: Generational Lineage Heuristic:** If the individual's record contains absolutely no dated events, the engine immediately falls back to estimating the reference year using immediate family members:
-    - **Parents:** Median year of parent events + 25 years.
-    - **Siblings:** Median year of sibling events.
-    - **Children:** Median year of children events - 25 years.
-3. **Tier 3: Database-Wide Trend Fallback:** If Tier 1 and Tier 2 both fail to establish a temporal anchor, the engine resolves the era by calculating the median event year of the entire active Gramps database during initialization. If this global median year is $\ge 1918$, the engine defaults to the Modern Epoch strategy; if $< 1918$, it applies the Pre-1918 Epoch strategy. The resulting name is flagged as `is_temporal_fallback` with a low base confidence score (`0.20`).
+2. **Tier 2: Generational Graph Traversal (BFS):** If the individual's record contains no dated events, the engine executes a Breadth-First Search (BFS) outward through the family graph up to a predefined depth limit (e.g., $d_{max} = 4$).
+   - As it traverses, the engine tracks the **Generational Distance ($\Delta G$)** from the target individual to each discovered relative (e.g., Parents $\Delta G = +1$, Siblings $\Delta G = 0$, Children $\Delta G = -1$).
+   - Upon encountering the closest graph depth that yields valid dated events, it collects all event years from all individuals at that specific depth.
+   - The temporal anchor is estimated by normalizing and finding the median of these events: $Y_{ref} = \text{median}(Y_{relative} + (\Delta G \times 25))$.
+3. **Tier 3: Database-Wide Trend Fallback:** If Tier 1 and Tier 2 both exhaust the depth limit without establishing a temporal anchor, the engine resolves the era by calculating the median event year of the entire active Gramps database during initialization. If this global median year is $\ge 1918$, the engine defaults to the Modern Epoch strategy; if $< 1918$, it applies the Pre-1918 Epoch strategy. The resulting name is flagged as `is_temporal_fallback` with a low base confidence score (`0.20`).
 
 ---
 
