@@ -1086,10 +1086,10 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         except Exception as e:
             ErrorDialog(_("Rollback Error"), str(e), self.window)
 
-    def on_list_row_activated(self, treeview, path, view_column):
-        """Opens the Gramps person edit dialog from the Inference Engine tab."""
+    def _open_person_edit_dialog(self, treeview, path, handle_column):
+        """Opens the Gramps person edit dialog for the selected row."""
         model = treeview.get_model()
-        person_handle = model[path][self.LIST_COL_HANDLE]
+        person_handle = model[path][handle_column]
 
         if not person_handle:
             return
@@ -1102,23 +1102,14 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                 EditPerson(self.dbstate, uistate, [], person)
             except WindowActiveError:
                 pass
+
+    def on_list_row_activated(self, treeview, path, view_column):
+        """Opens the Gramps person edit dialog from the Inference Engine tab."""
+        self._open_person_edit_dialog(treeview, path, self.LIST_COL_HANDLE)
 
     def on_audit_row_activated(self, treeview, path, view_column):
         """Opens the Gramps person edit dialog from the Database Auditor tab."""
-        model = treeview.get_model()
-        person_handle = model[path][self.AUDIT_COL_HANDLE]
-
-        if not person_handle:
-            return
-
-        person = self.db.get_person_from_handle(person_handle)
-        if person:
-            try:
-                # FIX: Safely get the actual uistate from the user object
-                uistate = getattr(self.user, "uistate", None)
-                EditPerson(self.dbstate, uistate, [], person)
-            except WindowActiveError:
-                pass
+        self._open_person_edit_dialog(treeview, path, self.AUDIT_COL_HANDLE)
 
 
 def rollback_batch_execution(db, log_file_path, target_execution_id):
