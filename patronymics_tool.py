@@ -890,6 +890,13 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
 
                 self.given_store.append(row)
 
+        if len(self.given_store) == 0:
+            OkDialog(
+                _("No Results"),
+                _("No matching names found in the database."),
+                self.window,
+            )
+
         self.update_given_apply_button()
 
     def on_scan_clicked(self, widget):
@@ -972,6 +979,13 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                 row[self.LIST_COL_HANDLE] = handle
                 self.list_store.append(row)
 
+        if len(self.list_store) == 0:
+            OkDialog(
+                _("No Results"),
+                _("No patronymic candidates found in the database."),
+                self.window,
+            )
+
         self.update_action_buttons()
 
     def on_audit_clicked(self, widget):
@@ -1009,6 +1023,14 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                 self.audit_progress.set_text(_("Audit Complete!"))
                 self.audit_run_btn.set_sensitive(True)
                 self.update_audit_apply_button()
+
+                if len(self.audit_store) == 0:
+                    OkDialog(
+                        _("No Results"),
+                        _("No patronymic issues found in the database."),
+                        self.window,
+                    )
+
                 return False  # Stops the idle worker
 
             chunk_size = 50
