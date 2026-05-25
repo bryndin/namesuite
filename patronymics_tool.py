@@ -194,7 +194,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         # --- TAB 1: Scan & Apply (Inference Engine) ---
         scan_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         scan_box.set_border_width(8)
-        notebook.append_page(scan_box, Gtk.Label(label=_("Inference Engine")))
+        notebook.append_page(scan_box, Gtk.Label(label=_("Infer")))
 
         # Configuration Controls Panel
         config_frame = Gtk.Frame(label=_("Inference Options"))
@@ -248,7 +248,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         # --- TAB 2: Database Auditor (The Linter) ---
         audit_tab_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         audit_tab_box.set_border_width(8)
-        notebook.append_page(audit_tab_box, Gtk.Label(label=_("Database Auditor")))
+        notebook.append_page(audit_tab_box, Gtk.Label(label=_("Audit")))
 
         # Filter and Configuration Header Frame
         audit_header_frame = Gtk.Frame(label=_("Auditing Settings"))
@@ -324,7 +324,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         # --- TAB 3: Reversibility & Rollbacks ---
         rollback_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         rollback_box.set_border_width(8)
-        notebook.append_page(rollback_box, Gtk.Label(label=_("Transaction Reversions")))
+        notebook.append_page(rollback_box, Gtk.Label(label=_("Revert")))
 
         rollback_label = Gtk.Label(
             label=_("Select a past execution run to revert its changes:")
