@@ -483,6 +483,16 @@ Once the user completes their review of the `TreeView` list, clicking **[Apply S
 
 ---
 
+## Appendix
+
+### Summary (to be used as an abstract)
+
+We built a patronymic inference and auditing system for Gramps focused on Russian and East Slavic genealogy. It reconstructs missing patronymics in historical family trees using Russian morphology, irregular-name dictionaries, and historically appropriate naming conventions. The goal is to improve searchability, lineage matching, and consistency in imported or partially transcribed genealogical datasets.
+
+The project has two components sharing the same inference engine. A batch Tool addon performs patronymic inference and includes an Auditor/Linter that detects lineage mismatches, temporal inconsistencies, morphology errors, and orthographic anomalies. A companion Gramplet provides inline patronymic suggestions directly in the Gramps UI while viewing people and relationships. The architecture is modular and extensible for future patronymic systems and languages.
+
+---
+
 ## References
 
 [1] Elson, M. J. (2020). _The Development of the East Slavic Patronymic System: Social and Orthographic Dimensions_. Journal of Slavic Linguistics, 28(2), 189-214.
