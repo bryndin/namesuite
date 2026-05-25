@@ -97,8 +97,8 @@ sys.modules["gramps.gui"] = gramps_gui_mock
 sys.modules["gramps.gui.plug"] = gramps_gui_plug_mock
 sys.modules["gramps.gui.dialog"] = gramps_gui_dialog_mock
 
-from patronymics_tool import InferPatronymicsTool
-from gramps.gen.lib import Person
+# Import after mock setup (intentionally not at top of file)
+from patronymics_tool import InferPatronymicsTool  # noqa: E402
 
 
 class MockEvent:
@@ -134,7 +134,7 @@ class TestReferenceYearResolution(unittest.TestCase):
         )
         year, source = self.tool.resolve_reference_year(person)
         self.assertEqual(year, 1880)
-        self.assertEqual(source, "Latest Event Year")
+        self.assertEqual(source, InferPatronymicsTool.REF_SOURCE_LATEST_EVENT)
 
     def test_tier2_parents_heuristic(self):
         person = MagicMock()
@@ -169,7 +169,7 @@ class TestReferenceYearResolution(unittest.TestCase):
         person.get_family_handle_list.return_value = []
         year, source = self.tool.resolve_reference_year(person)
         self.assertEqual(year, 1921)
-        self.assertEqual(source, "Database Median Fallback")
+        self.assertEqual(source, InferPatronymicsTool.REF_SOURCE_DB_MEDIAN_FALLBACK)
 
 
 if __name__ == "__main__":

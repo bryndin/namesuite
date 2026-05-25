@@ -116,6 +116,14 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
     LOG_COL_CHANGES_COUNT = 2
     LOG_COL_PLUGIN_ID = 3
 
+    # Reference year resolution source descriptions
+    REF_SOURCE_LATEST_EVENT = _("Latest Event Year")
+    REF_SOURCE_GENERATIONAL_PARENTS = _("Generational Estimation (Parents)")
+    REF_SOURCE_GENERATIONAL_SPOUSE_FAMILY = _("Generational Estimation (Spouse/Family)")
+    REF_SOURCE_GENERATIONAL_SIBLINGS = _("Generational Estimation (Siblings)")
+    REF_SOURCE_GENERATIONAL_CHILDREN = _("Generational Estimation (Children)")
+    REF_SOURCE_DB_MEDIAN_FALLBACK = _("Database Median Fallback")
+
     def __init__(self, dbstate, user, options_class, name, callback=None, **kwargs):
         """
         Initializes the Gramps Tool window.
@@ -672,7 +680,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             confidence = self.evaluate_confidence(
                 person, primary_name, father_first_name
             )
-            if rule_source == _("Database Median Fallback"):
+            if rule_source == self.REF_SOURCE_DB_MEDIAN_FALLBACK:
                 confidence = 0.20
 
             # Filter confidence after potential fallback adjustment
@@ -900,7 +908,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                     event_years.append(date_obj.get_year())
 
         if event_years:
-            return max(event_years), _("Latest Event Year")
+            return max(event_years), self.REF_SOURCE_LATEST_EVENT
 
         # Tier 2: Generational Lineage Heuristic
         parent_years = []
@@ -922,9 +930,9 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                                         event.get_date_object().get_year()
                                     )
         if parent_years:
-            return sorted(parent_years)[len(parent_years) // 2] + 25, _(
-                "Generational Estimation (Parents)"
-            )
+            return sorted(parent_years)[
+                len(parent_years) // 2
+            ] + 25, self.REF_SOURCE_GENERATIONAL_PARENTS
 
         # Tier 3: Spouse/Family, Siblings, Children
         # Spouse/Family
@@ -957,9 +965,9 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                             ):
                                 family_years.append(event.get_date_object().get_year())
         if family_years:
-            return sorted(family_years)[len(family_years) // 2], _(
-                "Generational Estimation (Spouse/Family)"
-            )
+            return sorted(family_years)[
+                len(family_years) // 2
+            ], self.REF_SOURCE_GENERATIONAL_SPOUSE_FAMILY
 
         # Siblings
         sibling_years = []
@@ -981,9 +989,9 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                                         event.get_date_object().get_year()
                                     )
         if sibling_years:
-            return sorted(sibling_years)[len(sibling_years) // 2], _(
-                "Generational Estimation (Siblings)"
-            )
+            return sorted(sibling_years)[
+                len(sibling_years) // 2
+            ], self.REF_SOURCE_GENERATIONAL_SIBLINGS
 
         # Children
         child_years = []
@@ -1003,11 +1011,11 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                                 child_years.append(event.get_date_object().get_year())
         if child_years:
             return sorted(child_years)[len(child_years) // 2] - 25, _(
-                "Generational Estimation (Children)"
+                self.REF_SOURCE_GENERATIONAL_CHILDREN
             )
 
         # Tier 4: Fallback
-        return getattr(self, "db_median_year", 1920), _("Database Median Fallback")
+        return getattr(self, "db_median_year", 1920), self.REF_SOURCE_DB_MEDIAN_FALLBACK
 
     def on_apply_clicked(self, widget):
         changes_to_apply = []
