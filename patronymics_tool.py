@@ -684,7 +684,9 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.update_audit_apply_button()
 
     def on_given_row_toggled(self, widget, path):
-        self.given_store[path][self.GIVEN_COL_CHECKBOX] = not self.given_store[path][self.GIVEN_COL_CHECKBOX]
+        self.given_store[path][self.GIVEN_COL_CHECKBOX] = not self.given_store[path][
+            self.GIVEN_COL_CHECKBOX
+        ]
         self.update_given_apply_button()
 
     def on_given_select_all_toggled(self, widget):
@@ -851,7 +853,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                     proposed_raw = current_name.replace(source_input, target_input)
                     proposed_markup = escape_pango(current_name).replace(
                         escape_pango(source_input),
-                        f'<span weight="bold" foreground="blue">{escape_pango(target_input)}</span>'
+                        f'<span weight="bold" foreground="blue">{escape_pango(target_input)}</span>',
                     )
 
             elif match_type == 2:  # Regular Expression
@@ -866,7 +868,9 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                         start, end = m.span()
                         parts.append(escape_pango(current_name[last_idx:start]))
                         replaced = m.expand(target_input)
-                        parts.append(f'<span weight="bold" foreground="blue">{escape_pango(replaced)}</span>')
+                        parts.append(
+                            f'<span weight="bold" foreground="blue">{escape_pango(replaced)}</span>'
+                        )
                         last_idx = end
                     parts.append(escape_pango(current_name[last_idx:]))
                     proposed_markup = "".join(parts)
@@ -1160,6 +1164,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                         new_alt.set_first_name(old_first)
                         try:
                             from gramps.gen.lib import NameType
+
                             new_alt.set_type(NameType.ALSO_KNOWN_AS)
                         except Exception:
                             try:
@@ -1277,75 +1282,89 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         max_depth = 4
         visited = {person.handle}
         current_level = [(person.handle, 0)]  # Queue stores: (person_handle, delta_g)
-        
+
         for depth in range(1, max_depth + 1):
             next_level = []
             level_estimates = []
-            
+
             for handle, delta_g in current_level:
                 p = self.db.get_person_from_handle(handle)
                 if not p:
                     continue
-                
+
                 # 1. Parents and Siblings (via parent families)
                 for fam_handle in p.get_parent_family_handle_list():
                     fam = self.db.get_family_from_handle(fam_handle)
                     if not fam:
                         continue
-                    
+
                     # Parents (+1 generation)
-                    for parent_handle in (fam.get_father_handle(), fam.get_mother_handle()):
+                    for parent_handle in (
+                        fam.get_father_handle(),
+                        fam.get_mother_handle(),
+                    ):
                         if parent_handle and parent_handle not in visited:
                             visited.add(parent_handle)
                             next_level.append((parent_handle, delta_g + 1))
-                            
+
                     # Siblings (0 generation difference)
                     for child_ref in fam.get_child_ref_list():
                         if child_ref.ref not in visited:
                             visited.add(child_ref.ref)
                             next_level.append((child_ref.ref, delta_g))
-                            
+
                 # 2. Spouses and Children (via own families)
                 for fam_handle in p.get_family_handle_list():
                     fam = self.db.get_family_from_handle(fam_handle)
                     if not fam:
                         continue
-                    
+
                     # Spouses (0 generation difference)
-                    for spouse_handle in (fam.get_father_handle(), fam.get_mother_handle()):
-                        if spouse_handle and spouse_handle != handle and spouse_handle not in visited:
+                    for spouse_handle in (
+                        fam.get_father_handle(),
+                        fam.get_mother_handle(),
+                    ):
+                        if (
+                            spouse_handle
+                            and spouse_handle != handle
+                            and spouse_handle not in visited
+                        ):
                             visited.add(spouse_handle)
                             next_level.append((spouse_handle, delta_g))
-                            
+
                     # Children (-1 generation)
                     for child_ref in fam.get_child_ref_list():
                         if child_ref.ref not in visited:
                             visited.add(child_ref.ref)
                             next_level.append((child_ref.ref, delta_g - 1))
-                            
+
             # Process events for all newly discovered relatives at this depth
             for handle, d_g in next_level:
                 rel_p = self.db.get_person_from_handle(handle)
                 if not rel_p:
                     continue
-                
+
                 for event_ref in rel_p.get_event_ref_list():
                     event = self.db.get_event_from_handle(event_ref.ref)
-                    if event and event.get_date_object() and event.get_date_object().get_year():
+                    if (
+                        event
+                        and event.get_date_object()
+                        and event.get_date_object().get_year()
+                    ):
                         event_year = event.get_date_object().get_year()
                         # Normalize the event year to the target individual's generation
                         level_estimates.append(event_year + (d_g * 25))
-                        
+
             # If dates were found at this depth, resolve and break recursion
             if level_estimates:
                 median_year = sorted(level_estimates)[len(level_estimates) // 2]
-                
+
                 # Use a unified constant for graph resolution
                 return median_year, self.REF_SOURCE_GRAPH_BFS
-            
+
             current_level = next_level
             if not current_level:
-                break # Exhausted the connected component before hitting max_depth
+                break  # Exhausted the connected component before hitting max_depth
 
         # Tier 3: Database Fallback
         return getattr(self, "db_median_year", 1920), self.REF_SOURCE_DB_MEDIAN_FALLBACK
@@ -1521,6 +1540,7 @@ def rollback_batch_execution(db, log_file_path, target_execution_id):
                         new_alt.set_first_name(alt_first)
                         try:
                             from gramps.gen.lib import NameType
+
                             new_alt.set_type(NameType.ALSO_KNOWN_AS)
                         except Exception:
                             try:
