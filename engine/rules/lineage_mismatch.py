@@ -23,9 +23,7 @@ from engine.rule_utils import generate_pango_diff
 class ErrLineageMismatch(BaseRule):
     """Flags if the patronymic base/root does not match the linked biological father's name."""
 
-    @property
-    def rule_id(self) -> str:
-        return "ERR_LINEAGE_MISMATCH"
+    RULE_ID = "ERR_LINEAGE_MISMATCH"
 
     @property
     def severity(self) -> str:
@@ -86,7 +84,7 @@ class ErrLineageMismatch(BaseRule):
             pre_reform_script=(ctx.locale == LOCALE_RU),
         )
 
-        # If it matches the opposite gender expected base, route it to ERR_GENDER_MISMATCH instead
+        # If it matches the opposite gender expected base, route it to ErrGenderMismatch.RULE_ID instead
         if ctx.current_patronymic in (opposite_modern, opposite_archaic):
             return None
 

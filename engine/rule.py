@@ -44,10 +44,9 @@ class BaseRule(ABC):
     """Abstract Base Class for all linter consistency rules."""
 
     @property
-    @abstractmethod
     def rule_id(self) -> str:
         """Unique rule identifier (e.g. ERR_GENDER_MISMATCH)."""
-        pass
+        return self.RULE_ID
 
     @property
     @abstractmethod

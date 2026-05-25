@@ -23,9 +23,7 @@ from engine.rule_utils import generate_pango_diff, modern_to_archaic
 class WarnModernSuffixArchaicEra(BaseRule):
     """Flags pre-1918 records using modern formal endings and suggests possessive genitives."""
 
-    @property
-    def rule_id(self) -> str:
-        return "WARN_MODERN_SUFFIX_ARCHAIC_ERA"
+    RULE_ID = "WARN_MODERN_SUFFIX_ARCHAIC_ERA"
 
     @property
     def severity(self) -> str:

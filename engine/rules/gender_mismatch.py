@@ -23,9 +23,7 @@ from engine.rule_utils import generate_pango_diff, swap_patronymic_gender
 class ErrGenderMismatch(BaseRule):
     """Flags if the grammatical gender of the patronymic suffix conflicts with person's gender."""
 
-    @property
-    def rule_id(self) -> str:
-        return "ERR_GENDER_MISMATCH"
+    RULE_ID = "ERR_GENDER_MISMATCH"
 
     @property
     def severity(self) -> str:

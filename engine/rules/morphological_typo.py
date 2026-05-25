@@ -24,9 +24,7 @@ from engine.rule_utils import generate_pango_diff
 class WarnMorphologicalTypo(BaseRule):
     """Detects invalid consecutive duplicate characters at joint boundaries (e.g. Андрееевич)."""
 
-    @property
-    def rule_id(self) -> str:
-        return "WARN_MORPHOLOGICAL_TYPO"
+    RULE_ID = "WARN_MORPHOLOGICAL_TYPO"
 
     @property
     def severity(self) -> str:

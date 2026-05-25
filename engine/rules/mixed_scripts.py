@@ -44,9 +44,7 @@ HOMOGLYPHS = {
 class ErrMixedScripts(BaseRule):
     """Detects and corrects mixed Cyrillic and Latin homoglyphs in patronymic strings."""
 
-    @property
-    def rule_id(self) -> str:
-        return "ERR_MIXED_SCRIPTS"
+    RULE_ID = "ERR_MIXED_SCRIPTS"
 
     @property
     def severity(self) -> str:

@@ -313,7 +313,7 @@ class TestLinterEngineAndRules(unittest.TestCase):
         results = engine.evaluate_person(ctx)
         rule_ids = [r.rule_id for r, _ in results]
 
-        self.assertIn("WARN_MODERN_SUFFIX_ARCHAIC_ERA", rule_ids)
+        self.assertIn(WarnModernSuffixArchaicEra.RULE_ID, rule_ids)
 
     def test_engine_graceful_degradation(self):
         class MockCrashRule(BaseRule):
@@ -423,14 +423,14 @@ class TestLinterEngineAndRules(unittest.TestCase):
 
         # Run with all rules
         all_results = engine.evaluate_person(ctx, enabled_rules=None)
-        self.assertTrue(any(r[0].rule_id == "ERR_GENDER_MISMATCH" for r in all_results))
+        self.assertTrue(any(r[0].rule_id == ErrGenderMismatch.RULE_ID for r in all_results))
 
         # Run with gender rule explicitly disabled
         restricted_results = engine.evaluate_person(
-            ctx, enabled_rules={"ERR_LINEAGE_MISMATCH"}
+            ctx, enabled_rules={ErrLineageMismatch.RULE_ID}
         )
         self.assertFalse(
-            any(r[0].rule_id == "ERR_GENDER_MISMATCH" for r in restricted_results)
+            any(r[0].rule_id == ErrGenderMismatch.RULE_ID for r in restricted_results)
         )
 
     def test_linter_handles_none_reference_year(self):

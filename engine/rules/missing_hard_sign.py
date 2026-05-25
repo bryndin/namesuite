@@ -17,9 +17,7 @@ from engine.rule_utils import generate_pango_diff
 class WarnMissingHardSign(BaseRule):
     """Flags pre-1918 Russian names missing a terminal orthographic hard sign 'ъ'."""
 
-    @property
-    def rule_id(self) -> str:
-        return "WARN_MISSING_HARD_SIGN"
+    RULE_ID = "WARN_MISSING_HARD_SIGN"
 
     @property
     def severity(self) -> str:
