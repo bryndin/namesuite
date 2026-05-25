@@ -16,7 +16,7 @@ from gi.repository import Gtk, GLib
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gui.plug import tool
 from gramps.gen.db import DbTxn
-from gramps.gen.lib import Surname, NameOriginType, Person
+from gramps.gen.lib import Surname, NameOriginType, Person, Name
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gui.dialog import OkDialog, ErrorDialog
 from gramps.gui.editors import EditPerson
@@ -86,6 +86,16 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
     GTK Batch Processing Wizard to evaluate, filter, and write
     inferred patronymic records safely, alongside morphological linter audits.
     """
+
+    # Given Names store column indices (Tab 1 - Standardize)
+    GIVEN_COL_CHECKBOX = 0
+    GIVEN_COL_GRAMPS_ID = 1
+    GIVEN_COL_DISPLAY_NAME = 2
+    GIVEN_COL_CURRENT = 3
+    GIVEN_COL_PROPOSED = 4
+    GIVEN_COL_ALT_ACTION = 5
+    GIVEN_COL_HANDLE = 6
+    GIVEN_COL_PROPOSED_RAW = 7
 
     # Audit store column indices
     AUDIT_COL_CHECKBOX = 0
@@ -190,6 +200,85 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         # Notebook / Tabs
         notebook = Gtk.Notebook()
         main_box.pack_start(notebook, True, True, 0)
+
+        # --- TAB 0: Given Names (First Name Standardization) ---
+        given_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        given_box.set_border_width(8)
+        notebook.insert_page(given_box, Gtk.Label(label=_("Given Names")), 0)
+
+        # Configuration Controls Panel
+        given_config_frame = Gtk.Frame(label=_("Standardization Options"))
+        given_box.pack_start(given_config_frame, False, False, 0)
+
+        given_config_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        given_config_box.set_border_width(8)
+        given_config_frame.add(given_config_box)
+
+        # Controls sub-box
+        controls_hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        given_config_box.pack_start(controls_hbox, False, False, 0)
+
+        # Match Type Dropdown
+        match_type_label = Gtk.Label(label=_("Match Type:"))
+        controls_hbox.pack_start(match_type_label, False, False, 0)
+
+        self.given_match_type_combo = Gtk.ComboBoxText()
+        self.given_match_type_combo.append_text(_("Exact Match"))
+        self.given_match_type_combo.append_text(_("Substring"))
+        self.given_match_type_combo.append_text(_("Regular Expression"))
+        self.given_match_type_combo.set_active(0)
+        controls_hbox.pack_start(self.given_match_type_combo, False, False, 0)
+
+        # Source Name Input
+        source_label = Gtk.Label(label=_("Source Name:"))
+        controls_hbox.pack_start(source_label, False, False, 0)
+
+        self.given_source_entry = Gtk.Entry()
+        controls_hbox.pack_start(self.given_source_entry, True, True, 0)
+
+        # Target Name Input
+        target_label = Gtk.Label(label=_("Target Name:"))
+        controls_hbox.pack_start(target_label, False, False, 0)
+
+        self.given_target_entry = Gtk.Entry()
+        controls_hbox.pack_start(self.given_target_entry, True, True, 0)
+
+        # Scan Button
+        self.given_scan_btn = Gtk.Button(label=_("Scan Database"))
+        self.given_scan_btn.connect("clicked", self.on_given_scan_clicked)
+        controls_hbox.pack_start(self.given_scan_btn, False, False, 0)
+
+        # Global Options (Preserve Original)
+        self.preserve_alt_check = Gtk.CheckButton(
+            label=_("Preserve original Primary Names as Alternate Names")
+        )
+        self.preserve_alt_check.set_active(True)
+        given_config_box.pack_start(self.preserve_alt_check, False, False, 0)
+
+        # ScrolledWindow for given names results
+        given_scroll_win = Gtk.ScrolledWindow()
+        given_scroll_win.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        given_box.pack_start(given_scroll_win, True, True, 0)
+
+        self.given_store = Gtk.ListStore(bool, str, str, str, str, str, str, str)
+        self.given_tree = Gtk.TreeView(model=self.given_store)
+        self.given_tree.connect("row-activated", self.on_given_row_activated)
+        given_scroll_win.add(self.given_tree)
+        self.setup_given_columns()
+
+        # Action Footer
+        given_footer_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        given_box.pack_start(given_footer_box, False, False, 0)
+
+        self.given_select_all = Gtk.CheckButton(label=_("Select All"))
+        self.given_select_all.set_active(True)
+        self.given_select_all.connect("toggled", self.on_given_select_all_toggled)
+        given_footer_box.pack_start(self.given_select_all, False, False, 0)
+
+        self.given_apply_btn = Gtk.Button(label=_("Apply Selected Corrections"))
+        self.given_apply_btn.set_sensitive(False)
+        self.given_apply_btn.connect("clicked", self.on_given_apply_clicked)
+        given_footer_box.pack_end(self.given_apply_btn, False, False, 0)
 
         # --- TAB 1: Scan & Apply (Inference Engine) ---
         scan_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -424,6 +513,53 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_rules.set_resizable(True)
         self.tree_view.append_column(col_rules)
 
+    def setup_given_columns(self):
+        """Creates table headers and columns for Given Names standardization."""
+        renderer_toggle = Gtk.CellRendererToggle()
+        renderer_toggle.connect("toggled", self.on_given_row_toggled)
+        col_toggle = Gtk.TreeViewColumn(
+            _("Use"), renderer_toggle, active=self.GIVEN_COL_CHECKBOX
+        )
+        col_toggle.set_resizable(True)
+        self.given_tree.append_column(col_toggle)
+
+        col_id = Gtk.TreeViewColumn(
+            _("ID"), Gtk.CellRendererText(), text=self.GIVEN_COL_GRAMPS_ID
+        )
+        col_id.set_sort_column_id(self.GIVEN_COL_GRAMPS_ID)
+        col_id.set_resizable(True)
+        self.given_tree.append_column(col_id)
+
+        col_person = Gtk.TreeViewColumn(
+            _("Individual"), Gtk.CellRendererText(), text=self.GIVEN_COL_DISPLAY_NAME
+        )
+        col_person.set_sort_column_id(self.GIVEN_COL_DISPLAY_NAME)
+        col_person.set_resizable(True)
+        col_person.set_expand(True)
+        self.given_tree.append_column(col_person)
+
+        col_current = Gtk.TreeViewColumn(
+            _("Current Name"), Gtk.CellRendererText(), text=self.GIVEN_COL_CURRENT
+        )
+        col_current.set_sort_column_id(self.GIVEN_COL_CURRENT)
+        col_current.set_resizable(True)
+        self.given_tree.append_column(col_current)
+
+        col_proposed = Gtk.TreeViewColumn(
+            _("Proposed Name"), Gtk.CellRendererText(), markup=self.GIVEN_COL_PROPOSED
+        )
+        col_proposed.set_sort_column_id(self.GIVEN_COL_PROPOSED)
+        col_proposed.set_resizable(True)
+        col_proposed.set_expand(True)
+        self.given_tree.append_column(col_proposed)
+
+        col_alt_action = Gtk.TreeViewColumn(
+            _("Alt Name Action"), Gtk.CellRendererText(), text=self.GIVEN_COL_ALT_ACTION
+        )
+        col_alt_action.set_sort_column_id(self.GIVEN_COL_ALT_ACTION)
+        col_alt_action.set_resizable(True)
+        self.given_tree.append_column(col_alt_action)
+
     def setup_audit_columns(self):
         """Creates table headers and renderers for the Auditor results."""
         renderer_toggle = Gtk.CellRendererToggle()
@@ -547,6 +683,21 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             row[self.AUDIT_COL_CHECKBOX] = is_active
         self.update_audit_apply_button()
 
+    def on_given_row_toggled(self, widget, path):
+        self.given_store[path][self.GIVEN_COL_CHECKBOX] = not self.given_store[path][self.GIVEN_COL_CHECKBOX]
+        self.update_given_apply_button()
+
+    def on_given_select_all_toggled(self, widget):
+        is_active = self.given_select_all.get_active()
+        for row in self.given_store:
+            row[self.GIVEN_COL_CHECKBOX] = is_active
+        self.update_given_apply_button()
+
+    def update_given_apply_button(self):
+        """Sets sensitive states of GTK controls dynamically for Given Names tab."""
+        has_checked = any(row[self.GIVEN_COL_CHECKBOX] for row in self.given_store)
+        self.given_apply_btn.set_sensitive(has_checked)
+
     def update_action_buttons(self):
         """Sets sensitive states of GTK controls dynamically for Tab 1."""
         has_results = len(self.list_store) > 0
@@ -643,6 +794,103 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             for r_id, chk in checks.items():
                 self.enabled_rules[r_id] = chk.get_active()
         dialog.destroy()
+
+    def on_given_scan_clicked(self, widget):
+        """Scans the database and populates our list of given name standardization proposals."""
+        source_input = self.given_source_entry.get_text().strip()
+        target_input = self.given_target_entry.get_text().strip()
+
+        if not source_input or not target_input:
+            OkDialog(
+                _("Empty Fields"),
+                _("Please enter both Source Name and Target Name."),
+                self.window,
+            )
+            return
+
+        match_type = self.given_match_type_combo.get_active()
+
+        if match_type == 2:  # Regular Expression
+            try:
+                pattern = re.compile(source_input)
+            except re.error as e:
+                ErrorDialog(_("Invalid Regular Expression"), str(e), self.window)
+                return
+
+        self.given_store.clear()
+
+        def escape_pango(text):
+            return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+        for handle in self.db.get_person_handles():
+            person = self.db.get_person_from_handle(handle)
+            if not person:
+                continue
+
+            primary_name = person.get_primary_name()
+            if not primary_name:
+                continue
+
+            current_name = primary_name.get_first_name()
+            if not current_name:
+                continue
+
+            matched = False
+            proposed_raw = ""
+            proposed_markup = ""
+
+            if match_type == 0:  # Exact Match
+                if current_name == source_input:
+                    matched = True
+                    proposed_raw = target_input
+                    proposed_markup = f'<span weight="bold" foreground="blue">{escape_pango(target_input)}</span>'
+
+            elif match_type == 1:  # Substring
+                if source_input in current_name:
+                    matched = True
+                    proposed_raw = current_name.replace(source_input, target_input)
+                    proposed_markup = escape_pango(current_name).replace(
+                        escape_pango(source_input),
+                        f'<span weight="bold" foreground="blue">{escape_pango(target_input)}</span>'
+                    )
+
+            elif match_type == 2:  # Regular Expression
+                if pattern.search(current_name):
+                    matched = True
+                    proposed_raw = pattern.sub(target_input, current_name)
+
+                    # Highlight regex matches with Pango markup
+                    last_idx = 0
+                    parts = []
+                    for m in pattern.finditer(current_name):
+                        start, end = m.span()
+                        parts.append(escape_pango(current_name[last_idx:start]))
+                        replaced = m.expand(target_input)
+                        parts.append(f'<span weight="bold" foreground="blue">{escape_pango(replaced)}</span>')
+                        last_idx = end
+                    parts.append(escape_pango(current_name[last_idx:]))
+                    proposed_markup = "".join(parts)
+
+            if matched and proposed_raw != current_name:
+                alt_action_str = "None"
+                for alt_name in person.get_alternate_names():
+                    if alt_name and alt_name.get_first_name() == proposed_raw:
+                        alt_action_str = "Merge Existing Alt Name"
+                        break
+
+                row = [None] * 8
+                row[self.GIVEN_COL_CHECKBOX] = True
+                row[self.GIVEN_COL_GRAMPS_ID] = person.gramps_id
+                row[self.GIVEN_COL_DISPLAY_NAME] = name_displayer.display_formal(person)
+                row[self.GIVEN_COL_CURRENT] = current_name
+                row[self.GIVEN_COL_PROPOSED] = proposed_markup
+                row[self.GIVEN_COL_ALT_ACTION] = alt_action_str
+                row[self.GIVEN_COL_HANDLE] = handle
+                row[self.GIVEN_COL_PROPOSED_RAW] = proposed_raw
+
+                self.given_store.append(row)
+
+        self.update_given_apply_button()
 
     def on_scan_clicked(self, widget):
         """Scans the database and populates our list of candidates (Tab 1)."""
@@ -839,6 +1087,94 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             return True  # Continues the idle handler
 
         GLib.idle_add(audit_idle)
+
+    def on_given_apply_clicked(self, widget):
+        """Commits selected given name standardizations inside transaction & records log."""
+        changes_to_apply = []
+        for row in self.given_store:
+            if row[self.GIVEN_COL_CHECKBOX]:
+                changes_to_apply.append(
+                    {
+                        "handle": row[self.GIVEN_COL_HANDLE],
+                        "current": row[self.GIVEN_COL_CURRENT],
+                        "proposed_raw": row[self.GIVEN_COL_PROPOSED_RAW],
+                    }
+                )
+
+        if not changes_to_apply:
+            OkDialog(
+                _("No Checked Records"),
+                _("Please select at least one standardization to apply."),
+                self.window,
+            )
+            return
+
+        exec_id = generate_execution_id()
+        logged_changes = []
+
+        with DbTxn(_("Standardize Given Names"), self.db) as txn:
+            for item in changes_to_apply:
+                person = self.db.get_person_from_handle(item["handle"])
+                if person:
+                    old_first = item["current"]
+                    new_first = item["proposed_raw"]
+
+                    # Extract current alternate names
+                    alt_names = person.get_alternate_names()
+                    new_alts = []
+                    alts_removed = []
+
+                    # Deduplicate: Skip alternate names with first name == new_first
+                    for alt in alt_names:
+                        if alt and alt.get_first_name() == new_first:
+                            alts_removed.append(new_first)
+                        else:
+                            new_alts.append(alt)
+
+                    # Preserve: If active, downgrade old primary name to alternate
+                    alts_added = []
+                    if self.preserve_alt_check.get_active():
+                        new_alt = Name()
+                        new_alt.set_first_name(old_first)
+                        try:
+                            from gramps.gen.lib import NameType
+                            new_alt.set_type(NameType.ALSO_KNOWN_AS)
+                        except Exception:
+                            try:
+                                new_alt.set_type(3)
+                            except Exception:
+                                pass
+                        new_alts.append(new_alt)
+                        alts_added.append(old_first)
+
+                    # Set alternate names and update primary name
+                    person.set_alternate_names(new_alts)
+                    person.get_primary_name().set_first_name(new_first)
+
+                    self.db.commit_person(person, txn)
+
+                    logged_changes.append(
+                        {
+                            "person_handle": item["handle"],
+                            "original_value": old_first,
+                            "inferred_value": new_first,
+                            "alts_added": alts_added,
+                            "alts_removed": alts_removed,
+                        }
+                    )
+
+        # Log standardizer execution
+        self.log_manager.log_execution(exec_id, "Standardize", logged_changes)
+
+        self.given_store.clear()
+        self.given_apply_btn.set_sensitive(False)
+        self.refresh_log_history()
+
+        OkDialog(
+            _("Success"),
+            _("Given name standardizations applied and logged successfully."),
+            self.window,
+        )
 
     def on_audit_apply_clicked(self, widget):
         """Commits selected auditor suggestions inside transaction & records log."""
@@ -1111,6 +1447,10 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         """Opens the Gramps person edit dialog from the Database Auditor tab."""
         self._open_person_edit_dialog(treeview, path, self.AUDIT_COL_HANDLE)
 
+    def on_given_row_activated(self, treeview, path, view_column):
+        """Opens the Gramps person edit dialog from the Given Names tab."""
+        self._open_person_edit_dialog(treeview, path, self.GIVEN_COL_HANDLE)
+
 
 def rollback_batch_execution(db, log_file_path, target_execution_id):
     import json
@@ -1136,34 +1476,71 @@ def rollback_batch_execution(db, log_file_path, target_execution_id):
                 continue
 
             primary_name = person.get_primary_name()
-            current_value = get_patronymic_value(primary_name)
 
-            if current_value == change["inferred_value"]:
-                # Safely remove the added patronymic Surname object from the Surname List
-                surnames = primary_name.get_surname_list()
-                new_surnames = []
-                for s in surnames:
-                    orig = s.get_origintype()
-                    is_patro = (
-                        orig == NameOriginType.PATRONYMIC
-                        or orig == 5
-                        or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
-                        or getattr(orig, "value", None) == 5
-                        or str(orig).strip() == "Patronymic"
-                    )
-                    if is_patro and s.get_surname() == change["inferred_value"]:
-                        # If there was a previous patronymic, restore it. Otherwise drop.
-                        if change["original_value"]:
-                            s.set_surname(change["original_value"])
-                            new_surnames.append(s)
-                    else:
-                        new_surnames.append(s)
+            if execution.get("plugin_id") == "Standardize":
+                current_first = primary_name.get_first_name()
+                if current_first == change["inferred_value"]:
+                    primary_name.set_first_name(change["original_value"])
 
-                primary_name.set_surname_list(new_surnames)
-                db.commit_person(person, txn)
-                report["reverted"].append(person.handle)
+                    # Revert alternate names
+                    current_alts = person.get_alternate_names()
+                    new_alts = []
+
+                    # Remove alts that were added
+                    alts_added_set = set(change.get("alts_added", []))
+                    for alt in current_alts:
+                        if alt and alt.get_first_name() not in alts_added_set:
+                            new_alts.append(alt)
+
+                    # Restore alts that were removed
+                    alts_removed_list = change.get("alts_removed", [])
+                    for alt_first in alts_removed_list:
+                        new_alt = Name()
+                        new_alt.set_first_name(alt_first)
+                        try:
+                            from gramps.gen.lib import NameType
+                            new_alt.set_type(NameType.ALSO_KNOWN_AS)
+                        except Exception:
+                            try:
+                                new_alt.set_type(3)
+                            except Exception:
+                                pass
+                        new_alts.append(new_alt)
+
+                    person.set_alternate_names(new_alts)
+                    db.commit_person(person, txn)
+                    report["reverted"].append(person.handle)
+                else:
+                    report["skipped_modified"].append(person.handle)
             else:
-                report["skipped_modified"].append(person.handle)
+                current_value = get_patronymic_value(primary_name)
+
+                if current_value == change["inferred_value"]:
+                    # Safely remove the added patronymic Surname object from the Surname List
+                    surnames = primary_name.get_surname_list()
+                    new_surnames = []
+                    for s in surnames:
+                        orig = s.get_origintype()
+                        is_patro = (
+                            orig == NameOriginType.PATRONYMIC
+                            or orig == 5
+                            or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
+                            or getattr(orig, "value", None) == 5
+                            or str(orig).strip() == "Patronymic"
+                        )
+                        if is_patro and s.get_surname() == change["inferred_value"]:
+                            # If there was a previous patronymic, restore it. Otherwise drop.
+                            if change["original_value"]:
+                                s.set_surname(change["original_value"])
+                                new_surnames.append(s)
+                        else:
+                            new_surnames.append(s)
+
+                    primary_name.set_surname_list(new_surnames)
+                    db.commit_person(person, txn)
+                    report["reverted"].append(person.handle)
+                else:
+                    report["skipped_modified"].append(person.handle)
 
     executions = [
         run

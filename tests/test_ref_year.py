@@ -82,8 +82,40 @@ class Surname:
         pass
 
 
+class Name:
+    def __init__(self):
+        self._first_name = ""
+        self._type = None
+        self._surnames = []
+
+    def get_first_name(self):
+        return self._first_name
+
+    def set_first_name(self, name_str):
+        self._first_name = name_str
+
+    def set_type(self, val):
+        self._type = val
+
+    def get_surname_list(self):
+        return self._surnames
+
+    def add_surname(self, surname):
+        self._surnames.append(surname)
+
+    def set_surname_list(self, list_):
+        self._surnames = list_
+
+
+class NameType:
+    CUSTOM = 1
+    ALSO_KNOWN_AS = 3
+
+
 gramps_gen_lib_mock.NameOriginType = NameOriginType
 gramps_gen_lib_mock.Surname = Surname
+gramps_gen_lib_mock.Name = Name
+gramps_gen_lib_mock.NameType = NameType
 gramps_gen_lib_mock.Person = MagicMock()
 
 

@@ -92,9 +92,41 @@ class Surname:
         return self._origin
 
 
+class Name:
+    def __init__(self):
+        self._first_name = ""
+        self._type = None
+        self._surnames = []
+
+    def get_first_name(self):
+        return self._first_name
+
+    def set_first_name(self, name_str):
+        self._first_name = name_str
+
+    def set_type(self, val):
+        self._type = val
+
+    def get_surname_list(self):
+        return self._surnames
+
+    def add_surname(self, surname):
+        self._surnames.append(surname)
+
+    def set_surname_list(self, list_):
+        self._surnames = list_
+
+
+class NameType:
+    CUSTOM = 1
+    ALSO_KNOWN_AS = 3
+
+
 gen_lib = MagicMock()
 gen_lib.NameOriginType = NameOriginType
 gen_lib.Surname = Surname
+gen_lib.Name = Name
+gen_lib.NameType = NameType
 
 # Populate sys.modules for all required levels
 sys.modules["gramps"] = gramps_mock
