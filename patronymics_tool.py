@@ -19,6 +19,8 @@ from gramps.gen.db import DbTxn
 from gramps.gen.lib import Surname, NameOriginType, Person
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gui.dialog import OkDialog, ErrorDialog
+from gramps.gui.editors import EditPerson
+from gramps.gen.errors import WindowActiveError
 
 # Custom modular imports
 from engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PATTERN
@@ -224,6 +226,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         # TreeView Model structure: [Include, PersonName, FatherName, ReferenceYear, InferredPatronymic, Confidence, RulesString, GrampsID, Handle]
         self.list_store = Gtk.ListStore(bool, str, str, int, str, str, str, str, str)
         self.tree_view = Gtk.TreeView(model=self.list_store)
+        self.tree_view.connect("row-activated", self.on_list_row_activated)
         scroll_win.add(self.tree_view)
         self.setup_tree_columns()
 
@@ -294,6 +297,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             bool, str, str, str, int, str, str, str, str, str
         )
         self.audit_tree = Gtk.TreeView(model=self.audit_store)
+        self.audit_tree.connect("row-activated", self.on_audit_row_activated)
         audit_scroll.add(self.audit_tree)
         self.setup_audit_columns()
 
@@ -1098,6 +1102,40 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             OkDialog(_("Rollback Executed"), msg, self.window)
         except Exception as e:
             ErrorDialog(_("Rollback Error"), str(e), self.window)
+
+    def on_list_row_activated(self, treeview, path, view_column):
+        """Opens the Gramps person edit dialog from the Inference Engine tab."""
+        model = treeview.get_model()
+        person_handle = model[path][self.LIST_COL_HANDLE]
+
+        if not person_handle:
+            return
+
+        person = self.db.get_person_from_handle(person_handle)
+        if person:
+            try:
+                # FIX: Safely get the actual uistate from the user object
+                uistate = getattr(self.user, "uistate", None)
+                EditPerson(self.dbstate, uistate, [], person)
+            except WindowActiveError:
+                pass
+
+    def on_audit_row_activated(self, treeview, path, view_column):
+        """Opens the Gramps person edit dialog from the Database Auditor tab."""
+        model = treeview.get_model()
+        person_handle = model[path][self.AUDIT_COL_HANDLE]
+
+        if not person_handle:
+            return
+
+        person = self.db.get_person_from_handle(person_handle)
+        if person:
+            try:
+                # FIX: Safely get the actual uistate from the user object
+                uistate = getattr(self.user, "uistate", None)
+                EditPerson(self.dbstate, uistate, [], person)
+            except WindowActiveError:
+                pass
 
 
 def rollback_batch_execution(db, log_file_path, target_execution_id):
