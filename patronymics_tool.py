@@ -138,8 +138,33 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.linter_engine = RuleEngine()
         self.enabled_rules = {rule.rule_id: True for rule in self.linter_engine.rules}
 
+        # Calculate database-wide median year for fallback
+        self.db_median_year = self.calculate_db_median_year()
+
         # Build GTK Window UI
         self.build_window()
+
+    def calculate_db_median_year(self):
+        """
+        Scans the database once, extracts years from all valid events,
+        and returns the median year.
+        """
+        years = []
+        # Use Gramps DB API to scan events
+        for handle in self.db.get_event_handles():
+            event = self.db.get_event_from_handle(handle)
+            if event and event.get_date_object():
+                date_obj = event.get_date_object()
+                if date_obj.get_year():
+                    year = date_obj.get_year()
+                    if year > 0:
+                        years.append(year)
+
+        if not years:
+            return 1920  # Safe global default if DB is completely dateless
+
+        years.sort()
+        return years[len(years) // 2]
 
     def build_window(self):
         self.window = Gtk.Window(title=_("Infer East Slavic Patronymics"))
@@ -638,8 +663,18 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                 continue
 
             ref_year, rule_source = self.resolve_reference_year(person)
-            if ref_year is None:
+
+            # Metadata for fallback
+            confidence = self.evaluate_confidence(
+                person, primary_name, father_first_name
+            )
+            if rule_source == _("Database Median Fallback"):
+                confidence = 0.20
+
+            # Filter confidence after potential fallback adjustment
+            if confidence < 0.20:
                 continue
+
             pre_reform = (
                 self.script_check.get_active()
                 if self.script_check.get_active()
@@ -649,8 +684,6 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             # Resolve binary gender translation at the boundary
             gender_val = person.get_gender()
             if gender_val not in (Person.MALE, Person.FEMALE):
-                # Skip persons with OTHER or UNKNOWN genders as traditional patronymic
-                # suffix grammar cannot be deterministically inferred for them.
                 continue
 
             patronymic = generate_east_slavic_patronymic(
@@ -852,10 +885,8 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             self.window,
         )
 
-    def resolve_reference_year(self, person):
+    def resolve_reference_year(self, person) -> tuple[int, str]:
         # Tier 1: Latest Recorded Event Year
-        # Scan all events (Birth, Baptism, Marriage, Census, Death, Burial)
-        # and extract the maximum (latest) valid year
         event_years = []
         for event_ref in person.get_event_ref_list():
             event = self.db.get_event_from_handle(event_ref.ref)
@@ -865,59 +896,46 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                     event_years.append(date_obj.get_year())
 
         if event_years:
-            latest_year = max(event_years)
-            return latest_year, _("Latest Event Year")
+            return max(event_years), _("Latest Event Year")
 
         # Tier 2: Generational Lineage Heuristic
-        # If no dated events, estimate using immediate family members
-
-        # Parents: Median year of parent events + 25 years
         parent_years = []
         for fam_handle in person.get_parent_family_handle_list():
             fam = self.db.get_family_from_handle(fam_handle)
             if fam:
-                # Father events
-                father_handle = fam.get_father_handle()
-                if father_handle:
-                    father = self.db.get_person_from_handle(father_handle)
-                    if father:
-                        for event_ref in father.get_event_ref_list():
-                            event = self.db.get_event_from_handle(event_ref.ref)
-                            if event:
-                                date_obj = event.get_date_object()
-                                if date_obj and date_obj.get_year():
-                                    parent_years.append(date_obj.get_year())
-                # Mother events
-                mother_handle = fam.get_mother_handle()
-                if mother_handle:
-                    mother = self.db.get_person_from_handle(mother_handle)
-                    if mother:
-                        for event_ref in mother.get_event_ref_list():
-                            event = self.db.get_event_from_handle(event_ref.ref)
-                            if event:
-                                date_obj = event.get_date_object()
-                                if date_obj and date_obj.get_year():
-                                    parent_years.append(date_obj.get_year())
-
+                for h in [fam.get_father_handle(), fam.get_mother_handle()]:
+                    if h:
+                        p = self.db.get_person_from_handle(h)
+                        if p:
+                            for event_ref in p.get_event_ref_list():
+                                event = self.db.get_event_from_handle(event_ref.ref)
+                                if (
+                                    event
+                                    and event.get_date_object()
+                                    and event.get_date_object().get_year()
+                                ):
+                                    parent_years.append(
+                                        event.get_date_object().get_year()
+                                    )
         if parent_years:
-            median_parent_year = sorted(parent_years)[len(parent_years) // 2]
-            return median_parent_year + 25, _("Generational Estimation (Parents)")
+            return sorted(parent_years)[len(parent_years) // 2] + 25, _(
+                "Generational Estimation (Parents)"
+            )
 
-        # Tier 3: Spouse and Family Events
-        # If no personal/parent events, check marriage events or spouse's events
+        # Tier 3: Spouse/Family, Siblings, Children
+        # Spouse/Family
         family_years = []
         for fam_handle in person.get_family_handle_list():
             fam = self.db.get_family_from_handle(fam_handle)
             if fam:
-                # Family events (Marriage, etc.)
                 for event_ref in fam.get_event_ref_list():
                     event = self.db.get_event_from_handle(event_ref.ref)
-                    if event:
-                        date_obj = event.get_date_object()
-                        if date_obj and date_obj.get_year():
-                            family_years.append(date_obj.get_year())
-
-                # Spouse events
+                    if (
+                        event
+                        and event.get_date_object()
+                        and event.get_date_object().get_year()
+                    ):
+                        family_years.append(event.get_date_object().get_year())
                 spouse_handle = (
                     fam.get_father_handle()
                     if person.get_gender() == Person.FEMALE
@@ -928,16 +946,18 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                     if spouse:
                         for event_ref in spouse.get_event_ref_list():
                             event = self.db.get_event_from_handle(event_ref.ref)
-                            if event:
-                                date_obj = event.get_date_object()
-                                if date_obj and date_obj.get_year():
-                                    family_years.append(date_obj.get_year())
-
+                            if (
+                                event
+                                and event.get_date_object()
+                                and event.get_date_object().get_year()
+                            ):
+                                family_years.append(event.get_date_object().get_year())
         if family_years:
-            median_family_year = sorted(family_years)[len(family_years) // 2]
-            return median_family_year, _("Generational Estimation (Spouse/Family)")
+            return sorted(family_years)[len(family_years) // 2], _(
+                "Generational Estimation (Spouse/Family)"
+            )
 
-        # Siblings: Median year of sibling events
+        # Siblings
         sibling_years = []
         for fam_handle in person.get_parent_family_handle_list():
             fam = self.db.get_family_from_handle(fam_handle)
@@ -948,16 +968,20 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                         if sibling:
                             for event_ref in sibling.get_event_ref_list():
                                 event = self.db.get_event_from_handle(event_ref.ref)
-                                if event:
-                                    date_obj = event.get_date_object()
-                                    if date_obj and date_obj.get_year():
-                                        sibling_years.append(date_obj.get_year())
-
+                                if (
+                                    event
+                                    and event.get_date_object()
+                                    and event.get_date_object().get_year()
+                                ):
+                                    sibling_years.append(
+                                        event.get_date_object().get_year()
+                                    )
         if sibling_years:
-            median_sibling_year = sorted(sibling_years)[len(sibling_years) // 2]
-            return median_sibling_year, _("Generational Estimation (Siblings)")
+            return sorted(sibling_years)[len(sibling_years) // 2], _(
+                "Generational Estimation (Siblings)"
+            )
 
-        # Children: Median year of children events - 25 years
+        # Children
         child_years = []
         for fam_handle in person.get_family_handle_list():
             fam = self.db.get_family_from_handle(fam_handle)
@@ -967,16 +991,19 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                     if child:
                         for event_ref in child.get_event_ref_list():
                             event = self.db.get_event_from_handle(event_ref.ref)
-                            if event:
-                                date_obj = event.get_date_object()
-                                if date_obj and date_obj.get_year():
-                                    child_years.append(date_obj.get_year())
-
+                            if (
+                                event
+                                and event.get_date_object()
+                                and event.get_date_object().get_year()
+                            ):
+                                child_years.append(event.get_date_object().get_year())
         if child_years:
-            median_child_year = sorted(child_years)[len(child_years) // 2]
-            return median_child_year - 25, _("Generational Estimation (Children)")
+            return sorted(child_years)[len(child_years) // 2] - 25, _(
+                "Generational Estimation (Children)"
+            )
 
-        return None, None
+        # Tier 4: Fallback
+        return getattr(self, "db_median_year", 1920), _("Database Median Fallback")
 
     def on_apply_clicked(self, widget):
         changes_to_apply = []
@@ -1028,6 +1055,9 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
                             "reference_year": item["ref_year"],
                             "pre_reform": item["pre_reform"],
                             "confidence_score": 0.94,
+                            "is_temporal_fallback": (
+                                item["ref_year"] == self.db_median_year
+                            ),
                             "applied_heuristics": ["DEATH_OR_BIRTH_PIVOT"],
                         }
                     )

@@ -2,21 +2,12 @@
 """
 tests/test_ref_year.py
 
-Verifies the Reference Year resolution algorithm, specifically the Tier 2
-Generational Lineage Heuristic and the newly added Tier 3 Spouse/Family heuristic.
+Verifies the Reference Year resolution algorithm.
 """
 
 import sys
 import unittest
 from unittest.mock import MagicMock
-
-# -*- coding: utf-8 -*-
-"""
-tests/test_ref_year.py
-
-Verifies the Reference Year resolution algorithm.
-"""
-
 
 # -------------------------------------------------------------------------
 # Headless Decoupling Mocks
@@ -69,14 +60,8 @@ class Surname:
     def get_surname(self) -> str:
         return self._surname
 
-    def set_surname(self, val):
-        self._surname = val
-
     def get_origintype(self):
         return self._origin
-
-    def set_origintype(self, val):
-        self._origin = val
 
     def set_primary(self, val):
         pass
@@ -112,8 +97,6 @@ sys.modules["gramps.gui"] = gramps_gui_mock
 sys.modules["gramps.gui.plug"] = gramps_gui_plug_mock
 sys.modules["gramps.gui.dialog"] = gramps_gui_dialog_mock
 
-
-# Now import the tool
 from patronymics_tool import InferPatronymicsTool
 from gramps.gen.lib import Person
 
@@ -131,10 +114,9 @@ class MockEvent:
 class TestReferenceYearResolution(unittest.TestCase):
     def setUp(self):
         self.mock_db = MagicMock()
-        # Create a tool instance without full GTK init
         self.tool = MagicMock(spec=InferPatronymicsTool)
         self.tool.db = self.mock_db
-        # Re-bind the method we want to test
+        self.tool.db_median_year = 1921
         self.tool.resolve_reference_year = (
             InferPatronymicsTool.resolve_reference_year.__get__(
                 self.tool, InferPatronymicsTool
@@ -143,55 +125,41 @@ class TestReferenceYearResolution(unittest.TestCase):
 
     def test_tier1_latest_event_year(self):
         person = MagicMock()
-        event1 = MockEvent(1850)
-        event2 = MockEvent(1880)
         person.get_event_ref_list.return_value = [
             MagicMock(ref="E1"),
             MagicMock(ref="E2"),
         ]
-
         self.mock_db.get_event_from_handle.side_effect = lambda h: (
-            event1 if h == "E1" else event2
+            MockEvent(1850) if h == "E1" else MockEvent(1880)
         )
-
         year, source = self.tool.resolve_reference_year(person)
         self.assertEqual(year, 1880)
-        self.assertIn("Latest Event Year", source)
+        self.assertEqual(source, "Latest Event Year")
 
-    def test_tier3_spouse_marriage_heuristic(self):
-        """
-        Scenario: Person has no events, but married in 1836 and wife born in 1814.
-        Ref year should be median of [1836, 1814] -> 1836?
-        """
+    def test_tier2_parents_heuristic(self):
+        person = MagicMock()
+        person.get_parent_family_handle_list.return_value = ["F1"]
+        family = MagicMock()
+        family.get_father_handle.return_value = "FATHER"
+        self.mock_db.get_family_from_handle.return_value = family
+        father = MagicMock()
+        father.get_event_ref_list.return_value = [MagicMock(ref="E1")]
+        self.mock_db.get_person_from_handle.return_value = father
+        self.mock_db.get_event_from_handle.return_value = MockEvent(1900)
+        year, source = self.tool.resolve_reference_year(person)
+        self.assertEqual(year, 1925)
+        self.assertIn("Parents", source)
+
+    def test_tier3_spouse_family_heuristic(self):
         person = MagicMock()
         person.get_event_ref_list.return_value = []
-        person.get_parent_family_handle_list.return_value = []  # No parents
         person.get_family_handle_list.return_value = ["F1"]
-        person.get_gender.return_value = Person.MALE
-
         family = MagicMock()
-        family.get_event_ref_list.return_value = [MagicMock(ref="E_MARR")]
-        family.get_mother_handle.return_value = "WIFE_H"
-
-        wife = MagicMock()
-        wife.get_event_ref_list.return_value = [MagicMock(ref="E_WIFE_BIRTH")]
-
-        marr_event = MockEvent(1836)
-        wife_birth = MockEvent(1814)
-
-        def db_get_event(h):
-            if h == "E_MARR":
-                return marr_event
-            if h == "E_WIFE_BIRTH":
-                return wife_birth
-            return None
-
+        family.get_event_ref_list.return_value = [MagicMock(ref="E1")]
         self.mock_db.get_family_from_handle.return_value = family
-        self.mock_db.get_person_from_handle.return_value = wife
-        self.mock_db.get_event_from_handle.side_effect = db_get_event
-
+        self.mock_db.get_event_from_handle.return_value = MockEvent(1900)
         year, source = self.tool.resolve_reference_year(person)
-        self.assertEqual(year, 1836)
+        self.assertEqual(year, 1900)
         self.assertIn("Spouse/Family", source)
 
     def test_tier4_fallback_default(self):
@@ -199,10 +167,9 @@ class TestReferenceYearResolution(unittest.TestCase):
         person.get_event_ref_list.return_value = []
         person.get_parent_family_handle_list.return_value = []
         person.get_family_handle_list.return_value = []
-
         year, source = self.tool.resolve_reference_year(person)
-        self.assertIsNone(year)
-        self.assertIsNone(source)
+        self.assertEqual(year, 1921)
+        self.assertEqual(source, "Database Median Fallback")
 
 
 if __name__ == "__main__":
