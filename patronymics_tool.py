@@ -10,6 +10,7 @@ with clean transaction logging and total reversibility.
 
 import os
 import re
+
 from gi.repository import Gtk, GLib
 
 # Gramps modules
@@ -27,7 +28,7 @@ from engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PA
 from engine.logging import InferenceLogManager, generate_execution_id
 from engine.linter import RuleEngine, RuleContext, PlaceCache
 from engine.constants import LOCALE_RU
-from utils import PatronymicMixin, has_patronymic_surname
+from utils import PatronymicMixin, has_patronymic_surname, is_patronymic_origin
 
 _ = glocale.translation.gettext
 
@@ -35,14 +36,7 @@ _ = glocale.translation.gettext
 def get_patronymic_value(name_obj) -> str:
     """Finds and returns the string value of the patronymic Surname object."""
     for surname in name_obj.get_surname_list():
-        orig = surname.get_origintype()
-        if (
-            orig == NameOriginType.PATRONYMIC
-            or orig == 5
-            or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
-            or getattr(orig, "value", None) == 5
-            or str(orig).strip() == "Patronymic"
-        ):
+        if is_patronymic_origin(surname.get_origintype()):
             return surname.get_surname()
     return ""
 
@@ -57,15 +51,7 @@ def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:
     found = False
 
     for s in surnames:
-        orig = s.get_origintype()
-        is_patro = (
-            orig == NameOriginType.PATRONYMIC
-            or orig == 5
-            or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
-            or getattr(orig, "value", None) == 5
-            or str(orig).strip() == "Patronymic"
-        )
-        if is_patro:
+        if is_patronymic_origin(s.get_origintype()):
             orig_pat = s.get_surname()
             s.set_surname(new_patronymic_value)
             found = True
@@ -1562,15 +1548,10 @@ def rollback_batch_execution(db, log_file_path, target_execution_id):
                     surnames = primary_name.get_surname_list()
                     new_surnames = []
                     for s in surnames:
-                        orig = s.get_origintype()
-                        is_patro = (
-                            orig == NameOriginType.PATRONYMIC
-                            or orig == 5
-                            or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
-                            or getattr(orig, "value", None) == 5
-                            or str(orig).strip() == "Patronymic"
-                        )
-                        if is_patro and s.get_surname() == change["inferred_value"]:
+                        if (
+                            is_patronymic_origin(s.get_origintype())
+                            and s.get_surname() == change["inferred_value"]
+                        ):
                             # If there was a previous patronymic, restore it. Otherwise drop.
                             if change["original_value"]:
                                 s.set_surname(change["original_value"])

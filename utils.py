@@ -17,17 +17,24 @@ except ImportError:
         PATRONYMIC = 5
 
 
+def is_patronymic_origin(orig) -> bool:
+    """
+    Checks if a surname origin type indicates a patronymic.
+    Handles multiple representations of the PATRONYMIC type for compatibility.
+    """
+    return (
+        orig == NameOriginType.PATRONYMIC
+        or orig == 5
+        or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
+        or getattr(orig, "value", None) == 5
+        or str(orig).strip() == "Patronymic"
+    )
+
+
 def has_patronymic_surname(name_obj) -> bool:
     """Returns True if the Name object contains any Surname marked as a PATRONYMIC."""
     for surname in name_obj.get_surname_list():
-        orig = surname.get_origintype()
-        if (
-            orig == NameOriginType.PATRONYMIC
-            or orig == 5
-            or getattr(orig, "value", None) == NameOriginType.PATRONYMIC
-            or getattr(orig, "value", None) == 5
-            or str(orig).strip() == "Patronymic"
-        ):
+        if is_patronymic_origin(surname.get_origintype()):
             return True
     return False
 
