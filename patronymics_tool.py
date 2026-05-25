@@ -416,13 +416,12 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.tree_view.append_column(col_conf)
 
         col_rules = Gtk.TreeViewColumn(
-            _("Historical Context Rule"),
+            _("Ref Year Desc"),
             Gtk.CellRendererText(),
             text=self.LIST_COL_RULE_SOURCE,
         )
         col_rules.set_sort_column_id(self.LIST_COL_RULE_SOURCE)
         col_rules.set_resizable(True)
-        col_rules.set_expand(True)
         self.tree_view.append_column(col_rules)
 
     def setup_audit_columns(self):
@@ -484,13 +483,12 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.audit_tree.append_column(col_rule)
 
         col_rules = Gtk.TreeViewColumn(
-            _("Historical Context Rule"),
+            _("Ref Year Desc"),
             Gtk.CellRendererText(),
             text=self.AUDIT_COL_RULE_SOURCE,
         )
         col_rules.set_sort_column_id(self.AUDIT_COL_RULE_SOURCE)
         col_rules.set_resizable(True)
-        col_rules.set_expand(True)
         self.audit_tree.append_column(col_rules)
 
     def setup_log_columns(self):
