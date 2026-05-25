@@ -34,9 +34,24 @@ gramps_gen_const_mock = MagicMock()
 gramps_gen_db_mock = MagicMock()
 gramps_gen_lib_mock = MagicMock()
 gramps_gen_display_name_mock = MagicMock()
+gramps_gen_errors_mock = MagicMock()
 gramps_gui_mock = MagicMock()
 gramps_gui_plug_mock = MagicMock()
 gramps_gui_dialog_mock = MagicMock()
+gramps_gui_editors_mock = MagicMock()
+
+# Mock EditPerson
+class MockEditPerson:
+    def __init__(self, *args, **kwargs):
+        pass
+
+gramps_gui_editors_mock.EditPerson = MockEditPerson
+
+# Mock WindowActiveError
+class MockWindowActiveError(Exception):
+    pass
+
+gramps_gen_errors_mock.WindowActiveError = MockWindowActiveError
 
 # Mock displayer
 gramps_gen_display_name_mock.displayer.display_formal.return_value = "Mock Name"
@@ -93,9 +108,11 @@ sys.modules["gramps.gen.const"] = gramps_gen_const_mock
 sys.modules["gramps.gen.db"] = gramps_gen_db_mock
 sys.modules["gramps.gen.lib"] = gramps_gen_lib_mock
 sys.modules["gramps.gen.display.name"] = gramps_gen_display_name_mock
+sys.modules["gramps.gen.errors"] = gramps_gen_errors_mock
 sys.modules["gramps.gui"] = gramps_gui_mock
 sys.modules["gramps.gui.plug"] = gramps_gui_plug_mock
 sys.modules["gramps.gui.dialog"] = gramps_gui_dialog_mock
+sys.modules["gramps.gui.editors"] = gramps_gui_editors_mock
 
 # Import after mock setup (intentionally not at top of file)
 from patronymics_tool import InferPatronymicsTool  # noqa: E402
@@ -117,6 +134,11 @@ class TestReferenceYearResolution(unittest.TestCase):
         self.tool = MagicMock(spec=InferPatronymicsTool)
         self.tool.db = self.mock_db
         self.tool.db_median_year = 1921
+        # Copy the REF_SOURCE constants from the actual class
+        self.tool.REF_SOURCE_LATEST_EVENT = InferPatronymicsTool.REF_SOURCE_LATEST_EVENT
+        self.tool.REF_SOURCE_GENERATIONAL_PARENTS = InferPatronymicsTool.REF_SOURCE_GENERATIONAL_PARENTS
+        self.tool.REF_SOURCE_GENERATIONAL_SPOUSE_FAMILY = InferPatronymicsTool.REF_SOURCE_GENERATIONAL_SPOUSE_FAMILY
+        self.tool.REF_SOURCE_DB_MEDIAN_FALLBACK = InferPatronymicsTool.REF_SOURCE_DB_MEDIAN_FALLBACK
         self.tool.resolve_reference_year = (
             InferPatronymicsTool.resolve_reference_year.__get__(
                 self.tool, InferPatronymicsTool
