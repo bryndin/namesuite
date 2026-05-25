@@ -204,7 +204,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         # --- TAB 0: Given Names (First Name Standardization) ---
         given_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         given_box.set_border_width(8)
-        notebook.insert_page(given_box, Gtk.Label(label=_("Given Names")), 0)
+        notebook.insert_page(given_box, Gtk.Label(label=_("Rename Given Names")), 0)
 
         # Configuration Controls Panel
         given_config_frame = Gtk.Frame(label=_("Standardization Options"))
@@ -283,7 +283,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         # --- TAB 1: Scan & Apply (Inference Engine) ---
         scan_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         scan_box.set_border_width(8)
-        notebook.append_page(scan_box, Gtk.Label(label=_("Infer")))
+        notebook.append_page(scan_box, Gtk.Label(label=_("Infer Patronymics")))
 
         # Configuration Controls Panel
         config_frame = Gtk.Frame(label=_("Inference Options"))
@@ -337,7 +337,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         # --- TAB 2: Database Auditor (The Linter) ---
         audit_tab_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         audit_tab_box.set_border_width(8)
-        notebook.append_page(audit_tab_box, Gtk.Label(label=_("Audit")))
+        notebook.append_page(audit_tab_box, Gtk.Label(label=_("Audit Patronymics")))
 
         # Filter and Configuration Header Frame
         audit_header_frame = Gtk.Frame(label=_("Auditing Settings"))
