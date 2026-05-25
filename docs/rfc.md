@@ -479,6 +479,7 @@ Once the user completes their review of the `TreeView` list, clicking **[Apply S
 
 1. **Linguistic Expansion:** Add full support for Ukrainian (`-ovych`/`-ivna` shifts) and Belarusian (`-avich`/`-auna` shifts) patronymic systems (v1.1+).
 2. **First Name Normalization:** Develop heuristics and dictionary mappings to normalize variant historical spellings or diminutive nicknames in father first names (e.g., normalising `Дмитрій`/`Митрий` $\rightarrow$ `Дмитрий`) before morphological stem parsing, raising base applicability.
+    - **The Rule:** Use the **modern common form** as the Primary Name (e.g., `Иван`, `Прасковья` or `Параскева` depending on regional baseline).
 
 ---
 
