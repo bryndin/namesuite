@@ -17,7 +17,8 @@ from gramps.gen.lib import Surname, NameOriginType, Person
 
 # Local modules
 from engine.morphology import generate_east_slavic_patronymic
-from utils import PatronymicMixin, has_patronymic_surname
+from engine.utils import has_patronymic_surname
+from utils import PatronymicMixin
 
 _ = glocale.translation.gettext
 

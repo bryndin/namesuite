@@ -29,11 +29,13 @@ from engine.logging import InferenceLogManager, generate_execution_id
 from engine.linter import RuleEngine, RuleContext, PlaceCache
 from engine.rule_utils import pango_escape
 from engine.constants import LOCALE_RU
+from engine.utils import (
+    is_patronymic_origin,
+    has_patronymic_surname,
+    has_cyrillic,
+)
 from utils import (
     PatronymicMixin,
-    has_patronymic_surname,
-    is_patronymic_origin,
-    has_cyrillic,
 )
 
 _ = glocale.translation.gettext
