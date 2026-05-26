@@ -194,10 +194,20 @@ class EastSlavicToolsPresenter:
 
     def apply_checked_audit_fixes(self, use_pre_reform: bool):
         """Gathers checked audit fixes from view and applies them."""
-        checked_issues = []
-        for i, row in enumerate(self.view.audit_store):
-            if row[self.view.AUDIT_COL_CHECKBOX]:
-                checked_issues.append(self.audit_issues[i])
+        checked_handles = [
+            row[self.view.AUDIT_COL_HANDLE]
+            for row in self.view.audit_store
+            if row[self.view.AUDIT_COL_CHECKBOX]
+        ]
+
+        if not checked_handles:
+            return False
+
+        # Build a lookup map of all issues by handle
+        issues_map = {issue.person_handle: issue for issue in self.audit_issues}
+
+        # Extract the specific issues for the selected handles
+        checked_issues = [issues_map[h] for h in checked_handles if h in issues_map]
 
         if not checked_issues:
             return False
