@@ -121,10 +121,10 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
     LOG_COL_CHANGES_COUNT = 2
     LOG_COL_PLUGIN_ID = 3
 
-    # Reference year resolution source descriptions
-    REF_SOURCE_LATEST_EVENT = _("Latest Event Year")
-    REF_SOURCE_DB_MEDIAN_FALLBACK = _("DB Median Fallback")
-    REF_SOURCE_GRAPH_BFS = _("Graph BFS")
+    # Reference year resolution source descriptions (raw strings, translated at display)
+    REF_SOURCE_LATEST_EVENT = "Latest Event Year"
+    REF_SOURCE_DB_MEDIAN_FALLBACK = "DB Median Fallback"
+    REF_SOURCE_GRAPH_BFS = "Graph BFS"
 
     def __init__(self, dbstate, user, options_class, name, callback=None, **kwargs):
         """
@@ -989,7 +989,7 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
                 row[self.LIST_COL_REF_YEAR] = ref_year
                 row[self.LIST_COL_PATRONYMIC] = patronymic
                 row[self.LIST_COL_CONFIDENCE] = f"{int(confidence * 100)}%"
-                row[self.LIST_COL_RULE_SOURCE] = rule_source
+                row[self.LIST_COL_RULE_SOURCE] = _(rule_source)
                 row[self.LIST_COL_GRAMPS_ID] = person.gramps_id
                 row[self.LIST_COL_HANDLE] = handle
                 self.list_store.append(row)
@@ -1114,7 +1114,7 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
                     row[self.AUDIT_COL_HANDLE] = handle
                     row[self.AUDIT_COL_RULE_ID_DUP] = rule.rule_id
                     row[self.AUDIT_COL_SUGGESTED_STRING] = change.suggested_string
-                    row[self.AUDIT_COL_RULE_SOURCE] = rule_source
+                    row[self.AUDIT_COL_RULE_SOURCE] = _(rule_source)
                     self.audit_store.append(row)
 
             idx[0] = end
