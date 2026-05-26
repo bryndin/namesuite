@@ -250,7 +250,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.given_tree = Gtk.TreeView(model=self.given_store)
         self.given_tree.connect("row-activated", self.on_given_row_activated)
         given_scroll_win.add(self.given_tree)
-        self.setup_given_columns()
+        self.setup_given_names_rename_columns()
 
         # Action Footer
         given_footer_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -309,7 +309,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         self.tree_view = Gtk.TreeView(model=self.list_store)
         self.tree_view.connect("row-activated", self.on_list_row_activated)
         scroll_win.add(self.tree_view)
-        self.setup_tree_columns()
+        self.setup_inference_columns()
 
         # Execution Controls
         self.exec_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -435,8 +435,8 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
     def on_destroy(self, widget):
         self.window.destroy()
 
-    def setup_tree_columns(self):
-        """Creates table headers and columns for scanned candidates."""
+    def setup_inference_columns(self):
+        """Creates table headers and columns for Inference results."""
         renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect("toggled", self.on_row_toggled)
         col_toggle = Gtk.TreeViewColumn(
@@ -499,7 +499,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
         col_rules.set_resizable(True)
         self.tree_view.append_column(col_rules)
 
-    def setup_given_columns(self):
+    def setup_given_names_rename_columns(self):
         """Creates table headers and columns for Given Names standardization."""
         renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect("toggled", self.on_given_row_toggled)
