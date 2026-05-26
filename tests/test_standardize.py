@@ -116,9 +116,11 @@ class Name:
 
 
 class NameType:
-    CUSTOM = 1
-    ALSO_KNOWN_AS = 3
-
+    UNKNOWN = -1
+    CUSTOM = 0
+    AKA = 1
+    BIRTH = 2
+    MARRIED = 3
 
 gen_lib = MagicMock()
 gen_lib.NameOriginType = NameOriginType
@@ -164,7 +166,7 @@ class MockPerson:
             for a_first in alts:
                 an = Name()
                 an.set_first_name(a_first)
-                an.set_type(NameType.ALSO_KNOWN_AS)
+                an.set_type(NameType.AKA)
                 self._alts.append(an)
 
     def get_primary_name(self):
@@ -231,7 +233,7 @@ class TestGivenNameStandardization(unittest.TestCase):
         self.people["h1"].get_primary_name().set_first_name("Иван")
         alt_name = Name()
         alt_name.set_first_name("Иоанн")
-        alt_name.set_type(NameType.ALSO_KNOWN_AS)
+        alt_name.set_type(NameType.AKA)
         self.people["h1"].set_alternate_names([alt_name])
 
         # Person 2 was standardized to 'Яков', no backup alt was added (preserve option was off)
@@ -282,7 +284,7 @@ class TestGivenNameStandardization(unittest.TestCase):
         self.people["h1"].get_primary_name().set_first_name("Ваня")
         alt_name = Name()
         alt_name.set_first_name("Иоанн")
-        alt_name.set_type(NameType.ALSO_KNOWN_AS)
+        alt_name.set_type(NameType.AKA)
         self.people["h1"].set_alternate_names([alt_name])
 
         # Run Rollback

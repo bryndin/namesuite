@@ -112,9 +112,11 @@ class Name:
 
 
 class NameType:
-    CUSTOM = 1
-    ALSO_KNOWN_AS = 3
-
+    UNKNOWN = -1
+    CUSTOM = 0
+    AKA = 1
+    BIRTH = 2
+    MARRIED = 3
 
 gramps_gen_lib_mock.NameOriginType = NameOriginType
 gramps_gen_lib_mock.Surname = Surname
