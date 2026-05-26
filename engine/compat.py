@@ -17,3 +17,12 @@ except ImportError:
         UNKNOWN = 2
         MALE = 1
         FEMALE = 0
+
+try:
+    from gramps.gen.lib import NameOriginType
+except ImportError:
+
+    class NameOriginType:
+        UNKNOWN = 0
+        CUSTOM = 1
+        PATRONYMIC = 5

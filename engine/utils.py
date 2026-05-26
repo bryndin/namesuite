@@ -6,14 +6,7 @@ Utility functions for the linter validation engine.
 """
 import re
 from engine.constants import LOCALE_RU, REFORM_YEAR_1918
-
-try:
-    from gramps.gen.lib import NameOriginType
-except ImportError:
-    class NameOriginType:
-        UNKNOWN = 0
-        CUSTOM = 1
-        PATRONYMIC = 5
+from engine.compat import NameOriginType
 
 def is_pre_reform(ctx) -> bool:
     """Check if the context satisfies the pre-reform conditions."""
