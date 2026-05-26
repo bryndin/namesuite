@@ -42,16 +42,20 @@ gramps_gui_plug_mock = MagicMock()
 gramps_gui_dialog_mock = MagicMock()
 gramps_gui_editors_mock = MagicMock()
 
+
 # Mock EditPerson
 class MockEditPerson:
     def __init__(self, *args, **kwargs):
         pass
 
+
 gramps_gui_editors_mock.EditPerson = MockEditPerson
+
 
 # Mock WindowActiveError
 class MockWindowActiveError(Exception):
     pass
+
 
 gramps_gen_errors_mock.WindowActiveError = MockWindowActiveError
 
@@ -166,7 +170,6 @@ class MockPatronymicsTool(PatronymicMixin):
         self.dbstate.db = db
 
     evaluate_confidence = InferPatronymicsTool.evaluate_confidence
-    has_cyrillic = InferPatronymicsTool.has_cyrillic
 
 
 # -------------------------------------------------------------------------

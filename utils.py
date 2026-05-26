@@ -39,6 +39,13 @@ def has_patronymic_surname(name_obj) -> bool:
     return False
 
 
+def has_cyrillic(text):
+    """Returns True if the text contains Cyrillic characters."""
+    import re
+
+    return bool(re.search(r"[\u0400-\u04FF]", text))
+
+
 class PatronymicMixin:
     """
     Mixin class providing shared patronymic-related methods.

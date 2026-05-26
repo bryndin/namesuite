@@ -28,7 +28,12 @@ from engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PA
 from engine.logging import InferenceLogManager, generate_execution_id
 from engine.linter import RuleEngine, RuleContext, PlaceCache
 from engine.constants import LOCALE_RU
-from utils import PatronymicMixin, has_patronymic_surname, is_patronymic_origin
+from utils import (
+    PatronymicMixin,
+    has_patronymic_surname,
+    is_patronymic_origin,
+    has_cyrillic,
+)
 
 _ = glocale.translation.gettext
 
@@ -715,9 +720,6 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
             row[self.LOG_COL_PLUGIN_ID] = run.get("plugin_id", "")
             self.log_store.append(row)
 
-    def has_cyrillic(self, text):
-        return bool(re.search(r"[\u0400-\u04FF]", text))
-
     def evaluate_confidence(self, person, primary_name, father_first_name) -> float:
         """
         Multi-Signal Applicability Engine.
@@ -728,7 +730,7 @@ class InferPatronymicsTool(PatronymicMixin, tool.Tool):
 
         # Signal 1: Cyrillic Script Check (+0.50)
         full_name_str = primary_name.get_regular_name()
-        if self.has_cyrillic(full_name_str):
+        if has_cyrillic(full_name_str):
             score += 0.50
 
         # Signal 2: Slavic Surname Ends (+0.20)
