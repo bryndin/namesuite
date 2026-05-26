@@ -38,6 +38,7 @@ To maintain focus and data integrity, this system is explicitly **NOT**:
 * An automatic person-merging utility or fuzzy identity matcher.
 * An OCR correction or transliteration tool.
 * An automated AI renaming system.
+* **Complex Alternate Name Deduplication:** The tool will not attempt to merge, prune, or evaluate existing alternate names against the new target name. Existing alternate names are strictly ignored to prevent accidental data loss (e.g., deleting maiden names).
 
 ## 6. Terminology
 
@@ -85,18 +86,19 @@ The engine avoids probabilistic or speculative NLP models, relying instead on de
 
 ## 11. Batch Rename Workflow
 
-The workflow relies on a rigid "Review Before Commit" methodology that explicitly handles internal data conflicts.
+The workflow relies on a rigid "Review Before Commit" methodology that guarantees existing metadata is never overwritten.
 
 1. **Rule Configuration:** The user enters a `Source Name` and `Target Name`.
 2. **Match Type Selection:** The user selects from a dropdown:
-    * `Exact Match`: Safest. Replaces only if the given name string matches entirely.
+    * `Exact Match`: Replaces only if the given name string matches entirely.
     * `Substring`: Replaces occurrences within compound names.
     * `Regular Expression`: For advanced pattern matching.
 3. **Grid Population:** Clicking "Scan Database" populates the results grid. No database modifications occur at this stage.
-4. **Alternate Name Deduplication:** The tool evaluates the target against the individual's existing Alternate Names.
-    * If the `Target Name` (e.g., *Иван*) already exists as an Alternate Name, the grid flags it for deduplication. Upon commit, the Alternate Name entry is removed and promoted to Primary Name to prevent duplicate exact strings.
-    * An optional global toggle allows the user to preserve the original Primary Name (e.g., *Иоанн*) by automatically downgrading it to an Alternate Name.
-5. **Commit:** The user clicks "Apply Selected Corrections" to finalize the batch run.
+4. **Alternate Name Preservation (Optional):** Upon commit, if the user has checked "Preserve original Primary Names as Alternate Names":
+    * The system checks if the *Original Primary Name* already exists in the individual's Alternate Names list.
+    * **If Yes:** The preservation step is skipped (preventing duplicates and protecting the Revert log).
+    * **If No:** The system deep-copies the Primary Name (preserving surnames/citations), changes its type to "Also Known As," and appends it to the Alternate Names list.
+5. **Commit:** The user clicks "Apply Selected Corrections." The Primary Name strings are updated in place, and the transaction is logged.
 
 ## 12. UI/UX Design Principles
 
@@ -105,14 +107,13 @@ The tool integrates into the existing `Gtk.Notebook` layout. A new tab will be i
 **Given Names Tab Layout:**
 
 * **Top Bar:** Match Type Dropdown, Source Input, Target Input, "Scan Database" button.
-* **Global Options:** Checkbox for "Preserve original Primary Names as Alternate Names".
+* **Global Options:** Checkbox for "Preserve original Primary Names as Alternate Names" (Default: True).
 * **Main Grid (`Gtk.TreeView`):**
   * `Use` (Checkbox)
   * `ID`
   * `Individual`
   * `Current Name`
   * `Proposed Name` (Uses Pango markup for diff highlights)
-  * `Alt Name Action` (Displays deduplication status, e.g., "Merge Existing Alt Name" or "None").
 * **Footer:** Global "Select All" checkbox and an `[Apply Selected Corrections]` button.
 
 ## 13. Logging and Rollback
