@@ -7,8 +7,8 @@ Headless service for given name standardization logic.
 
 import os
 import re
-from typing import List, Optional
-from gramps.gen.lib import Person, Name, NameType
+from typing import List
+from gramps.gen.lib import Name, NameType
 from gramps.gen.db import DbTxn
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.const import GRAMPS_LOCALE as glocale

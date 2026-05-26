@@ -17,7 +17,6 @@ from tests.compat_mocks import mock_gramps
 mock_gramps()
 
 # Import after mock setup
-from ui.patronymics_tool import EastSlavicNameTools
 from engine.inference_service import PatronymicInferenceService
 
 

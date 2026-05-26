@@ -8,7 +8,6 @@ batch-apply inferred patronymics, and run morphological consistency audits (lint
 with clean transaction logging and total reversibility.
 """
 
-import os
 from gi.repository import Gtk
 
 # Gramps modules
@@ -20,7 +19,6 @@ from gramps.gen.errors import WindowActiveError
 
 # Custom modular imports
 from ui.presenters import EastSlavicToolsPresenter
-from engine.rule_utils import pango_escape
 from utils import (
     PatronymicMixin,
 )

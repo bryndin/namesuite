@@ -5,7 +5,7 @@ engine/audit_service.py
 Headless service for patronymic auditing logic using the linter engine.
 """
 
-from typing import Iterable, Set, Optional
+from typing import Iterable, Set
 from gramps.gen.lib import Person
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.const import GRAMPS_LOCALE as glocale

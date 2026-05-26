@@ -18,7 +18,6 @@ mock_gramps()
 
 # Now safely import components
 from utils import PatronymicMixin
-from ui.patronymics_tool import EastSlavicNameTools
 from engine.inference_service import PatronymicInferenceService
 
 # -------------------------------------------------------------------------

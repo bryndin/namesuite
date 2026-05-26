@@ -5,7 +5,6 @@ utils.py
 Shared utility functions and mixins for patronymic inference and validation.
 """
 
-from engine.utils import get_patronymic_value, has_patronymic_surname, is_patronymic_origin
 
 class PatronymicMixin:
     """

@@ -7,7 +7,7 @@ Headless service for patronymic inference logic.
 
 import os
 from typing import List, Generator, Tuple, Optional
-from gramps.gen.lib import Person, Surname, NameOriginType
+from gramps.gen.lib import Person
 from gramps.gen.db import DbTxn
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.const import GRAMPS_LOCALE as glocale
@@ -16,8 +16,6 @@ from engine.entities import InferenceCandidate
 from engine.utils import (
     has_patronymic_surname,
     has_cyrillic,
-    get_patronymic_value,
-    is_patronymic_origin,
     update_or_add_patronymic
 )
 from engine.morphology import SLAVIC_SURNAME_PATTERN, generate_east_slavic_patronymic

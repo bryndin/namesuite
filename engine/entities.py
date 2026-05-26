@@ -7,7 +7,6 @@ These classes are pure data containers decoupled from GTK and DB logic.
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)
