@@ -16,12 +16,16 @@ from pat_engine.entities import InferenceCandidate
 from pat_engine.utils import (
     has_patronymic_surname,
     has_cyrillic,
-    update_or_add_patronymic
+    update_or_add_patronymic,
 )
-from pat_engine.morphology import SLAVIC_SURNAME_PATTERN, generate_east_slavic_patronymic
+from pat_engine.morphology import (
+    SLAVIC_SURNAME_PATTERN,
+    generate_east_slavic_patronymic,
+)
 from pat_engine.logging import InferenceLogManager
 
 _ = glocale.translation.gettext
+
 
 class PatronymicInferenceService:
     """Headless service for patronymic candidate scanning and resolution."""
@@ -37,22 +41,48 @@ class PatronymicInferenceService:
         db_path = self.db.get_dbname()
         self.db_id = os.path.basename(os.path.normpath(db_path))
         self.log_manager = InferenceLogManager(self.db_id)
+
+        # Initialize DB stats
+        self.given_names_set = set()
         self.db_median_year = 1920
         self._initialize_db_defaults()
 
     def _initialize_db_defaults(self):
-        """Calculates global DB defaults like median year."""
+        """
+        Scans the database once, extracts all given names from persons,
+        and builds a set for autocompletion. Also calculates the median year
+        from all valid events for fallback reference year resolution.
+        """
+        given_names = set()
         years = []
+
         for handle in self.db.get_person_handles():
             person = self.db.get_person_from_handle(handle)
             if not person:
                 continue
+
+            # Extract given name
+            primary_name = person.get_primary_name()
+            if primary_name:
+                given_name = primary_name.get_first_name()
+                if given_name:
+                    given_names.add(given_name)
+
+            # Extract years from person's event references
             for event_ref in person.get_event_ref_list():
                 event = self.db.get_event_from_handle(event_ref.ref)
-                if event and event.get_date_object() and event.get_date_object().get_year():
-                    years.append(event.get_date_object().get_year())
+                if event and event.get_date_object():
+                    date_obj = event.get_date_object()
+                    if date_obj.get_year():
+                        year = date_obj.get_year()
+                        if year > 0:
+                            years.append(year)
+
+        self.given_names_set = given_names
+
         if years:
-            self.db_median_year = sorted(years)[len(years) // 2]
+            years.sort()
+            self.db_median_year = years[len(years) // 2]
 
     def get_father_handle(self, person) -> Optional[str]:
         """Returns the father's handle for a given person."""
@@ -110,7 +140,10 @@ class PatronymicInferenceService:
                     fam = self.db.get_family_from_handle(fam_handle)
                     if not fam:
                         continue
-                    for parent_handle in (fam.get_father_handle(), fam.get_mother_handle()):
+                    for parent_handle in (
+                        fam.get_father_handle(),
+                        fam.get_mother_handle(),
+                    ):
                         if parent_handle and parent_handle not in visited:
                             visited.add(parent_handle)
                             next_level.append((parent_handle, delta_g + 1))
@@ -122,8 +155,15 @@ class PatronymicInferenceService:
                     fam = self.db.get_family_from_handle(fam_handle)
                     if not fam:
                         continue
-                    for spouse_handle in (fam.get_father_handle(), fam.get_mother_handle()):
-                        if spouse_handle and spouse_handle != handle and spouse_handle not in visited:
+                    for spouse_handle in (
+                        fam.get_father_handle(),
+                        fam.get_mother_handle(),
+                    ):
+                        if (
+                            spouse_handle
+                            and spouse_handle != handle
+                            and spouse_handle not in visited
+                        ):
                             visited.add(spouse_handle)
                             next_level.append((spouse_handle, delta_g))
                     for child_ref in fam.get_child_ref_list():
@@ -136,8 +176,14 @@ class PatronymicInferenceService:
                     continue
                 for event_ref in rel_p.get_event_ref_list():
                     event = self.db.get_event_from_handle(event_ref.ref)
-                    if event and event.get_date_object() and event.get_date_object().get_year():
-                        level_estimates.append(event.get_date_object().get_year() + (d_g * 25))
+                    if (
+                        event
+                        and event.get_date_object()
+                        and event.get_date_object().get_year()
+                    ):
+                        level_estimates.append(
+                            event.get_date_object().get_year() + (d_g * 25)
+                        )
             if level_estimates:
                 median_year = sorted(level_estimates)[len(level_estimates) // 2]
                 return median_year, self.REF_SOURCE_GRAPH_BFS
@@ -146,7 +192,9 @@ class PatronymicInferenceService:
                 break
         return self.db_median_year, self.REF_SOURCE_DB_MEDIAN_FALLBACK
 
-    def scan_candidates_generator(self, pre_reform=False) -> Generator[InferenceCandidate, None, None]:
+    def scan_candidates_generator(
+        self, pre_reform=False
+    ) -> Generator[InferenceCandidate, None, None]:
         """Queries database for eligible records and yields InferenceCandidate instances."""
         for handle in self.db.get_person_handles():
             person = self.db.get_person_from_handle(handle)
@@ -164,7 +212,9 @@ class PatronymicInferenceService:
             father_first_name = father.get_primary_name().get_first_name()
             if not father_first_name:
                 continue
-            confidence = self.evaluate_confidence(person, primary_name, father_first_name)
+            confidence = self.evaluate_confidence(
+                person, primary_name, father_first_name
+            )
             if confidence < 0.60:
                 continue
             ref_year, rule_source = self.resolve_reference_year(person)
@@ -190,10 +240,12 @@ class PatronymicInferenceService:
                     reference_year=ref_year,
                     inferred_patronymic=patronymic,
                     confidence=confidence,
-                    rule_source=rule_source
+                    rule_source=rule_source,
                 )
 
-    def apply_patronymics_batch(self, candidates: List[InferenceCandidate], exec_id: str, pre_reform: bool):
+    def apply_patronymics_batch(
+        self, candidates: List[InferenceCandidate], exec_id: str, pre_reform: bool
+    ):
         """Commits patronymics safely inside a transaction."""
         logged_changes = []
         with DbTxn(_("Apply Patronymics"), self.db) as txn:
@@ -202,19 +254,27 @@ class PatronymicInferenceService:
                 if not person:
                     continue
                 primary_name = person.get_primary_name()
-                orig_pat = update_or_add_patronymic(primary_name, cand.inferred_patronymic)
-                
+                orig_pat = update_or_add_patronymic(
+                    primary_name, cand.inferred_patronymic
+                )
+
                 self.db.commit_person(person, txn)
-                
-                logged_changes.append({
-                    "person_handle": cand.person_handle,
-                    "original_value": orig_pat,
-                    "inferred_value": cand.inferred_patronymic,
-                    "father_handle": self.get_father_handle(person),
-                    "reference_year": cand.reference_year,
-                    "pre_reform": pre_reform,
-                    "confidence_score": cand.confidence,
-                    "is_temporal_fallback": (cand.rule_source == self.REF_SOURCE_DB_MEDIAN_FALLBACK),
-                    "applied_heuristics": ["DEATH_OR_BIRTH_PIVOT"],
-                })
-        self.log_manager.log_execution(exec_id, "east_slavic_patronymic", logged_changes)
+
+                logged_changes.append(
+                    {
+                        "person_handle": cand.person_handle,
+                        "original_value": orig_pat,
+                        "inferred_value": cand.inferred_patronymic,
+                        "father_handle": self.get_father_handle(person),
+                        "reference_year": cand.reference_year,
+                        "pre_reform": pre_reform,
+                        "confidence_score": cand.confidence,
+                        "is_temporal_fallback": (
+                            cand.rule_source == self.REF_SOURCE_DB_MEDIAN_FALLBACK
+                        ),
+                        "applied_heuristics": ["DEATH_OR_BIRTH_PIVOT"],
+                    }
+                )
+        self.log_manager.log_execution(
+            exec_id, "east_slavic_patronymic", logged_changes
+        )

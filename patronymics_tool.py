@@ -127,6 +127,17 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         given_config_grid.attach(Gtk.Label(label=_("Source Name:")), 0, 0, 1, 1)
         self.given_source_entry = Gtk.Entry()
         self.given_source_entry.set_placeholder_text(_("e.g. Иоанн"))
+
+        # Set up autocompletion with given names from database
+        completion = Gtk.EntryCompletion()
+        given_names_list = Gtk.ListStore(str)
+        for name in sorted(self.presenter.inference_service.given_names_set):
+            given_names_list.append([name])
+        completion.set_model(given_names_list)
+        completion.set_text_column(0)
+        completion.set_minimum_key_length(1)
+        self.given_source_entry.set_completion(completion)
+
         given_config_grid.attach(self.given_source_entry, 1, 0, 1, 1)
 
         given_config_grid.attach(Gtk.Label(label=_("Target Name:")), 0, 1, 1, 1)
