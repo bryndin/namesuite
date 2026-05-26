@@ -14,9 +14,8 @@ from engine.rule import BaseRule, RuleContext, ProposedChange
 from engine.constants import (
     SEVERITY_WARNING,
     LOCALE_EAST_SLAVIC,
-    LOCALE_RU,
-    REFORM_YEAR_1918,
 )
+from engine.utils import is_pre_reform
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff
 
@@ -49,12 +48,7 @@ class WarnMorphologicalTypo(BaseRule):
             # Re-generate from father's name if present for maximum accuracy
             if ctx.father_given_name:
                 is_male = ctx.gramps_gender == Person.MALE
-                pre_reform = (
-                    ctx.locale == LOCALE_RU
-                    and ctx.reference_year is not None
-                    and ctx.reference_year < REFORM_YEAR_1918
-                    and ctx.use_pre_reform
-                )
+                pre_reform = is_pre_reform(ctx)
                 gen_expected = generate_east_slavic_patronymic(
                     ctx.father_given_name,
                     is_male=is_male,
@@ -74,11 +68,7 @@ class WarnMorphologicalTypo(BaseRule):
         # 2. Check if a duplicate letter differs only from morphological standard
         if ctx.father_given_name:
             is_male = ctx.gramps_gender == Person.MALE
-            pre_reform = (
-                ctx.locale == LOCALE_RU
-                and (ctx.reference_year or 0) < REFORM_YEAR_1918
-                and ctx.use_pre_reform
-            )
+            pre_reform = is_pre_reform(ctx)
             expected = generate_east_slavic_patronymic(
                 ctx.father_given_name,
                 is_male=is_male,

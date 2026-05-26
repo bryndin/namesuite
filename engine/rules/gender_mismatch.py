@@ -13,9 +13,8 @@ from engine.rule import BaseRule, RuleContext, ProposedChange
 from engine.constants import (
     SEVERITY_ERROR,
     LOCALE_EAST_SLAVIC,
-    LOCALE_RU,
-    REFORM_YEAR_1918,
 )
+from engine.utils import is_pre_reform
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff, swap_patronymic_gender
 
@@ -48,12 +47,7 @@ class ErrGenderMismatch(BaseRule):
 
         # 1. Evaluate with father's name if present
         if ctx.father_given_name:
-            pre_reform = (
-                ctx.locale == LOCALE_RU
-                and ctx.reference_year is not None
-                and ctx.reference_year < REFORM_YEAR_1918
-                and ctx.use_pre_reform
-            )
+            pre_reform = is_pre_reform(ctx)
             expected = generate_east_slavic_patronymic(
                 ctx.father_given_name,
                 is_male=is_male,
@@ -79,12 +73,7 @@ class ErrGenderMismatch(BaseRule):
 
         if is_male:
             if ctx.current_patronymic.endswith(female_endings):
-                pre_reform = (
-                    ctx.locale == LOCALE_RU
-                    and ctx.reference_year is not None
-                    and ctx.reference_year < REFORM_YEAR_1918
-                    and ctx.use_pre_reform
-                )
+                pre_reform = is_pre_reform(ctx)
                 suggested = swap_patronymic_gender(
                     ctx.current_patronymic, to_male=True, pre_reform=pre_reform
                 )

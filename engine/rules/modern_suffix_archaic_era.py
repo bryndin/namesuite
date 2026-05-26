@@ -16,6 +16,7 @@ from engine.constants import (
     LOCALE_RU,
     REFORM_YEAR_1918,
 )
+from engine.utils import is_pre_reform
 from engine.morphology import generate_east_slavic_patronymic
 from engine.rule_utils import generate_pango_diff, modern_to_archaic
 
@@ -48,7 +49,7 @@ class WarnModernSuffixArchaicEra(BaseRule):
         if any(ctx.current_patronymic.endswith(s) for s in modern_suffixes):
             is_male = ctx.gramps_gender == Person.MALE
             # Adjust condition to respect the user toggle
-            pre_reform = ctx.locale == LOCALE_RU and ctx.use_pre_reform
+            pre_reform = is_pre_reform(ctx)
 
             if ctx.father_given_name:
                 suggested = generate_east_slavic_patronymic(
