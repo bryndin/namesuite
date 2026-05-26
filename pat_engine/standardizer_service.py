@@ -13,8 +13,8 @@ from gramps.gen.db import DbTxn
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 
-from engine.entities import RenameProposal
-from engine.logging import InferenceLogManager
+from pat_engine.entities import RenameProposal
+from pat_engine.logging import InferenceLogManager
 
 _ = glocale.translation.gettext
 

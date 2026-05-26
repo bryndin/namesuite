@@ -9,9 +9,9 @@ Detects and corrects mixed Cyrillic and Latin homoglyphs in patronymic strings.
 import re
 from typing import Optional, Set, Tuple
 
-from engine.rule import BaseRule, RuleContext, ProposedChange
-from engine.constants import SEVERITY_ERROR, LOCALE_EAST_SLAVIC
-from engine.rule_utils import generate_pango_diff
+from pat_engine.rule import BaseRule, RuleContext, ProposedChange
+from pat_engine.constants import SEVERITY_ERROR, LOCALE_EAST_SLAVIC
+from pat_engine.rule_utils import generate_pango_diff
 
 # Cyrillic and Latin Unicode blocks to detect homoglyph mixing
 CYRILLIC_PATTERN = re.compile(r"[\u0400-\u04FF]")

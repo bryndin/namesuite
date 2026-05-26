@@ -17,7 +17,7 @@ from tests.compat_mocks import mock_gramps
 mock_gramps()
 
 # Import after mock setup
-from engine.inference_service import PatronymicInferenceService
+from pat_engine.inference_service import PatronymicInferenceService
 
 
 class MockEvent:

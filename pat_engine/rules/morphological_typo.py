@@ -10,14 +10,14 @@ import re
 from typing import Optional, Set, Tuple
 
 from gramps.gen.lib import Person
-from engine.rule import BaseRule, RuleContext, ProposedChange
-from engine.constants import (
+from pat_engine.rule import BaseRule, RuleContext, ProposedChange
+from pat_engine.constants import (
     SEVERITY_WARNING,
     LOCALE_EAST_SLAVIC,
 )
-from engine.utils import is_pre_reform
-from engine.morphology import generate_east_slavic_patronymic
-from engine.rule_utils import generate_pango_diff
+from pat_engine.utils import is_pre_reform
+from pat_engine.morphology import generate_east_slavic_patronymic
+from pat_engine.rule_utils import generate_pango_diff
 
 
 class WarnMorphologicalTypo(BaseRule):

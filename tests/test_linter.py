@@ -19,16 +19,16 @@ from tests.compat_mocks import mock_gramps, Person
 # Initialize mocks
 mock_gramps()
 
-from engine.linter import (
+from pat_engine.linter import (
     PlaceCache,
     RuleEngine,
     BaseRule,
     ProposedChange,
 )
-from engine.rule import RuleContext
-from engine.constants import LOCALE_RU, LOCALE_UK, LOCALE_UNIVERSAL
-from engine.rule_utils import generate_pango_diff, swap_patronymic_gender
-from engine.rules import (
+from pat_engine.rule import RuleContext
+from pat_engine.constants import LOCALE_RU, LOCALE_UK, LOCALE_UNIVERSAL
+from pat_engine.rule_utils import generate_pango_diff, swap_patronymic_gender
+from pat_engine.rules import (
     ErrGenderMismatch,
     ErrLineageMismatch,
     WarnModernSuffixArchaicEra,

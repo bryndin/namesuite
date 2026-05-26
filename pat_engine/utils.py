@@ -5,7 +5,7 @@ engine/utils.py
 Utility functions for the linter validation engine.
 """
 import re
-from engine.constants import LOCALE_RU, REFORM_YEAR_1918
+from pat_engine.constants import LOCALE_RU, REFORM_YEAR_1918
 from gramps.gen.lib import NameOriginType, Surname
 
 def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:

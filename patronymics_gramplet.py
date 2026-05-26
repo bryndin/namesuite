@@ -16,9 +16,9 @@ from gramps.gen.lib import Person
 from gramps.gui.dialog import ErrorDialog
 
 # Local modules
-from engine.inference_service import PatronymicInferenceService
-from engine.entities import InferenceCandidate
-from engine.utils import has_patronymic_surname
+from pat_engine.inference_service import PatronymicInferenceService
+from pat_engine.entities import InferenceCandidate
+from pat_engine.utils import has_patronymic_surname
 from utils import PatronymicMixin
 
 _ = glocale.translation.gettext
@@ -116,7 +116,7 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
         ref_year, rule_source = self.inference_service.resolve_reference_year(person)
         confidence = self.inference_service.evaluate_confidence(person, primary_name, father_name)
         
-        from engine.morphology import generate_east_slavic_patronymic
+        from pat_engine.morphology import generate_east_slavic_patronymic
         patronymic = generate_east_slavic_patronymic(
             father_name=father_name,
             is_male=(gender_val == Person.MALE),
@@ -151,7 +151,7 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
             return
 
         try:
-            from engine.logging import generate_execution_id
+            from pat_engine.logging import generate_execution_id
             exec_id = generate_execution_id()
             self.inference_service.apply_patronymics_batch(
                 [self.suggested_candidate], exec_id, pre_reform=False

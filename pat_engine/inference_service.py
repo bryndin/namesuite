@@ -12,14 +12,14 @@ from gramps.gen.db import DbTxn
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 
-from engine.entities import InferenceCandidate
-from engine.utils import (
+from pat_engine.entities import InferenceCandidate
+from pat_engine.utils import (
     has_patronymic_surname,
     has_cyrillic,
     update_or_add_patronymic
 )
-from engine.morphology import SLAVIC_SURNAME_PATTERN, generate_east_slavic_patronymic
-from engine.logging import InferenceLogManager
+from pat_engine.morphology import SLAVIC_SURNAME_PATTERN, generate_east_slavic_patronymic
+from pat_engine.logging import InferenceLogManager
 
 _ = glocale.translation.gettext
 

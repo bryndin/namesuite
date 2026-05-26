@@ -18,7 +18,7 @@ mock_gramps()
 
 # Now safely import components
 from utils import PatronymicMixin
-from engine.inference_service import PatronymicInferenceService
+from pat_engine.inference_service import PatronymicInferenceService
 
 # -------------------------------------------------------------------------
 # Test Helper Class

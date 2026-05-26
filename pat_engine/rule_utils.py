@@ -131,7 +131,7 @@ def archaic_to_modern(patronymic: str, is_male: bool) -> str:
     if not patronymic:
         return patronymic
 
-    from engine.morphology import normalize_to_modern
+    from pat_engine.morphology import normalize_to_modern
 
     # Strip terminal hard sign ъ
     pat = normalize_to_modern(patronymic)

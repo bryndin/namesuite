@@ -18,7 +18,7 @@ from gramps.gui.editors import EditPerson
 from gramps.gen.errors import WindowActiveError
 
 # Custom modular imports
-from ui.presenters import EastSlavicToolsPresenter
+from presenters import EastSlavicToolsPresenter
 from utils import (
     PatronymicMixin,
 )

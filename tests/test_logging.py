@@ -6,7 +6,7 @@ tests/test_logging.py
 import os
 import unittest
 import tempfile
-from engine.logging import InferenceLogManager, generate_execution_id
+from pat_engine.logging import InferenceLogManager, generate_execution_id
 
 
 class TestInferenceLogging(unittest.TestCase):
