@@ -52,7 +52,7 @@ class EastSlavicToolsPresenter:
 
         def init_idle():
             try:
-                for _ in range(200):  # Larger chunks for simple metadata
+                for i in range(200):  # Larger chunks for simple metadata
                     if idx[0] >= total:
                         if years:
                             self.inference_service.db_median_year = sorted(years)[
@@ -95,7 +95,7 @@ class EastSlavicToolsPresenter:
 
         def scan_idle():
             try:
-                for _ in range(20):  # Smaller chunks as inference is heavy
+                for i in range(20):  # Smaller chunks as inference is heavy
                     candidate = next(candidate_gen)
                     self.scanned_candidates.append(candidate)
 
@@ -155,7 +155,7 @@ class EastSlavicToolsPresenter:
 
         def audit_idle():
             try:
-                for _ in range(50):
+                for i in range(50):
                     issue = next(audit_gen)
                     self.audit_issues.append(issue)
 
