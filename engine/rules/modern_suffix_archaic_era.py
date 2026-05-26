@@ -13,7 +13,6 @@ from engine.rule import BaseRule, RuleContext, ProposedChange
 from engine.constants import (
     SEVERITY_WARNING,
     LOCALE_EAST_SLAVIC,
-    LOCALE_RU,
     REFORM_YEAR_1918,
 )
 from engine.utils import is_pre_reform

@@ -11,7 +11,7 @@ import unittest
 from unittest.mock import MagicMock
 
 # Import common test mocks
-from tests.compat_mocks import mock_gramps, Person, NameOriginType, Surname
+from tests.compat_mocks import mock_gramps, NameOriginType, Surname
 
 # Initialize mocks
 mock_gramps()
