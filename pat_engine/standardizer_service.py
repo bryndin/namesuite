@@ -8,6 +8,7 @@ Headless service for given name standardization logic.
 import os
 import re
 from typing import List
+
 from gramps.gen.lib import Name, NameType
 from gramps.gen.db import DbTxn
 from gramps.gen.display.name import displayer as name_displayer
@@ -17,6 +18,7 @@ from pat_engine.entities import RenameProposal
 from pat_engine.logging import InferenceLogManager
 
 _ = glocale.translation.gettext
+
 
 class GivenNameStandardizerService:
     """Headless service for given name scanning and renaming."""
@@ -28,7 +30,9 @@ class GivenNameStandardizerService:
         self.db_id = os.path.basename(os.path.normpath(db_path))
         self.log_manager = InferenceLogManager(self.db_id)
 
-    def scan_given_names(self, source_input: str, target_input: str, match_type: int) -> List[RenameProposal]:
+    def scan_given_names(
+        self, source_input: str, target_input: str, match_type: int
+    ) -> List[RenameProposal]:
         """
         Scans the database for given names matching the source_input.
         match_type: 0 for Exact, 1 for Substring, 2 for Regex.
@@ -76,19 +80,23 @@ class GivenNameStandardizerService:
                     if alt_name and alt_name.get_first_name() == proposed_name:
                         alt_action = "Merge Existing Alt Name"
                         break
-                
-                proposals.append(RenameProposal(
-                    person_handle=handle,
-                    gramps_id=person.gramps_id,
-                    display_name=name_displayer.display_formal(person),
-                    current_name=current_name,
-                    proposed_name=proposed_name,
-                    alt_action=alt_action
-                ))
-        
+
+                proposals.append(
+                    RenameProposal(
+                        person_handle=handle,
+                        gramps_id=person.gramps_id,
+                        display_name=name_displayer.display_formal(person),
+                        current_name=current_name,
+                        proposed_name=proposed_name,
+                        alt_action=alt_action,
+                    )
+                )
+
         return proposals
 
-    def apply_standardizations(self, proposals: List[RenameProposal], exec_id: str, preserve_alt_name: bool):
+    def apply_standardizations(
+        self, proposals: List[RenameProposal], exec_id: str, preserve_alt_name: bool
+    ):
         """Commits standardizations safely inside a transaction."""
         logged_changes = []
         with DbTxn(_("Standardize Given Names"), self.db) as txn:
@@ -96,7 +104,7 @@ class GivenNameStandardizerService:
                 person = self.db.get_person_from_handle(prop.person_handle)
                 if not person:
                     continue
-                
+
                 primary_name = person.get_primary_name()
                 old_first = primary_name.get_first_name()
                 new_first = prop.proposed_name
@@ -105,8 +113,7 @@ class GivenNameStandardizerService:
                 if preserve_alt_name:
                     current_alts = person.get_alternate_names()
                     already_exists = any(
-                        alt.get_first_name() == old_first
-                        for alt in current_alts
+                        alt.get_first_name() == old_first for alt in current_alts
                     )
 
                     if not already_exists:
@@ -121,10 +128,12 @@ class GivenNameStandardizerService:
                 primary_name.set_first_name(new_first)
                 self.db.commit_person(person, txn)
 
-                logged_changes.append({
-                    "handle": prop.person_handle,
-                    "original_value": old_first,
-                    "inferred_value": new_first,
-                })
-        
+                logged_changes.append(
+                    {
+                        "handle": prop.person_handle,
+                        "original_value": old_first,
+                        "inferred_value": new_first,
+                    }
+                )
+
         self.log_manager.log_execution(exec_id, "Standardize", logged_changes)

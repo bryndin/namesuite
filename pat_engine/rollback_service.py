@@ -6,11 +6,14 @@ Headless service for database transaction reversals and history tracking.
 """
 
 import json
+
 from gramps.gen.db import DbTxn
 from gramps.gen.const import GRAMPS_LOCALE as glocale
+
 from pat_engine.utils import get_patronymic_value, is_patronymic_origin
 
 _ = glocale.translation.gettext
+
 
 class RollbackService:
     """Headless service for reverting past execution runs."""
@@ -39,7 +42,9 @@ class RollbackService:
                 break
 
         if not execution:
-            raise ValueError(f"Execution ID {target_execution_id} not found in transaction logs.")
+            raise ValueError(
+                f"Execution ID {target_execution_id} not found in transaction logs."
+            )
 
         report = {"reverted": [], "skipped_modified": []}
 
@@ -70,13 +75,20 @@ class RollbackService:
                     for alt in current_alts:
                         if alt.get_first_name() == change["original_value"]:
                             # Heuristic check: do surnames match the primary name?
-                            alt_surname_strs = sorted([s.get_surname() for s in alt.get_surname_list()])
-                            primary_surname_strs = sorted([s.get_surname() for s in primary_name.get_surname_list()])
+                            alt_surname_strs = sorted(
+                                [s.get_surname() for s in alt.get_surname_list()]
+                            )
+                            primary_surname_strs = sorted(
+                                [
+                                    s.get_surname()
+                                    for s in primary_name.get_surname_list()
+                                ]
+                            )
                             if alt_surname_strs == primary_surname_strs:
                                 # This is our backup - remove it
                                 continue
                         reverted_alts.append(alt)
-                    
+
                     person.set_alternate_names(reverted_alts)
                     self.db.commit_person(person, txn)
                     report["reverted"].append(handle)
@@ -88,13 +100,16 @@ class RollbackService:
                         surnames = primary_name.get_surname_list()
                         new_surnames = []
                         for s in surnames:
-                            if is_patronymic_origin(s.get_origintype()) and s.get_surname() == change["inferred_value"]:
+                            if (
+                                is_patronymic_origin(s.get_origintype())
+                                and s.get_surname() == change["inferred_value"]
+                            ):
                                 if change["original_value"]:
                                     s.set_surname(change["original_value"])
                                     new_surnames.append(s)
                             else:
                                 new_surnames.append(s)
-                        
+
                         primary_name.set_surname_list(new_surnames)
                         self.db.commit_person(person, txn)
                         report["reverted"].append(handle)
@@ -103,7 +118,8 @@ class RollbackService:
 
         # Update JSON log file only after DB transaction success
         updated_executions = [
-            run for run in log_data["executions"]
+            run
+            for run in log_data["executions"]
             if run.get("execution_id") != target_execution_id
         ]
         log_data["executions"] = updated_executions

@@ -4,9 +4,13 @@ engine/utils.py
 
 Utility functions for the linter validation engine.
 """
+
 import re
-from pat_engine.constants import LOCALE_RU, REFORM_YEAR_1918
+
 from gramps.gen.lib import NameOriginType, Surname
+
+from pat_engine.constants import LOCALE_RU, REFORM_YEAR_1918
+
 
 def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:
     """
@@ -33,6 +37,7 @@ def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:
 
     return orig_pat
 
+
 def is_pre_reform(ctx) -> bool:
     """Check if the context satisfies the pre-reform conditions."""
     return (
@@ -41,6 +46,7 @@ def is_pre_reform(ctx) -> bool:
         and ctx.reference_year < REFORM_YEAR_1918
         and ctx.use_pre_reform
     )
+
 
 def is_patronymic_origin(orig) -> bool:
     """
@@ -55,6 +61,7 @@ def is_patronymic_origin(orig) -> bool:
         or str(orig).strip() == "Patronymic"
     )
 
+
 def has_patronymic_surname(name_obj) -> bool:
     """Returns True if the Name object contains any Surname marked as a PATRONYMIC."""
     for surname in name_obj.get_surname_list():
@@ -62,12 +69,14 @@ def has_patronymic_surname(name_obj) -> bool:
             return True
     return False
 
+
 def get_patronymic_value(name_obj) -> str:
     """Finds and returns the string value of the patronymic Surname object."""
     for surname in name_obj.get_surname_list():
         if is_patronymic_origin(surname.get_origintype()):
             return surname.get_surname()
     return ""
+
 
 def has_cyrillic(text):
     """Returns True if the text contains Cyrillic characters."""

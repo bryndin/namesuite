@@ -83,7 +83,9 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
         gender_val = person.get_gender()
         if gender_val not in (Person.MALE, Person.FEMALE):
             self.label.set_text(
-                _("Patronymic inference can't be inferred for non-binary or unknown genders.")
+                _(
+                    "Patronymic inference can't be inferred for non-binary or unknown genders."
+                )
             )
             self.apply_btn.set_sensitive(False)
             return
@@ -111,12 +113,15 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
             return
 
         father_name = father.get_primary_name().get_first_name()
-        
+
         # Evaluate using service
         ref_year, rule_source = self.inference_service.resolve_reference_year(person)
-        confidence = self.inference_service.evaluate_confidence(person, primary_name, father_name)
-        
+        confidence = self.inference_service.evaluate_confidence(
+            person, primary_name, father_name
+        )
+
         from pat_engine.morphology import generate_east_slavic_patronymic
+
         patronymic = generate_east_slavic_patronymic(
             father_name=father_name,
             is_male=(gender_val == Person.MALE),
@@ -133,7 +138,7 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
                 reference_year=ref_year,
                 inferred_patronymic=patronymic,
                 confidence=confidence,
-                rule_source=rule_source
+                rule_source=rule_source,
             )
             self.label.set_text(
                 _(
@@ -152,6 +157,7 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
 
         try:
             from pat_engine.logging import generate_execution_id
+
             exec_id = generate_execution_id()
             self.inference_service.apply_patronymics_batch(
                 [self.suggested_candidate], exec_id, pre_reform=False

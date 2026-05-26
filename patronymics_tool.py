@@ -450,9 +450,7 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect("toggled", self.on_list_row_toggled)
         self.tree_view.append_column(
-            Gtk.TreeViewColumn(
-                _("Use"), renderer_toggle, active=self.LIST_COL_CHECKBOX
-            )
+            Gtk.TreeViewColumn(_("Use"), renderer_toggle, active=self.LIST_COL_CHECKBOX)
         )
         self.tree_view.append_column(
             Gtk.TreeViewColumn(
@@ -486,7 +484,9 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         )
         self.tree_view.append_column(
             Gtk.TreeViewColumn(
-                _("Ref Year Src"), Gtk.CellRendererText(), text=self.LIST_COL_RULE_SOURCE
+                _("Ref Year Src"),
+                Gtk.CellRendererText(),
+                text=self.LIST_COL_RULE_SOURCE,
             )
         )
 

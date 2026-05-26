@@ -12,6 +12,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class InferenceCandidate:
     """Holds demographic and generational context for candidates missing patronymics."""
+
     person_handle: str
     gramps_id: str
     display_name: str
@@ -25,6 +26,7 @@ class InferenceCandidate:
 @dataclass(frozen=True)
 class AuditIssue:
     """Captures raw properties of a linting violation."""
+
     person_handle: str
     gramps_id: str
     display_name: str
@@ -38,6 +40,7 @@ class AuditIssue:
 @dataclass(frozen=True)
 class RenameProposal:
     """Models a proposed change for given name standardization."""
+
     person_handle: str
     gramps_id: str
     display_name: str
