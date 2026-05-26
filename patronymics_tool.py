@@ -147,33 +147,49 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         self.linter_engine = RuleEngine()
         self.enabled_rules = {rule.rule_id: True for rule in self.linter_engine.rules}
 
-        # Calculate database-wide median year for fallback
-        self.db_median_year = self.calculate_db_median_year()
+        # Extract various data from a DB scan
+        self.given_names_set = set()
+        self.db_median_year = 1920  # Safe global default if DB is completely dateless
+        self.extract_db_data()
 
         # Build GTK Window UI
         self.build_window()
 
-    def calculate_db_median_year(self):
+    def extract_db_data(self):
         """
-        Scans the database once, extracts years from all valid events,
-        and returns the median year.
+        Scans the database once, extracts all given names from persons,
+        and builds a set for autocompletion. Also calculates the median year
+        from all valid events for fallback reference year resolution.
         """
+        given_names = set()
         years = []
-        # Use Gramps DB API to scan events
-        for handle in self.db.get_event_handles():
-            event = self.db.get_event_from_handle(handle)
-            if event and event.get_date_object():
-                date_obj = event.get_date_object()
-                if date_obj.get_year():
-                    year = date_obj.get_year()
-                    if year > 0:
-                        years.append(year)
 
-        if not years:
-            return 1920  # Safe global default if DB is completely dateless
+        # Use Gramps DB API to scan persons for given names and their events
+        for handle in self.db.get_person_handles():
+            person = self.db.get_person_from_handle(handle)
+            if person:
+                # Extract given name
+                primary_name = person.get_primary_name()
+                if primary_name:
+                    given_name = primary_name.get_first_name()
+                    if given_name:
+                        given_names.add(given_name)
 
-        years.sort()
-        return years[len(years) // 2]
+                # Extract years from person's event references
+                for event_ref in person.get_event_ref_list():
+                    event = self.db.get_event_from_handle(event_ref.ref)
+                    if event and event.get_date_object():
+                        date_obj = event.get_date_object()
+                        if date_obj.get_year():
+                            year = date_obj.get_year()
+                            if year > 0:
+                                years.append(year)
+
+        self.all_given_names = given_names
+
+        if years:
+            years.sort()
+            self.db_median_year = years[len(years) // 2]
 
     def build_window(self):
         self.window = Gtk.Window(title=_("Infer East Slavic Patronymics"))
@@ -226,6 +242,16 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
 
         self.given_source_entry = Gtk.Entry()
         controls_hbox.pack_start(self.given_source_entry, True, True, 0)
+
+        # Add autocomplete for source name using all given names in DB
+        completion = Gtk.EntryCompletion()
+        liststore = Gtk.ListStore(str)
+        for name in sorted(self.all_given_names):
+            liststore.append([name])
+        completion.set_model(liststore)
+        completion.set_text_column(0)
+        completion.set_minimum_key_length(1)
+        self.given_source_entry.set_completion(completion)
 
         # Target Name Input
         target_label = Gtk.Label(label=_("Target Name:"))
