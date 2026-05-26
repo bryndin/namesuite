@@ -27,6 +27,7 @@ from gramps.gen.errors import WindowActiveError
 from engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PATTERN
 from engine.logging import InferenceLogManager, generate_execution_id
 from engine.linter import RuleEngine, RuleContext, PlaceCache
+from engine.rule_utils import pango_escape
 from engine.constants import LOCALE_RU
 from utils import (
     PatronymicMixin,
@@ -835,9 +836,6 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
 
         self.given_store.clear()
 
-        def escape_pango(text):
-            return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
         for handle in self.db.get_person_handles():
             person = self.db.get_person_from_handle(handle)
             if not person:
@@ -859,15 +857,15 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
                 if current_name == source_input:
                     matched = True
                     proposed_raw = target_input
-                    proposed_markup = f'<span weight="bold" foreground="blue">{escape_pango(target_input)}</span>'
+                    proposed_markup = f'<span weight="bold" foreground="blue">{pango_escape(target_input)}</span>'
 
             elif match_type == 1:  # Substring
                 if source_input in current_name:
                     matched = True
                     proposed_raw = current_name.replace(source_input, target_input)
-                    proposed_markup = escape_pango(current_name).replace(
-                        escape_pango(source_input),
-                        f'<span weight="bold" foreground="blue">{escape_pango(target_input)}</span>',
+                    proposed_markup = pango_escape(current_name).replace(
+                        pango_escape(source_input),
+                        f'<span weight="bold" foreground="blue">{pango_escape(target_input)}</span>',
                     )
 
             elif match_type == 2:  # Regular Expression
@@ -880,13 +878,13 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
                     parts = []
                     for m in pattern.finditer(current_name):
                         start, end = m.span()
-                        parts.append(escape_pango(current_name[last_idx:start]))
+                        parts.append(pango_escape(current_name[last_idx:start]))
                         replaced = m.expand(target_input)
                         parts.append(
-                            f'<span weight="bold" foreground="blue">{escape_pango(replaced)}</span>'
+                            f'<span weight="bold" foreground="blue">{pango_escape(replaced)}</span>'
                         )
                         last_idx = end
-                    parts.append(escape_pango(current_name[last_idx:]))
+                    parts.append(pango_escape(current_name[last_idx:]))
                     proposed_markup = "".join(parts)
 
             if matched and proposed_raw != current_name:
