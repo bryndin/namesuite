@@ -1149,50 +1149,45 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         exec_id = generate_execution_id()
         logged_changes = []
 
-        txn = DbTxn(_("Standardize Given Names"), self.db)
-
         try:
-            for item in changes_to_apply:
-                person = self.db.get_person_from_handle(item["handle"])
-                if person:
-                    primary_name = person.get_primary_name()
-                    old_first = primary_name.get_first_name()
-                    new_first = item["proposed_raw"]
+            with DbTxn(_("Standardize Given Names"), self.db) as txn:
+                for item in changes_to_apply:
+                    person = self.db.get_person_from_handle(item["handle"])
+                    if person:
+                        primary_name = person.get_primary_name()
+                        old_first = primary_name.get_first_name()
+                        new_first = item["proposed_raw"]
 
-                    # 1. Safe Preservation of Original Name
-                    if self.preserve_alt_check.get_active():
-                        current_alts = person.get_alternate_names()
+                        # 1. Safe Preservation of Original Name
+                        if self.preserve_alt_check.get_active():
+                            current_alts = person.get_alternate_names()
 
-                        already_exists = any(
-                            alt.get_first_name() == old_first for alt in current_alts
+                            already_exists = any(
+                                alt.get_first_name() == old_first
+                                for alt in current_alts
+                            )
+
+                            if not already_exists:
+                                preserved_alt = Name()
+                                preserved_alt.unserialize(primary_name.serialize())
+                                preserved_alt.get_type().set(NameType.AKA)
+
+                                current_alts.append(preserved_alt)
+                                person.set_alternate_names(current_alts)
+
+                        # 2. Safely update the Primary Name IN PLACE
+                        primary_name.set_first_name(new_first)
+
+                        self.db.commit_person(person, txn)
+
+                        logged_changes.append(
+                            {
+                                "handle": item["handle"],
+                                "original_value": old_first,
+                                "inferred_value": new_first,
+                            }
                         )
-
-                        if not already_exists:
-                            preserved_alt = Name()
-                            preserved_alt.unserialize(primary_name.serialize())
-                            preserved_alt.get_type().set(NameType.AKA)
-
-                            current_alts.append(preserved_alt)
-                            person.set_alternate_names(current_alts)
-
-                    # 2. Safely update the Primary Name IN PLACE
-                    primary_name.set_first_name(new_first)
-
-                    self.db.commit_person(person, txn)
-
-                    logged_changes.append(
-                        {
-                            "handle": item["handle"],
-                            "original_value": old_first,
-                            "inferred_value": new_first,
-                        }
-                    )
-
-            # Explicitly commit the transaction
-            self.db.transaction_commit(txn)
-
         except Exception as e:
-            self.db.transaction_abort(txn)
             ErrorDialog(_("Transaction Failed"), str(e), self.window)
             return
 
@@ -1236,30 +1231,34 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         exec_id = generate_execution_id()
         logged_changes = []
 
-        with DbTxn(_("Apply Linter Corrections"), self.db) as txn:
-            for item in changes_to_apply:
-                person = self.db.get_person_from_handle(item["handle"])
-                if person:
-                    primary_name = person.get_primary_name()
+        try:
+            with DbTxn(_("Apply Linter Corrections"), self.db) as txn:
+                for item in changes_to_apply:
+                    person = self.db.get_person_from_handle(item["handle"])
+                    if person:
+                        primary_name = person.get_primary_name()
 
-                    # Update existing Surname or append new one
-                    orig_pat = update_or_add_patronymic(
-                        primary_name, item["suggested_string"]
-                    )
-                    self.db.commit_person(person, txn)
+                        # Update existing Surname or append new one
+                        orig_pat = update_or_add_patronymic(
+                            primary_name, item["suggested_string"]
+                        )
+                        self.db.commit_person(person, txn)
 
-                    logged_changes.append(
-                        {
-                            "person_handle": item["handle"],
-                            "original_value": orig_pat,
-                            "inferred_value": item["suggested_string"],
-                            "father_handle": self.get_father_handle(person),
-                            "reference_year": item["reference_year"],
-                            "pre_reform": item["pre_reform"],
-                            "confidence_score": 1.0,  # Complete linter certainty
-                            "applied_heuristics": [item["rule_id"]],
-                        }
-                    )
+                        logged_changes.append(
+                            {
+                                "person_handle": item["handle"],
+                                "original_value": orig_pat,
+                                "inferred_value": item["suggested_string"],
+                                "father_handle": self.get_father_handle(person),
+                                "reference_year": item["reference_year"],
+                                "pre_reform": item["pre_reform"],
+                                "confidence_score": 1.0,  # Complete linter certainty
+                                "applied_heuristics": [item["rule_id"]],
+                            }
+                        )
+        except Exception as e:
+            ErrorDialog(_("Transaction Failed"), str(e), self.window)
+            return
 
         # Append to localized reversibility log
         self.log_manager.log_execution(
@@ -1402,38 +1401,42 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         exec_id = generate_execution_id()
         logged_changes = []
 
-        with DbTxn(_("Apply Patronymics"), self.db) as txn:
-            for item in changes_to_apply:
-                person = self.db.get_person_from_handle(item["handle"])
-                if person:
-                    primary_name = person.get_primary_name()
-                    orig_pat = get_patronymic_value(primary_name)
+        try:
+            with DbTxn(_("Apply Patronymics"), self.db) as txn:
+                for item in changes_to_apply:
+                    person = self.db.get_person_from_handle(item["handle"])
+                    if person:
+                        primary_name = person.get_primary_name()
+                        orig_pat = get_patronymic_value(primary_name)
 
-                    # Create standard Surname object to append to list
-                    surn_obj = Surname()
-                    surn_obj.set_surname(item["patronymic"])
-                    surn_obj.set_origintype(NameOriginType.PATRONYMIC)
-                    surn_obj.set_primary(False)
+                        # Create standard Surname object to append to list
+                        surn_obj = Surname()
+                        surn_obj.set_surname(item["patronymic"])
+                        surn_obj.set_origintype(NameOriginType.PATRONYMIC)
+                        surn_obj.set_primary(False)
 
-                    primary_name.add_surname(surn_obj)
+                        primary_name.add_surname(surn_obj)
 
-                    self.db.commit_person(person, txn)
+                        self.db.commit_person(person, txn)
 
-                    logged_changes.append(
-                        {
-                            "person_handle": item["handle"],
-                            "original_value": orig_pat,
-                            "inferred_value": item["patronymic"],
-                            "father_handle": self.get_father_handle(person),
-                            "reference_year": item["ref_year"],
-                            "pre_reform": item["pre_reform"],
-                            "confidence_score": 0.94,
-                            "is_temporal_fallback": (
-                                item["ref_year"] == self.db_median_year
-                            ),
-                            "applied_heuristics": ["DEATH_OR_BIRTH_PIVOT"],
-                        }
-                    )
+                        logged_changes.append(
+                            {
+                                "person_handle": item["handle"],
+                                "original_value": orig_pat,
+                                "inferred_value": item["patronymic"],
+                                "father_handle": self.get_father_handle(person),
+                                "reference_year": item["ref_year"],
+                                "pre_reform": item["pre_reform"],
+                                "confidence_score": 0.94,
+                                "is_temporal_fallback": (
+                                    item["ref_year"] == self.db_median_year
+                                ),
+                                "applied_heuristics": ["DEATH_OR_BIRTH_PIVOT"],
+                            }
+                        )
+        except Exception as e:
+            ErrorDialog(_("Transaction Failed"), str(e), self.window)
+            return
 
         self.log_manager.log_execution(
             exec_id, "east_slavic_patronymic", logged_changes

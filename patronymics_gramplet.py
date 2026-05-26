@@ -14,6 +14,7 @@ from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gen.plug import Gramplet
 from gramps.gen.db import DbTxn
 from gramps.gen.lib import Surname, NameOriginType, Person
+from gramps.gui.dialog import ErrorDialog
 
 # Local modules
 from engine.morphology import generate_east_slavic_patronymic
@@ -138,21 +139,25 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
         if not self.current_handle or not self.suggested_value:
             return
 
-        # Open database writing transaction context
-        with DbTxn(_("Apply Single Patronymic"), self.dbstate.db) as txn:
-            person = self.dbstate.db.get_person_from_handle(self.current_handle)
-            if person:
-                primary_name = person.get_primary_name()
+        try:
+            # Open database writing transaction context
+            with DbTxn(_("Apply Single Patronymic"), self.dbstate.db) as txn:
+                person = self.dbstate.db.get_person_from_handle(self.current_handle)
+                if person:
+                    primary_name = person.get_primary_name()
 
-                # Append standard Surname object to list
-                surn_obj = Surname()
-                surn_obj.set_surname(self.suggested_value)
-                surn_obj.set_origintype(NameOriginType.PATRONYMIC)
-                surn_obj.set_primary(False)
+                    # Append standard Surname object to list
+                    surn_obj = Surname()
+                    surn_obj.set_surname(self.suggested_value)
+                    surn_obj.set_origintype(NameOriginType.PATRONYMIC)
+                    surn_obj.set_primary(False)
 
-                primary_name.add_surname(surn_obj)
+                    primary_name.add_surname(surn_obj)
 
-                self.dbstate.db.commit_person(person, txn)
+                    self.dbstate.db.commit_person(person, txn)
+        except Exception as e:
+            ErrorDialog(_("Transaction Failed"), str(e), self.gui.get_window())
+            return
 
         # Clean GUI state
         self.label.set_text(_("Patronymic applied successfully!"))
