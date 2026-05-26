@@ -147,7 +147,7 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         given_config_grid.attach(self.given_scan_btn, 3, 1, 1, 1)
 
         self.preserve_alt_check = Gtk.CheckButton(
-            label=_("Preserve original name as AKA")
+            label=_("Preserve original name as alternative")
         )
         self.preserve_alt_check.set_active(True)
         given_box.pack_start(self.preserve_alt_check, False, False, 0)
