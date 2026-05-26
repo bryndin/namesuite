@@ -113,7 +113,7 @@ class EastSlavicToolsPresenter:
                     row[self.view.LIST_COL_HANDLE] = candidate.person_handle
                     self.view.list_store.append(row)
             except StopIteration:
-                self.view.update_action_buttons()
+                self.view.on_scan_complete(len(self.scanned_candidates))
                 return False
             return True
 

@@ -363,6 +363,13 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         else:
             OkDialog(_("No Results"), _("No matching names found."), self.window)
 
+    def on_scan_complete(self, total_found):
+        """Presenter callback."""
+        self.scan_btn.set_sensitive(True)
+        self.update_action_buttons()
+        if total_found == 0:
+            OkDialog(_("No Results"), _("No patronymics found."), self.window)
+
     def on_scan_clicked(self, widget):
         self.scan_btn.set_sensitive(False)
         self.apply_btn.set_sensitive(False)
