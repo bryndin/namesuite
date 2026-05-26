@@ -51,6 +51,8 @@ class EastSlavicToolsPresenter:
         idx = [0]
 
         def init_idle():
+            if not self.db.is_open():
+                return False
             try:
                 for i in range(200):  # Larger chunks for simple metadata
                     if idx[0] >= total:
@@ -94,6 +96,8 @@ class EastSlavicToolsPresenter:
         )
 
         def scan_idle():
+            if not self.db.is_open():
+                return False
             try:
                 for i in range(20):  # Smaller chunks as inference is heavy
                     candidate = next(candidate_gen)
@@ -154,6 +158,8 @@ class EastSlavicToolsPresenter:
         idx = [0]
 
         def audit_idle():
+            if not self.db.is_open():
+                return False
             try:
                 for i in range(50):
                     issue = next(audit_gen)
