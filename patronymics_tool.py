@@ -453,31 +453,45 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         self.tree_view.append_column(
             Gtk.TreeViewColumn(_("Use"), renderer_toggle, active=self.LIST_COL_CHECKBOX)
         )
-        col = Gtk.TreeViewColumn(_("ID"), Gtk.CellRendererText(), text=self.LIST_COL_GRAMPS_ID)
+        col = Gtk.TreeViewColumn(
+            _("ID"), Gtk.CellRendererText(), text=self.LIST_COL_GRAMPS_ID
+        )
         col.set_sort_column_id(self.LIST_COL_GRAMPS_ID)
         self.tree_view.append_column(col)
 
-        individual_col = Gtk.TreeViewColumn(_("Individual"), Gtk.CellRendererText(), text=self.LIST_COL_DISPLAY_NAME)
+        individual_col = Gtk.TreeViewColumn(
+            _("Individual"), Gtk.CellRendererText(), text=self.LIST_COL_DISPLAY_NAME
+        )
         individual_col.set_expand(True)
         individual_col.set_sort_column_id(self.LIST_COL_DISPLAY_NAME)
         self.tree_view.append_column(individual_col)
 
-        father_col = Gtk.TreeViewColumn(_("Father"), Gtk.CellRendererText(), text=self.LIST_COL_FATHER_NAME)
+        father_col = Gtk.TreeViewColumn(
+            _("Father"), Gtk.CellRendererText(), text=self.LIST_COL_FATHER_NAME
+        )
         father_col.set_expand(True)
         father_col.set_sort_column_id(self.LIST_COL_FATHER_NAME)
         self.tree_view.append_column(father_col)
 
-        patronymic_col = Gtk.TreeViewColumn(_("Patronymic"), Gtk.CellRendererText(), text=self.LIST_COL_PATRONYMIC)
+        patronymic_col = Gtk.TreeViewColumn(
+            _("Patronymic"), Gtk.CellRendererText(), text=self.LIST_COL_PATRONYMIC
+        )
         patronymic_col.set_expand(True)
         patronymic_col.set_sort_column_id(self.LIST_COL_PATRONYMIC)
         self.tree_view.append_column(patronymic_col)
-        col = Gtk.TreeViewColumn(_("Conf"), Gtk.CellRendererText(), text=self.LIST_COL_CONFIDENCE)
+        col = Gtk.TreeViewColumn(
+            _("Conf"), Gtk.CellRendererText(), text=self.LIST_COL_CONFIDENCE
+        )
         col.set_sort_column_id(self.LIST_COL_CONFIDENCE)
         self.tree_view.append_column(col)
-        col = Gtk.TreeViewColumn(_("Ref Year"), Gtk.CellRendererText(), text=self.LIST_COL_REF_YEAR)
+        col = Gtk.TreeViewColumn(
+            _("Ref Year"), Gtk.CellRendererText(), text=self.LIST_COL_REF_YEAR
+        )
         col.set_sort_column_id(self.LIST_COL_REF_YEAR)
         self.tree_view.append_column(col)
-        col = Gtk.TreeViewColumn(_("Ref Year Src"), Gtk.CellRendererText(), text=self.LIST_COL_RULE_SOURCE)
+        col = Gtk.TreeViewColumn(
+            _("Ref Year Src"), Gtk.CellRendererText(), text=self.LIST_COL_RULE_SOURCE
+        )
         col.set_sort_column_id(self.LIST_COL_RULE_SOURCE)
         self.tree_view.append_column(col)
 
@@ -485,28 +499,40 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect("toggled", self.on_given_row_toggled)
         self.given_tree.append_column(
-            Gtk.TreeViewColumn(_("Use"), renderer_toggle, active=self.GIVEN_COL_CHECKBOX)
+            Gtk.TreeViewColumn(
+                _("Use"), renderer_toggle, active=self.GIVEN_COL_CHECKBOX
+            )
         )
-        col = Gtk.TreeViewColumn(_("ID"), Gtk.CellRendererText(), text=self.GIVEN_COL_GRAMPS_ID)
+        col = Gtk.TreeViewColumn(
+            _("ID"), Gtk.CellRendererText(), text=self.GIVEN_COL_GRAMPS_ID
+        )
         col.set_sort_column_id(self.GIVEN_COL_GRAMPS_ID)
         self.given_tree.append_column(col)
-        
-        individual_col = Gtk.TreeViewColumn(_("Individual"), Gtk.CellRendererText(), text=self.GIVEN_COL_DISPLAY_NAME)
+
+        individual_col = Gtk.TreeViewColumn(
+            _("Individual"), Gtk.CellRendererText(), text=self.GIVEN_COL_DISPLAY_NAME
+        )
         individual_col.set_expand(True)
         individual_col.set_sort_column_id(self.GIVEN_COL_DISPLAY_NAME)
         self.given_tree.append_column(individual_col)
-        
-        current_col = Gtk.TreeViewColumn(_("Current"), Gtk.CellRendererText(), text=self.GIVEN_COL_CURRENT)
+
+        current_col = Gtk.TreeViewColumn(
+            _("Current"), Gtk.CellRendererText(), text=self.GIVEN_COL_CURRENT
+        )
         current_col.set_expand(True)
         current_col.set_sort_column_id(self.GIVEN_COL_CURRENT)
         self.given_tree.append_column(current_col)
-        
-        proposed_col = Gtk.TreeViewColumn(_("Proposed"), Gtk.CellRendererText(), markup=self.GIVEN_COL_PROPOSED)
+
+        proposed_col = Gtk.TreeViewColumn(
+            _("Proposed"), Gtk.CellRendererText(), markup=self.GIVEN_COL_PROPOSED
+        )
         proposed_col.set_expand(True)
         proposed_col.set_sort_column_id(self.GIVEN_COL_PROPOSED_RAW)
         self.given_tree.append_column(proposed_col)
-        
-        action_col = Gtk.TreeViewColumn(_("Action"), Gtk.CellRendererText(), text=self.GIVEN_COL_ALT_ACTION)
+
+        action_col = Gtk.TreeViewColumn(
+            _("Action"), Gtk.CellRendererText(), text=self.GIVEN_COL_ALT_ACTION
+        )
         action_col.set_sort_column_id(self.GIVEN_COL_ALT_ACTION)
         self.given_tree.append_column(action_col)
 
@@ -514,36 +540,52 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         renderer_toggle = Gtk.CellRendererToggle()
         renderer_toggle.connect("toggled", self.on_audit_row_toggled)
         self.audit_tree.append_column(
-            Gtk.TreeViewColumn(_("Use"), renderer_toggle, active=self.AUDIT_COL_CHECKBOX)
+            Gtk.TreeViewColumn(
+                _("Use"), renderer_toggle, active=self.AUDIT_COL_CHECKBOX
+            )
         )
-        col = Gtk.TreeViewColumn(_("ID"), Gtk.CellRendererText(), text=self.AUDIT_COL_GRAMPS_ID)
+        col = Gtk.TreeViewColumn(
+            _("ID"), Gtk.CellRendererText(), text=self.AUDIT_COL_GRAMPS_ID
+        )
         col.set_sort_column_id(self.AUDIT_COL_GRAMPS_ID)
         self.audit_tree.append_column(col)
-        
-        individual_col = Gtk.TreeViewColumn(_("Individual"), Gtk.CellRendererText(), text=self.AUDIT_COL_DISPLAY_NAME)
+
+        individual_col = Gtk.TreeViewColumn(
+            _("Individual"), Gtk.CellRendererText(), text=self.AUDIT_COL_DISPLAY_NAME
+        )
         individual_col.set_expand(True)
         individual_col.set_sort_column_id(self.AUDIT_COL_DISPLAY_NAME)
         self.audit_tree.append_column(individual_col)
-        
-        current_col = Gtk.TreeViewColumn(_("Current"), Gtk.CellRendererText(), text=self.AUDIT_COL_CURRENT_PAT)
+
+        current_col = Gtk.TreeViewColumn(
+            _("Current"), Gtk.CellRendererText(), text=self.AUDIT_COL_CURRENT_PAT
+        )
         current_col.set_expand(True)
         current_col.set_sort_column_id(self.AUDIT_COL_CURRENT_PAT)
         self.audit_tree.append_column(current_col)
-        
-        correction_col = Gtk.TreeViewColumn(_("Correction"), Gtk.CellRendererText(), markup=self.AUDIT_COL_DIFF_MARKUP)
+
+        correction_col = Gtk.TreeViewColumn(
+            _("Correction"), Gtk.CellRendererText(), markup=self.AUDIT_COL_DIFF_MARKUP
+        )
         correction_col.set_expand(True)
         correction_col.set_sort_column_id(self.AUDIT_COL_SUGGESTED_STRING)
         self.audit_tree.append_column(correction_col)
-        
-        year_col = Gtk.TreeViewColumn(_("Year"), Gtk.CellRendererText(), text=self.AUDIT_COL_REF_YEAR)
+
+        year_col = Gtk.TreeViewColumn(
+            _("Year"), Gtk.CellRendererText(), text=self.AUDIT_COL_REF_YEAR
+        )
         year_col.set_sort_column_id(self.AUDIT_COL_REF_YEAR)
         self.audit_tree.append_column(year_col)
-        
-        rule_col = Gtk.TreeViewColumn(_("Rule"), Gtk.CellRendererText(), text=self.AUDIT_COL_RULE_ID)
+
+        rule_col = Gtk.TreeViewColumn(
+            _("Rule"), Gtk.CellRendererText(), text=self.AUDIT_COL_RULE_ID
+        )
         rule_col.set_sort_column_id(self.AUDIT_COL_RULE_ID)
         self.audit_tree.append_column(rule_col)
-        
-        src_col = Gtk.TreeViewColumn(_("Source"), Gtk.CellRendererText(), text=self.AUDIT_COL_RULE_SOURCE)
+
+        src_col = Gtk.TreeViewColumn(
+            _("Source"), Gtk.CellRendererText(), text=self.AUDIT_COL_RULE_SOURCE
+        )
         src_col.set_sort_column_id(self.AUDIT_COL_RULE_SOURCE)
         self.audit_tree.append_column(src_col)
 
