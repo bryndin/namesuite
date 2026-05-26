@@ -953,10 +953,7 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
 
             ref_year, rule_source = self.resolve_reference_year(person)
 
-            # Metadata for fallback
-            confidence = self.evaluate_confidence(
-                person, primary_name, father_first_name
-            )
+            # Metadata for fallback adjustment
             if rule_source == self.REF_SOURCE_DB_MEDIAN_FALLBACK:
                 confidence = 0.20
 
