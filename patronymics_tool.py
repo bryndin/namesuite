@@ -329,6 +329,7 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         self.audit_progress.set_fraction(1.0)
         self.audit_progress.set_text(_("Audit Complete!"))
         self.audit_run_btn.set_sensitive(True)
+        self.audit_select_all.set_active(True)
         self.update_audit_apply_button()
         if total_found == 0:
             OkDialog(_("No Results"), _("No issues found."), self.window)
@@ -577,6 +578,10 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
             self.AUDIT_COL_CHECKBOX
         ]
         self.update_audit_apply_button()
+
+        # Synchronize "Select All" checkbox
+        all_selected = all(row[self.AUDIT_COL_CHECKBOX] for row in self.audit_store)
+        self.audit_select_all.set_active(all_selected)
 
     def on_given_select_all_toggled(self, widget):
         for row in self.given_store:
