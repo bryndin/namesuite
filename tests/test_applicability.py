@@ -18,7 +18,8 @@ mock_gramps()
 
 # Now safely import components
 from utils import PatronymicMixin
-from patronymics_tool import EastSlavicNameTools
+from ui.patronymics_tool import EastSlavicNameTools
+from engine.inference_service import PatronymicInferenceService
 
 # -------------------------------------------------------------------------
 # Test Helper Class
@@ -33,8 +34,10 @@ class MockPatronymicsTool(PatronymicMixin):
         self.db = db
         self.dbstate = MagicMock()
         self.dbstate.db = db
+        self.inference_service = PatronymicInferenceService(db)
 
-    evaluate_confidence = EastSlavicNameTools.evaluate_confidence
+    def evaluate_confidence(self, person, primary_name, father_first_name):
+        return self.inference_service.evaluate_confidence(person, primary_name, father_first_name)
 
 
 # -------------------------------------------------------------------------

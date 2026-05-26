@@ -20,7 +20,14 @@ from tests.compat_mocks import mock_gramps, Name, NameType
 mock_gramps()
 
 # Now safely import standardizer tool rollback function
-from patronymics_tool import rollback_batch_execution  # noqa: E402
+from engine.rollback_service import RollbackService
+
+
+class MockLogManager:
+    def __init__(self, log_filepath):
+        self.log_filepath = log_filepath
+    def get_executions(self):
+        return []
 
 
 class MockPerson:
@@ -109,7 +116,10 @@ class TestGivenNameStandardization(unittest.TestCase):
         self.people["h2"].set_alternate_names([])
 
         # 2. Run Rollback
-        report = rollback_batch_execution(self.db, log_file, exec_id)
+        log_manager = MockLogManager(log_file)
+        rollback_service = RollbackService(self.db, log_manager)
+        report = rollback_service.rollback_execution(exec_id)
+
 
         # 3. Assertions
         self.assertEqual(len(report["reverted"]), 2)
@@ -156,7 +166,9 @@ class TestGivenNameStandardization(unittest.TestCase):
         self.people["h1"].set_alternate_names([alt_name])
 
         # Run Rollback
-        report = rollback_batch_execution(self.db, log_file, exec_id)
+        log_manager = MockLogManager(log_file)
+        rollback_service = RollbackService(self.db, log_manager)
+        report = rollback_service.rollback_execution(exec_id)
 
         # Assertions
         self.assertEqual(len(report["reverted"]), 0)
