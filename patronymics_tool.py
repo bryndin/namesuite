@@ -17,7 +17,7 @@ from gi.repository import Gtk, GLib
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gui.plug import tool
 from gramps.gen.db import DbTxn
-from gramps.gen.lib import Surname, NameOriginType, Person, Name
+from gramps.gen.lib import Surname, NameOriginType, Person, Name, NameType
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gui.dialog import OkDialog, ErrorDialog
 from gramps.gui.editors import EditPerson
@@ -1126,57 +1126,52 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         exec_id = generate_execution_id()
         logged_changes = []
 
-        with DbTxn(_("Standardize Given Names"), self.db) as txn:
+        txn = DbTxn(_("Standardize Given Names"), self.db)
+
+        try:
             for item in changes_to_apply:
                 person = self.db.get_person_from_handle(item["handle"])
                 if person:
-                    old_first = item["current"]
+                    primary_name = person.get_primary_name()
+                    old_first = primary_name.get_first_name()
                     new_first = item["proposed_raw"]
 
-                    # Extract current alternate names
-                    alt_names = person.get_alternate_names()
-                    new_alts = []
-                    alts_removed = []
-
-                    # Deduplicate: Skip alternate names with first name == new_first
-                    for alt in alt_names:
-                        if alt and alt.get_first_name() == new_first:
-                            alts_removed.append(new_first)
-                        else:
-                            new_alts.append(alt)
-
-                    # Preserve: If active, downgrade old primary name to alternate
-                    alts_added = []
+                    # 1. Safe Preservation of Original Name
                     if self.preserve_alt_check.get_active():
-                        new_alt = Name()
-                        new_alt.set_first_name(old_first)
-                        try:
-                            from gramps.gen.lib import NameType
+                        current_alts = person.get_alternate_names()
 
-                            new_alt.set_type(NameType.ALSO_KNOWN_AS)
-                        except Exception:
-                            try:
-                                new_alt.set_type(3)
-                            except Exception:
-                                pass
-                        new_alts.append(new_alt)
-                        alts_added.append(old_first)
+                        already_exists = any(
+                            alt.get_first_name() == old_first for alt in current_alts
+                        )
 
-                    # Set alternate names and update primary name
-                    person.set_alternate_names(new_alts)
-                    person.get_primary_name().set_first_name(new_first)
+                        if not already_exists:
+                            preserved_alt = Name()
+                            preserved_alt.unserialize(primary_name.serialize())
+                            preserved_alt.get_type().set(NameType.AKA)
+
+                            current_alts.append(preserved_alt)
+                            person.set_alternate_names(current_alts)
+
+                    # 2. Safely update the Primary Name IN PLACE
+                    primary_name.set_first_name(new_first)
 
                     self.db.commit_person(person, txn)
 
                     logged_changes.append(
                         {
-                            "person_handle": item["handle"],
+                            "handle": item["handle"],
                             "original_value": old_first,
                             "inferred_value": new_first,
-                            "alts_added": alts_added,
-                            "alts_removed": alts_removed,
                         }
                     )
+
+            # Explicitly commit the transaction
+            self.db.transaction_commit(txn)
+
+        except Exception as e:
+            self.db.transaction_abort(txn)
+            ErrorDialog(_("Transaction Failed"), str(e), self.window)
+            return
 
         # Log standardizer execution
         self.log_manager.log_execution(exec_id, "Standardize", logged_changes)
@@ -1462,7 +1457,6 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         person = self.db.get_person_from_handle(person_handle)
         if person:
             try:
-                # FIX: Safely get the actual uistate from the user object
                 uistate = getattr(self.user, "uistate", None)
                 EditPerson(self.dbstate, uistate, [], person)
             except WindowActiveError:
@@ -1498,51 +1492,64 @@ def rollback_batch_execution(db, log_file_path, target_execution_id):
 
     report = {"reverted": [], "skipped_modified": []}
 
-    with DbTxn(_("Rollback Patronymics"), db) as txn:
+    txn = DbTxn(_("Rollback Executions"), db)
+
+    try:
         for change in execution["changes"]:
-            person = db.get_person_from_handle(change["person_handle"])
+            handle = change.get("handle", change.get("person_handle"))
+            person = db.get_person_from_handle(handle)
+
             if not person:
                 continue
 
             primary_name = person.get_primary_name()
 
             if execution.get("plugin_id") == "Standardize":
+                # 1. State Verification
                 current_first = primary_name.get_first_name()
-                if current_first == change["inferred_value"]:
-                    primary_name.set_first_name(change["original_value"])
 
-                    # Revert alternate names
-                    current_alts = person.get_alternate_names()
-                    new_alts = []
-
-                    # Remove alts that were added
-                    alts_added_set = set(change.get("alts_added", []))
-                    for alt in current_alts:
-                        if alt and alt.get_first_name() not in alts_added_set:
-                            new_alts.append(alt)
-
-                    # Restore alts that were removed
-                    alts_removed_list = change.get("alts_removed", [])
-                    for alt_first in alts_removed_list:
-                        new_alt = Name()
-                        new_alt.set_first_name(alt_first)
-                        try:
-                            from gramps.gen.lib import NameType
-
-                            new_alt.set_type(NameType.ALSO_KNOWN_AS)
-                        except Exception:
-                            try:
-                                new_alt.set_type(3)
-                            except Exception:
-                                pass
-                        new_alts.append(new_alt)
-
-                    person.set_alternate_names(new_alts)
-                    db.commit_person(person, txn)
-                    report["reverted"].append(person.handle)
-                else:
+                # If the user manually edited the first name after the batch run, skip the revert
+                if current_first != change["inferred_value"]:
                     report["skipped_modified"].append(person.handle)
+                    continue
+
+                # 2. Revert Primary Name Safely (Only mutate the first_name string!)
+                primary_name.set_first_name(change["original_value"])
+
+                # 3. Revert Alternate Names
+                current_alts = person.get_alternate_names()
+                reverted_alts = []
+
+                for alt in current_alts:
+                    # If this alt name matches the old primary name we saved, it is our generated backup. Remove it.
+                    # Since type comparison is unreliable across Gramps versions, we'll use a simpler heuristic:
+                    # If the first name matches the original value AND the surnames match the primary name's surnames,
+                    # it's likely our backup (since we deep-copied the primary name including surnames).
+                    alt_first = alt.get_first_name()
+                    alt_surnames = alt.get_surname_list()
+                    primary_surnames = primary_name.get_surname_list()
+
+                    # Check if first name matches and surnames match (deep copy indicator)
+                    if alt_first == change["original_value"]:
+                        # Compare surname lists
+                        alt_surname_strs = sorted(
+                            [s.get_surname() for s in alt_surnames]
+                        )
+                        primary_surname_strs = sorted(
+                            [s.get_surname() for s in primary_surnames]
+                        )
+                        if alt_surname_strs == primary_surname_strs:
+                            # This is our backup - skip it (remove it)
+                            continue
+
+                    reverted_alts.append(alt)
+
+                person.set_alternate_names(reverted_alts)
+                db.commit_person(person, txn)
+                report["reverted"].append(person.handle)
+
             else:
+                # Patronymic Revert Logic
                 current_value = get_patronymic_value(primary_name)
 
                 if current_value == change["inferred_value"]:
@@ -1567,12 +1574,20 @@ def rollback_batch_execution(db, log_file_path, target_execution_id):
                 else:
                     report["skipped_modified"].append(person.handle)
 
+        db.transaction_commit(txn)
+
+    except Exception as e:
+        db.transaction_abort(txn)
+        raise e
+
+    # Proceed to update the JSON log file only if the database transaction was successful
     executions = [
         run
         for run in log_data["executions"]
         if run.get("execution_id") != target_execution_id
     ]
     log_data["executions"] = executions
+
     with open(log_file_path, "w", encoding="utf-8") as f:
         json.dump(log_data, f, ensure_ascii=False, indent=2)
 

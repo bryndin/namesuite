@@ -102,6 +102,9 @@ class Name:
     def set_type(self, val):
         self._type = val
 
+    def get_type(self):
+        return self._type
+
     def get_surname_list(self):
         return self._surnames
 
@@ -193,7 +196,7 @@ class TestGivenNameStandardization(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_revert_standardize_basic(self):
-        """Verifies that standard rollback on 'Standardize' plugin restores names and alts correctly."""
+        """Verifies that standard rollback on 'Standardize' plugin restores names and removes backup alts."""
         # 1. Prepare simulated execution log data
         exec_id = "exec_20260525_161500"
         log_file = os.path.join(self.temp_dir.name, f"{self.db_id}.json")
@@ -210,15 +213,11 @@ class TestGivenNameStandardization(unittest.TestCase):
                             "person_handle": "h1",
                             "original_value": "Иоанн",
                             "inferred_value": "Иван",
-                            "alts_added": ["Иоанн"],
-                            "alts_removed": [],
                         },
                         {
                             "person_handle": "h2",
                             "original_value": "Иаков",
                             "inferred_value": "Яков",
-                            "alts_added": [],
-                            "alts_removed": ["Яков"],
                         },
                     ],
                 }
@@ -228,14 +227,14 @@ class TestGivenNameStandardization(unittest.TestCase):
             json.dump(log_data, f, ensure_ascii=False, indent=2)
 
         # Apply mock current state (after standardization)
-        # Person 1 was standardized to 'Иван', and had alternate name 'Иоанн' added
+        # Person 1 was standardized to 'Иван', and had alternate name 'Иоанн' added as backup
         self.people["h1"].get_primary_name().set_first_name("Иван")
         alt_name = Name()
         alt_name.set_first_name("Иоанн")
         alt_name.set_type(NameType.ALSO_KNOWN_AS)
         self.people["h1"].set_alternate_names([alt_name])
 
-        # Person 2 was standardized to 'Яков', and had alternate 'Яков' removed
+        # Person 2 was standardized to 'Яков', no backup alt was added (preserve option was off)
         self.people["h2"].get_primary_name().set_first_name("Яков")
         self.people["h2"].set_alternate_names([])
 
@@ -246,16 +245,13 @@ class TestGivenNameStandardization(unittest.TestCase):
         self.assertEqual(len(report["reverted"]), 2)
         self.assertEqual(len(report["skipped_modified"]), 0)
 
-        # Person 1 reverted primary to 'Иоанн', alt 'Иоанн' removed
+        # Person 1 reverted primary to 'Иоанн', backup alt 'Иоанн' removed
         self.assertEqual(self.people["h1"].get_primary_name().get_first_name(), "Иоанн")
         self.assertEqual(len(self.people["h1"].get_alternate_names()), 0)
 
-        # Person 2 reverted primary to 'Иаков', alt 'Яков' restored
+        # Person 2 reverted primary to 'Иаков', no alts to restore
         self.assertEqual(self.people["h2"].get_primary_name().get_first_name(), "Иаков")
-        self.assertEqual(len(self.people["h2"].get_alternate_names()), 1)
-        self.assertEqual(
-            self.people["h2"].get_alternate_names()[0].get_first_name(), "Яков"
-        )
+        self.assertEqual(len(self.people["h2"].get_alternate_names()), 0)
 
     def test_revert_state_verification(self):
         """Verifies that rollback is skipped if the current primary name has changed in the interim."""
@@ -274,8 +270,6 @@ class TestGivenNameStandardization(unittest.TestCase):
                             "person_handle": "h1",
                             "original_value": "Иоанн",
                             "inferred_value": "Иван",
-                            "alts_added": ["Иоанн"],
-                            "alts_removed": [],
                         }
                     ],
                 }
