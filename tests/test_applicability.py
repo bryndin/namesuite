@@ -152,7 +152,7 @@ sys.modules["gramps.gui.dialog"] = gramps_gui_dialog_mock
 sys.modules["gramps.gui.editors"] = gramps_gui_editors_mock
 
 # Now we can safely import patronymics_tool and morphology components
-from patronymics_tool import InferPatronymicsTool  # noqa: E402
+from patronymics_tool import EastSlavicNameTools  # noqa: E402
 
 
 # -------------------------------------------------------------------------
@@ -169,7 +169,7 @@ class MockPatronymicsTool(PatronymicMixin):
         self.dbstate = MagicMock()
         self.dbstate.db = db
 
-    evaluate_confidence = InferPatronymicsTool.evaluate_confidence
+    evaluate_confidence = EastSlavicNameTools.evaluate_confidence
 
 
 # -------------------------------------------------------------------------

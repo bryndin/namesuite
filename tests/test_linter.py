@@ -455,7 +455,9 @@ class TestLinterEngineAndRules(unittest.TestCase):
 
         # Run with all rules
         all_results = engine.evaluate_person(ctx, enabled_rules=None)
-        self.assertTrue(any(r[0].rule_id == ErrGenderMismatch.RULE_ID for r in all_results))
+        self.assertTrue(
+            any(r[0].rule_id == ErrGenderMismatch.RULE_ID for r in all_results)
+        )
 
         # Run with gender rule explicitly disabled
         restricted_results = engine.evaluate_person(

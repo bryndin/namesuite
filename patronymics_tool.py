@@ -72,10 +72,10 @@ def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:
     return orig_pat
 
 
-class InferPatronymicsTool(PatronymicMixin, tool.Tool):
+class EastSlavicNameTools(PatronymicMixin, tool.Tool):
     """
-    GTK Batch Processing Wizard to evaluate, filter, and write
-    inferred patronymic records safely, alongside morphological linter audits.
+    GTK Batch Processing Wizard to infer and audit patronymic names,
+    and work with given names for East Slavic locales.
     """
 
     # Given Names store column indices (Tab 1 - Standardize)
@@ -1580,11 +1580,11 @@ def rollback_batch_execution(db, log_file_path, target_execution_id):
 
 
 # -------------------------------------------------------------------------
-# InferPatronymicsOptions
+# EastSlavicNameToolsOptions
 # -------------------------------------------------------------------------
-class InferPatronymicsOptions(tool.ToolOptions):
+class EastSlavicNameToolsOptions(tool.ToolOptions):
     """
-    Defines options and provides a handling interface for the patronymic inference tool.
+    Defines options and provides a handling interface for the East Slavic name tools.
     Even when using a completely custom GTK interface, Gramps requires this class
     to satisfy its plugin runner initialization.
     """

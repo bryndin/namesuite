@@ -40,16 +40,20 @@ gramps_gui_plug_mock = MagicMock()
 gramps_gui_dialog_mock = MagicMock()
 gramps_gui_editors_mock = MagicMock()
 
+
 # Mock EditPerson
 class MockEditPerson:
     def __init__(self, *args, **kwargs):
         pass
 
+
 gramps_gui_editors_mock.EditPerson = MockEditPerson
+
 
 # Mock WindowActiveError
 class MockWindowActiveError(Exception):
     pass
+
 
 gramps_gen_errors_mock.WindowActiveError = MockWindowActiveError
 
@@ -147,7 +151,7 @@ sys.modules["gramps.gui.dialog"] = gramps_gui_dialog_mock
 sys.modules["gramps.gui.editors"] = gramps_gui_editors_mock
 
 # Import after mock setup (intentionally not at top of file)
-from patronymics_tool import InferPatronymicsTool  # noqa: E402
+from patronymics_tool import EastSlavicNameTools  # noqa: E402
 
 
 class MockEvent:
@@ -163,16 +167,18 @@ class MockEvent:
 class TestReferenceYearResolution(unittest.TestCase):
     def setUp(self):
         self.mock_db = MagicMock()
-        self.tool = MagicMock(spec=InferPatronymicsTool)
+        self.tool = MagicMock(spec=EastSlavicNameTools)
         self.tool.db = self.mock_db
         self.tool.db_median_year = 1921
         # Copy the REF_SOURCE constants from the actual class
-        self.tool.REF_SOURCE_LATEST_EVENT = InferPatronymicsTool.REF_SOURCE_LATEST_EVENT
-        self.tool.REF_SOURCE_GRAPH_BFS = InferPatronymicsTool.REF_SOURCE_GRAPH_BFS
-        self.tool.REF_SOURCE_DB_MEDIAN_FALLBACK = InferPatronymicsTool.REF_SOURCE_DB_MEDIAN_FALLBACK
+        self.tool.REF_SOURCE_LATEST_EVENT = EastSlavicNameTools.REF_SOURCE_LATEST_EVENT
+        self.tool.REF_SOURCE_GRAPH_BFS = EastSlavicNameTools.REF_SOURCE_GRAPH_BFS
+        self.tool.REF_SOURCE_DB_MEDIAN_FALLBACK = (
+            EastSlavicNameTools.REF_SOURCE_DB_MEDIAN_FALLBACK
+        )
         self.tool.resolve_reference_year = (
-            InferPatronymicsTool.resolve_reference_year.__get__(
-                self.tool, InferPatronymicsTool
+            EastSlavicNameTools.resolve_reference_year.__get__(
+                self.tool, EastSlavicNameTools
             )
         )
 
@@ -187,7 +193,7 @@ class TestReferenceYearResolution(unittest.TestCase):
         )
         year, source = self.tool.resolve_reference_year(person)
         self.assertEqual(year, 1880)
-        self.assertEqual(source, InferPatronymicsTool.REF_SOURCE_LATEST_EVENT)
+        self.assertEqual(source, EastSlavicNameTools.REF_SOURCE_LATEST_EVENT)
 
     def test_tier2_generational_graph_bfs(self):
         """Test Tier 2: BFS traversal finds father event and normalizes by generation."""
@@ -196,19 +202,19 @@ class TestReferenceYearResolution(unittest.TestCase):
         person.get_event_ref_list.return_value = []  # No own events
         person.get_parent_family_handle_list.return_value = ["F1"]
         person.get_family_handle_list.return_value = []
-        
+
         family = MagicMock()
         family.get_father_handle.return_value = "FATHER"
         family.get_mother_handle.return_value = None
         family.get_child_ref_list.return_value = []
         self.mock_db.get_family_from_handle.return_value = family
-        
+
         father = MagicMock()
         father.handle = "FATHER"
         father.get_event_ref_list.return_value = [MagicMock(ref="E1")]
         father.get_parent_family_handle_list.return_value = []
         father.get_family_handle_list.return_value = []
-        
+
         # Mock get_person_from_handle to return the correct person for each handle
         def mock_get_person(handle):
             if handle == "PERSON":
@@ -216,9 +222,10 @@ class TestReferenceYearResolution(unittest.TestCase):
             elif handle == "FATHER":
                 return father
             return None
+
         self.mock_db.get_person_from_handle.side_effect = mock_get_person
         self.mock_db.get_event_from_handle.return_value = MockEvent(1900)
-        
+
         year, source = self.tool.resolve_reference_year(person)
         # Father is at delta_g = +1, so 1900 + (1 * 25) = 1925
         self.assertEqual(year, 1925)
@@ -231,25 +238,25 @@ class TestReferenceYearResolution(unittest.TestCase):
         person.get_event_ref_list.return_value = []  # No own events
         person.get_parent_family_handle_list.return_value = ["F1"]
         person.get_family_handle_list.return_value = []
-        
+
         family = MagicMock()
         family.get_father_handle.return_value = "FATHER"
         family.get_mother_handle.return_value = "MOTHER"
         family.get_child_ref_list.return_value = []
         self.mock_db.get_family_from_handle.return_value = family
-        
+
         father = MagicMock()
         father.handle = "FATHER"
         father.get_event_ref_list.return_value = [MagicMock(ref="E1")]
         father.get_parent_family_handle_list.return_value = []
         father.get_family_handle_list.return_value = []
-        
+
         mother = MagicMock()
         mother.handle = "MOTHER"
         mother.get_event_ref_list.return_value = [MagicMock(ref="E2")]
         mother.get_parent_family_handle_list.return_value = []
         mother.get_family_handle_list.return_value = []
-        
+
         def mock_get_person(handle):
             if handle == "PERSON":
                 return person
@@ -258,16 +265,18 @@ class TestReferenceYearResolution(unittest.TestCase):
             elif handle == "MOTHER":
                 return mother
             return None
+
         self.mock_db.get_person_from_handle.side_effect = mock_get_person
-        
+
         def mock_get_event(handle):
             if handle == "E1":
                 return MockEvent(1900)
             elif handle == "E2":
                 return MockEvent(1910)
             return None
+
         self.mock_db.get_event_from_handle.side_effect = mock_get_event
-        
+
         year, source = self.tool.resolve_reference_year(person)
         # Both parents at delta_g = +1: [1900+25, 1910+25] = [1925, 1935]
         # Implementation uses sorted()[len//2] which for 2 elements picks index 1 (upper value)
@@ -281,7 +290,7 @@ class TestReferenceYearResolution(unittest.TestCase):
         person.get_family_handle_list.return_value = []
         year, source = self.tool.resolve_reference_year(person)
         self.assertEqual(year, 1921)
-        self.assertEqual(source, InferPatronymicsTool.REF_SOURCE_DB_MEDIAN_FALLBACK)
+        self.assertEqual(source, EastSlavicNameTools.REF_SOURCE_DB_MEDIAN_FALLBACK)
 
 
 if __name__ == "__main__":
