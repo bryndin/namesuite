@@ -26,6 +26,7 @@ class EastSlavicToolsPresenter:
         self.view = view
         self.dbstate = dbstate
         self.db = dbstate.db
+        self.is_active = True
 
         # Initialize Headless Services
         self.inference_service = PatronymicInferenceService(self.db)
@@ -40,6 +41,10 @@ class EastSlavicToolsPresenter:
         self.audit_issues = []
         self.rename_proposals = []
 
+    def cleanup(self):
+        """Signals that this presenter instance is no longer needed."""
+        self.is_active = False
+
     def initialize_async(self):
         """Calculates DB metadata in the background to avoid UI freeze."""
         handles = list(self.db.get_person_handles())
@@ -51,7 +56,7 @@ class EastSlavicToolsPresenter:
         idx = [0]
 
         def init_idle():
-            if not self.db.is_open():
+            if not self.is_active or not self.db.is_open():
                 return False
             try:
                 for i in range(200):  # Larger chunks for simple metadata
@@ -280,18 +285,6 @@ class EastSlavicToolsPresenter:
         return True
 
     # --- TAB 4: Rollback ---
-
-    def refresh_history(self):
-        """Reloads the execution history into the view."""
-        self.view.log_store.clear()
-        history = self.rollback_service.get_history()
-        for run in history:
-            row = [None] * 4
-            row[self.view.LOG_COL_EXEC_ID] = run.get("execution_id", "")
-            row[self.view.LOG_COL_TIMESTAMP] = run.get("timestamp", "")
-            row[self.view.LOG_COL_CHANGES_COUNT] = len(run.get("changes", []))
-            row[self.view.LOG_COL_PLUGIN_ID] = run.get("plugin_id", "")
-            self.view.log_store.append(row)
 
     def rollback_run(self, exec_id: str):
         """Reverts a specific execution run."""

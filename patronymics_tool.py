@@ -315,6 +315,8 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         self.window.show_all()
 
     def on_destroy(self, widget):
+        if self.presenter:
+            self.presenter.cleanup()
         if self.callback:
             self.callback()
         self.window.destroy()
@@ -350,7 +352,18 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
 
     # --- Signal Handlers (Thin delegation) ---
 
+    def refresh_db_reference(self):
+        """Updates the presenter instance if the database has changed."""
+        if self.db != self.dbstate.db:
+            if self.presenter:
+                self.presenter.cleanup()
+            self.db = self.dbstate.db
+            self.presenter = EastSlavicToolsPresenter(self, self.dbstate)
+            self.presenter.initialize_async()
+            self.presenter.refresh_history()
+
     def on_given_scan_clicked(self, widget):
+        self.refresh_db_reference()
         source = self.given_source_entry.get_text().strip()
         target = self.given_target_entry.get_text().strip()
         if not source or not target:
@@ -372,11 +385,13 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
             OkDialog(_("No Results"), _("No patronymics found."), self.window)
 
     def on_scan_clicked(self, widget):
+        self.refresh_db_reference()
         self.scan_btn.set_sensitive(False)
         self.apply_btn.set_sensitive(False)
         self.presenter.run_inference_scan(self.script_check.get_active())
 
     def on_audit_clicked(self, widget):
+        self.refresh_db_reference()
         self.audit_run_btn.set_sensitive(False)
         self.audit_apply_btn.set_sensitive(False)
         scope = self.audit_scope_combo.get_active()

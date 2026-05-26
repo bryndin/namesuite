@@ -65,6 +65,10 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
         Signals listener execution. Resolves candidates immediately
         when the active person changes in the primary navigator.
         """
+        # Ensure we are using the current database instance
+        if self.inference_service.db != self.dbstate.db:
+            self.inference_service = PatronymicInferenceService(self.dbstate.db)
+
         self.current_handle = handle
         self.suggested_candidate = None
 
