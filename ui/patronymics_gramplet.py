@@ -12,12 +12,12 @@ from gi.repository import Gtk
 # Gramps modules
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gen.plug import Gramplet
-from gramps.gen.db import DbTxn
-from gramps.gen.lib import Surname, NameOriginType, Person
+from gramps.gen.lib import Person
 from gramps.gui.dialog import ErrorDialog
 
 # Local modules
-from engine.morphology import generate_east_slavic_patronymic
+from engine.inference_service import PatronymicInferenceService
+from engine.entities import InferenceCandidate
 from engine.utils import has_patronymic_surname
 from utils import PatronymicMixin
 
@@ -33,7 +33,8 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
         """Sets up the GTK user interface panel."""
         self.title = _("Patronymic Suggestion")
         self.current_handle = None
-        self.suggested_value = None
+        self.suggested_candidate = None
+        self.inference_service = PatronymicInferenceService(self.dbstate.db)
 
         # Build UI Box
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -65,7 +66,7 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
         when the active person changes in the primary navigator.
         """
         self.current_handle = handle
-        self.suggested_value = None
+        self.suggested_candidate = None
 
         if not handle:
             self.label.set_text(_("No active person selected."))
@@ -78,15 +79,24 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
             self.apply_btn.set_sensitive(False)
             return
 
-        # Check if patronymic exists via schema-safe loop
+        # 1. Reset and sanity check gender
+        gender_val = person.get_gender()
+        if gender_val not in (Person.MALE, Person.FEMALE):
+            self.label.set_text(
+                _("Patronymic inference can't be inferred for non-binary or unknown genders.")
+            )
+            self.apply_btn.set_sensitive(False)
+            return
+
+        # 2. Check if patronymic exists via schema-safe check
         primary_name = person.get_primary_name()
         if has_patronymic_surname(primary_name):
             self.label.set_text(_("Individual already has a recorded patronymic."))
             self.apply_btn.set_sensitive(False)
             return
 
-        # Navigate to father
-        father_handle = self.get_father_handle(person)
+        # 3. Call inference service
+        father_handle = self.inference_service.get_father_handle(person)
         if not father_handle:
             self.label.set_text(
                 _("No attached father found in database family records.")
@@ -101,29 +111,30 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
             return
 
         father_name = father.get_primary_name().get_first_name()
-
-        # Resolve binary gender translation at the boundary
-        gender_val = person.get_gender()
-        if gender_val not in (Person.MALE, Person.FEMALE):
-            # Skip persons with OTHER or UNKNOWN genders as traditional patronymic
-            # suffix grammar cannot be deterministically inferred for them.
-            self.suggested_value = None
-            self.label.set_text(
-                _("Patronymic inference can't be inferred for non-binary or unknown genders.")
-            )
-            self.apply_btn.set_sensitive(False)
-            return
-
-        # Run inference using standard modern standard defaults for inline matches
+        
+        # Evaluate using service
+        ref_year, rule_source = self.inference_service.resolve_reference_year(person)
+        confidence = self.inference_service.evaluate_confidence(person, primary_name, father_name)
+        
+        from engine.morphology import generate_east_slavic_patronymic
         patronymic = generate_east_slavic_patronymic(
             father_name=father_name,
             is_male=(gender_val == Person.MALE),
-            year=1950,  # Standard default
+            year=ref_year,
             pre_reform_script=False,
         )
 
         if patronymic:
-            self.suggested_value = patronymic
+            self.suggested_candidate = InferenceCandidate(
+                person_handle=handle,
+                gramps_id=person.gramps_id,
+                display_name=person.get_primary_name().get_regular_name(),
+                father_name=father_name,
+                reference_year=ref_year,
+                inferred_patronymic=patronymic,
+                confidence=confidence,
+                rule_source=rule_source
+            )
             self.label.set_text(
                 _(
                     "Missing Patronymic Detected.\nSuggested: {0}\nBased on father: {1}"
@@ -136,25 +147,15 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
 
     def on_apply_clicked(self, widget):
         """Commits the suggested patronymic change directly inside a secure transaction."""
-        if not self.current_handle or not self.suggested_value:
+        if not self.current_handle or not self.suggested_candidate:
             return
 
         try:
-            # Open database writing transaction context
-            with DbTxn(_("Apply Single Patronymic"), self.dbstate.db) as txn:
-                person = self.dbstate.db.get_person_from_handle(self.current_handle)
-                if person:
-                    primary_name = person.get_primary_name()
-
-                    # Append standard Surname object to list
-                    surn_obj = Surname()
-                    surn_obj.set_surname(self.suggested_value)
-                    surn_obj.set_origintype(NameOriginType.PATRONYMIC)
-                    surn_obj.set_primary(False)
-
-                    primary_name.add_surname(surn_obj)
-
-                    self.dbstate.db.commit_person(person, txn)
+            from engine.logging import generate_execution_id
+            exec_id = generate_execution_id()
+            self.inference_service.apply_patronymics_batch(
+                [self.suggested_candidate], exec_id, pre_reform=False
+            )
         except Exception as e:
             ErrorDialog(_("Transaction Failed"), str(e), self.gui.get_window())
             return
