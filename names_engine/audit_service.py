@@ -11,10 +11,10 @@ from gramps.gen.lib import Person
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 
-from pat_engine.entities import AuditIssue
-from pat_engine.linter import RuleEngine, RuleContext, PlaceCache
-from pat_engine.utils import get_patronymic_value
-from pat_engine.constants import LOCALE_RU
+from names_engine.entities import AuditIssue
+from names_engine.linter import RuleEngine, RuleContext, PlaceCache
+from names_engine.utils import get_patronymic_value
+from names_engine.constants import LOCALE_RU
 
 _ = glocale.translation.gettext
 

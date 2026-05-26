@@ -8,10 +8,10 @@ Flags pre-1918 Russian names missing a terminal orthographic hard sign 'ъ'.
 
 from typing import Optional, Set, Tuple
 
-from pat_engine.rule import BaseRule, RuleContext, ProposedChange
-from pat_engine.constants import SEVERITY_WARNING, LOCALE_RU, REFORM_YEAR_1918
-from pat_engine.morphology import apply_pre_reform_orthography
-from pat_engine.rule_utils import generate_pango_diff
+from names_engine.rule import BaseRule, RuleContext, ProposedChange
+from names_engine.constants import SEVERITY_WARNING, LOCALE_RU, REFORM_YEAR_1918
+from names_engine.morphology import apply_pre_reform_orthography
+from names_engine.rule_utils import generate_pango_diff
 
 
 class WarnMissingHardSign(BaseRule):

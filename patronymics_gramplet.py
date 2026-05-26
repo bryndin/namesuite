@@ -16,15 +16,15 @@ from gramps.gen.lib import Person
 from gramps.gui.dialog import ErrorDialog
 
 # Local modules
-from pat_engine.inference_service import PatronymicInferenceService
-from pat_engine.entities import InferenceCandidate
-from pat_engine.utils import has_patronymic_surname
-from utils import PatronymicMixin
+from names_engine.inference_service import PatronymicInferenceService
+from names_engine.entities import InferenceCandidate
+from names_engine.utils import has_patronymic_surname
+from mixin import SharedMixin
 
 _ = glocale.translation.gettext
 
 
-class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
+class PatronymicSuggestionGramplet(SharedMixin, Gramplet):
     """
     Gramplet sidebar component offering fast inline suggestion matches.
     """
@@ -124,7 +124,7 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
             person, primary_name, father_name
         )
 
-        from pat_engine.morphology import generate_east_slavic_patronymic
+        from names_engine.morphology import generate_east_slavic_patronymic
 
         patronymic = generate_east_slavic_patronymic(
             father_name=father_name,
@@ -160,7 +160,7 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
             return
 
         try:
-            from pat_engine.logging import generate_execution_id
+            from names_engine.logging import generate_execution_id
 
             exec_id = generate_execution_id()
             self.inference_service.apply_patronymics_batch(

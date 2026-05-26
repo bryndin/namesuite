@@ -17,14 +17,14 @@ from tests.compat_mocks import mock_gramps, NameOriginType, Surname
 mock_gramps()
 
 # Now safely import components
-from utils import PatronymicMixin
-from pat_engine.inference_service import PatronymicInferenceService
+from mixin import SharedMixin
+from names_engine.inference_service import PatronymicInferenceService
 
 
 # -------------------------------------------------------------------------
 # Test Helper Class
 # -------------------------------------------------------------------------
-class MockPatronymicsTool(PatronymicMixin):
+class MockPatronymicsTool(SharedMixin):
     """
     Decoupled tool proxy mapping target inference methods to allow testing
     the core business logic without triggering GTK UI initializations.

@@ -6,7 +6,7 @@ Shared utility functions and mixins for patronymic inference and validation.
 """
 
 
-class PatronymicMixin:
+class SharedMixin:
     """
     Mixin class providing shared patronymic-related methods.
     Can be used by both Tool and Gramplet classes.

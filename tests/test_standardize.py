@@ -20,7 +20,7 @@ from tests.compat_mocks import mock_gramps, Name, NameType
 mock_gramps()
 
 # Now safely import standardizer tool rollback function
-from pat_engine.rollback_service import RollbackService
+from names_engine.rollback_service import RollbackService
 
 
 class MockLogManager:

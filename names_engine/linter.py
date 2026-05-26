@@ -12,13 +12,13 @@ import logging
 from typing import Optional, List, Any, Set, Tuple
 
 
-from pat_engine.rule import (
+from names_engine.rule import (
     BaseRule,
     RuleContext,
     ProposedChange,
 )
-from pat_engine.constants import LOCALE_UNIVERSAL
-from pat_engine.rules import (
+from names_engine.constants import LOCALE_UNIVERSAL
+from names_engine.rules import (
     ErrGenderMismatch,
     ErrLineageMismatch,
     WarnModernSuffixArchaicEra,

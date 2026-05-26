@@ -2,7 +2,7 @@
 """
 engine/entities.py
 
-Domain entities for the East Slavic patronymic and name tool.
+Domain entities for the patronymic and name tool.
 These classes are pure data containers decoupled from GTK and DB logic.
 """
 

@@ -7,9 +7,9 @@ from tests.compat_mocks import mock_gramps, Name, Surname, Person as GrampsPerso
 
 mock_gramps()
 
-from pat_engine.inference_service import PatronymicInferenceService
-from pat_engine.audit_service import PatronymicAuditService
-from pat_engine.standardizer_service import GivenNameStandardizerService
+from names_engine.inference_service import PatronymicInferenceService
+from names_engine.audit_service import PatronymicAuditService
+from names_engine.standardizer_service import GivenNameStandardizerService
 
 
 class MockPerson:

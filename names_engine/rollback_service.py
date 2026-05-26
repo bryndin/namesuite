@@ -10,7 +10,7 @@ import json
 from gramps.gen.db import DbTxn
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 
-from pat_engine.utils import get_patronymic_value, is_patronymic_origin
+from names_engine.utils import get_patronymic_value, is_patronymic_origin
 
 _ = glocale.translation.gettext
 

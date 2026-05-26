@@ -10,7 +10,7 @@ orthographic script preferences.
 import re
 from typing import Optional, Tuple
 
-from pat_engine.constants import REFORM_YEAR_1918
+from names_engine.constants import REFORM_YEAR_1918
 
 # Sibilant characters that trigger -evich/-evna instead of -ovich/-ovna
 SIBILANTS = set("жшчщцЖШЧЩЦ")

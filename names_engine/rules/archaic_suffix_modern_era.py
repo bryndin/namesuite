@@ -9,10 +9,10 @@ Flags post-1918 records using archaic/informal possessive endings.
 from typing import Optional, Set, Tuple
 
 from gramps.gen.lib import Person
-from pat_engine.rule import BaseRule, RuleContext, ProposedChange
-from pat_engine.constants import SEVERITY_WARNING, LOCALE_EAST_SLAVIC, REFORM_YEAR_1918
-from pat_engine.morphology import generate_east_slavic_patronymic
-from pat_engine.rule_utils import generate_pango_diff, archaic_to_modern
+from names_engine.rule import BaseRule, RuleContext, ProposedChange
+from names_engine.constants import SEVERITY_WARNING, LOCALE_EAST_SLAVIC, REFORM_YEAR_1918
+from names_engine.morphology import generate_east_slavic_patronymic
+from names_engine.rule_utils import generate_pango_diff, archaic_to_modern
 
 
 class WarnArchaicSuffixModernEra(BaseRule):

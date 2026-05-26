@@ -11,17 +11,17 @@ from tests.compat_mocks import mock_gramps, Person
 # Initialize mocks before importing engine modules
 mock_gramps()
 
-from pat_engine.rule import RuleContext
-from pat_engine.constants import LOCALE_RU
+from names_engine.rule import RuleContext
+from names_engine.constants import LOCALE_RU
 
 # Import the rules
-from pat_engine.rules.gender_mismatch import ErrGenderMismatch
-from pat_engine.rules.lineage_mismatch import ErrLineageMismatch
-from pat_engine.rules.mixed_scripts import ErrMixedScripts
-from pat_engine.rules.modern_suffix_archaic_era import WarnModernSuffixArchaicEra
-from pat_engine.rules.archaic_suffix_modern_era import WarnArchaicSuffixModernEra
-from pat_engine.rules.missing_hard_sign import WarnMissingHardSign
-from pat_engine.rules.morphological_typo import WarnMorphologicalTypo
+from names_engine.rules.gender_mismatch import ErrGenderMismatch
+from names_engine.rules.lineage_mismatch import ErrLineageMismatch
+from names_engine.rules.mixed_scripts import ErrMixedScripts
+from names_engine.rules.modern_suffix_archaic_era import WarnModernSuffixArchaicEra
+from names_engine.rules.archaic_suffix_modern_era import WarnArchaicSuffixModernEra
+from names_engine.rules.missing_hard_sign import WarnMissingHardSign
+from names_engine.rules.morphological_typo import WarnMorphologicalTypo
 
 
 class TestLinterRules(unittest.TestCase):

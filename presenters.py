@@ -2,24 +2,24 @@
 """
 ui/presenters.py
 
-Presenter layer for the East Slavic Name Tools.
+Presenter layer for the Name Tools.
 Orchestrates services, formats UI data, and manages long-running idle loops.
 """
 
 from gi.repository import GLib
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 
-from pat_engine.inference_service import PatronymicInferenceService
-from pat_engine.standardizer_service import GivenNameStandardizerService
-from pat_engine.audit_service import PatronymicAuditService
-from pat_engine.rollback_service import RollbackService
-from pat_engine.logging import generate_execution_id
-from pat_engine.rule_utils import pango_escape
+from names_engine.inference_service import PatronymicInferenceService
+from names_engine.standardizer_service import GivenNameStandardizerService
+from names_engine.audit_service import PatronymicAuditService
+from names_engine.rollback_service import RollbackService
+from names_engine.logging import generate_execution_id
+from names_engine.rule_utils import pango_escape
 
 _ = glocale.translation.gettext
 
 
-class EastSlavicToolsPresenter:
+class Presenter:
     """COORDINATOR: Translates UI events to Service calls and formats UI data."""
 
     def __init__(self, view, dbstate):
@@ -218,7 +218,7 @@ class EastSlavicToolsPresenter:
             return False
 
         exec_id = generate_execution_id()
-        from pat_engine.entities import InferenceCandidate
+        from names_engine.entities import InferenceCandidate
 
         candidates = [
             InferenceCandidate(

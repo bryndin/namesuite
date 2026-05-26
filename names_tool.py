@@ -18,15 +18,13 @@ from gramps.gui.editors import EditPerson
 from gramps.gen.errors import WindowActiveError
 
 # Custom modular imports
-from presenters import EastSlavicToolsPresenter
-from utils import (
-    PatronymicMixin,
-)
+from presenters import Presenter
+from mixin import SharedMixin
 
 _ = glocale.translation.gettext
 
 
-class EastSlavicNameTools(PatronymicMixin, tool.Tool):
+class NameProcessorTools(SharedMixin, tool.Tool):
     """
     GTK Batch Processing Wizard. Acts as a Passive View in the MVP pattern.
     All business logic and long-running tasks are delegated to the presenter.
@@ -83,7 +81,7 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         tool.Tool.__init__(self, dbstate, options_class, name)
 
         # Initialize MVP Presenter
-        self.presenter = EastSlavicToolsPresenter(self, dbstate)
+        self.presenter = Presenter(self, dbstate)
 
         # Local view state (UI specific)
         self.enabled_rules = {
@@ -358,7 +356,7 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
             if self.presenter:
                 self.presenter.cleanup()
             self.db = self.dbstate.db
-            self.presenter = EastSlavicToolsPresenter(self, self.dbstate)
+            self.presenter = Presenter(self, self.dbstate)
             self.presenter.initialize_async()
             self.presenter.refresh_history()
 
@@ -690,6 +688,6 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
         self._open_person_edit_dialog(tv, path, self.GIVEN_COL_HANDLE)
 
 
-class EastSlavicNameToolsOptions(tool.ToolOptions):
+class NameProcessorToolsOptions(tool.ToolOptions):
     def __init__(self, name, person_id=None):
         tool.ToolOptions.__init__(self, name, person_id)

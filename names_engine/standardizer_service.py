@@ -14,8 +14,8 @@ from gramps.gen.db import DbTxn
 from gramps.gen.display.name import displayer as name_displayer
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 
-from pat_engine.entities import RenameProposal
-from pat_engine.logging import InferenceLogManager
+from names_engine.entities import RenameProposal
+from names_engine.logging import InferenceLogManager
 
 _ = glocale.translation.gettext
 

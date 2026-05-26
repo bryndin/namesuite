@@ -9,7 +9,7 @@ import re
 
 from gramps.gen.lib import NameOriginType, Surname
 
-from pat_engine.constants import LOCALE_RU, REFORM_YEAR_1918
+from names_engine.constants import LOCALE_RU, REFORM_YEAR_1918
 
 
 def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:
