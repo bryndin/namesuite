@@ -20,6 +20,7 @@ mock_gramps()
 from utils import PatronymicMixin
 from pat_engine.inference_service import PatronymicInferenceService
 
+
 # -------------------------------------------------------------------------
 # Test Helper Class
 # -------------------------------------------------------------------------
@@ -36,7 +37,9 @@ class MockPatronymicsTool(PatronymicMixin):
         self.inference_service = PatronymicInferenceService(db)
 
     def evaluate_confidence(self, person, primary_name, father_first_name):
-        return self.inference_service.evaluate_confidence(person, primary_name, father_first_name)
+        return self.inference_service.evaluate_confidence(
+            person, primary_name, father_first_name
+        )
 
 
 # -------------------------------------------------------------------------

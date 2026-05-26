@@ -26,6 +26,7 @@ from pat_engine.rollback_service import RollbackService
 class MockLogManager:
     def __init__(self, log_filepath):
         self.log_filepath = log_filepath
+
     def get_executions(self):
         return []
 
@@ -119,7 +120,6 @@ class TestGivenNameStandardization(unittest.TestCase):
         log_manager = MockLogManager(log_file)
         rollback_service = RollbackService(self.db, log_manager)
         report = rollback_service.rollback_execution(exec_id)
-
 
         # 3. Assertions
         self.assertEqual(len(report["reverted"]), 2)

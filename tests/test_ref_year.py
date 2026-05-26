@@ -37,10 +37,10 @@ class TestReferenceYearResolution(unittest.TestCase):
         self.mock_db.get_dbname.return_value = "/tmp/mock.db"
         self.service = PatronymicInferenceService(self.mock_db)
         self.service.db_median_year = 1921
-        
+
         # Keep 'tool' name for minimal changes in test cases below
         self.tool = self.service
-        
+
         # Source constants are now on the service
         self.REF_SOURCE_LATEST_EVENT = self.service.REF_SOURCE_LATEST_EVENT
         self.REF_SOURCE_GRAPH_BFS = self.service.REF_SOURCE_GRAPH_BFS

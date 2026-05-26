@@ -66,6 +66,9 @@ class Name:
     def set_first_name(self, name_str):
         self._first_name = name_str
 
+    def get_regular_name(self):
+        return self._first_name
+
     def get_type(self):
         return self._type
 

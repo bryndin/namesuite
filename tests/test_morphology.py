@@ -2,7 +2,10 @@
 
 import unittest
 
-from pat_engine.morphology import generate_east_slavic_patronymic, SLAVIC_SURNAME_PATTERN
+from pat_engine.morphology import (
+    generate_east_slavic_patronymic,
+    SLAVIC_SURNAME_PATTERN,
+)
 
 
 class TestEastSlavicMorphology(unittest.TestCase):

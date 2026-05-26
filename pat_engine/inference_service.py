@@ -7,6 +7,7 @@ Headless service for patronymic inference logic.
 
 import os
 from typing import List, Generator, Tuple, Optional
+
 from gramps.gen.lib import Person
 from gramps.gen.db import DbTxn
 from gramps.gen.display.name import displayer as name_displayer
