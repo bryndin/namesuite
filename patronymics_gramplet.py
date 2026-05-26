@@ -106,6 +106,11 @@ class InferPatronymicsGramplet(PatronymicMixin, Gramplet):
         if gender_val not in (Person.MALE, Person.FEMALE):
             # Skip persons with OTHER or UNKNOWN genders as traditional patronymic
             # suffix grammar cannot be deterministically inferred for them.
+            self.suggested_value = None
+            self.label.set_text(
+                _("Patronymic inference can't be inferred for non-binary or unknown genders.")
+            )
+            self.apply_btn.set_sensitive(False)
             return
 
         # Run inference using standard modern standard defaults for inline matches
