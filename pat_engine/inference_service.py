@@ -33,7 +33,7 @@ class PatronymicInferenceService:
     # Reference source constants
     REF_SOURCE_LATEST_EVENT = "LATEST_EVENT"
     REF_SOURCE_GRAPH_BFS = "GRAPH_BFS"
-    REF_SOURCE_DB_MEDIAN_FALLBACK = "DB_MEDIAN_FALLBACK"
+    REF_SOURCE_DB_MEDIAN_FALLBACK = "DB_MEDIAN"
 
     def __init__(self, db):
         self.db = db
