@@ -1212,6 +1212,7 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
     def on_audit_apply_clicked(self, widget):
         """Commits selected auditor suggestions inside transaction & records log."""
         changes_to_apply = []
+        pre_reform_active = self.audit_pre_reform_check.get_active()
         for row in self.audit_store:
             if row[self.AUDIT_COL_CHECKBOX]:
                 changes_to_apply.append(
@@ -1219,6 +1220,8 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
                         "handle": row[self.AUDIT_COL_HANDLE],
                         "suggested_string": row[self.AUDIT_COL_SUGGESTED_STRING],
                         "rule_id": row[self.AUDIT_COL_RULE_ID],
+                        "reference_year": row[self.AUDIT_COL_REF_YEAR],
+                        "pre_reform": pre_reform_active,
                     }
                 )
 
@@ -1251,8 +1254,8 @@ class EastSlavicNameTools(PatronymicMixin, tool.Tool):
                             "original_value": orig_pat,
                             "inferred_value": item["suggested_string"],
                             "father_handle": self.get_father_handle(person),
-                            "reference_year": 1950,  # Default proxy year
-                            "pre_reform": False,
+                            "reference_year": item["reference_year"],
+                            "pre_reform": item["pre_reform"],
                             "confidence_score": 1.0,  # Complete linter certainty
                             "applied_heuristics": [item["rule_id"]],
                         }
