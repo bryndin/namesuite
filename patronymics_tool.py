@@ -33,46 +33,14 @@ from engine.utils import (
     is_patronymic_origin,
     has_patronymic_surname,
     has_cyrillic,
+    get_patronymic_value,
+    update_or_add_patronymic,
 )
 from utils import (
     PatronymicMixin,
 )
 
 _ = glocale.translation.gettext
-
-
-def get_patronymic_value(name_obj) -> str:
-    """Finds and returns the string value of the patronymic Surname object."""
-    for surname in name_obj.get_surname_list():
-        if is_patronymic_origin(surname.get_origintype()):
-            return surname.get_surname()
-    return ""
-
-
-def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:
-    """
-    Updates an existing patronymic Surname object in the list, or adds a new one.
-    Returns the original patronymic value (or empty string).
-    """
-    surnames = primary_name.get_surname_list()
-    orig_pat = ""
-    found = False
-
-    for s in surnames:
-        if is_patronymic_origin(s.get_origintype()):
-            orig_pat = s.get_surname()
-            s.set_surname(new_patronymic_value)
-            found = True
-            break
-
-    if not found:
-        surn_obj = Surname()
-        surn_obj.set_surname(new_patronymic_value)
-        surn_obj.set_origintype(NameOriginType.PATRONYMIC)
-        surn_obj.set_primary(False)
-        primary_name.add_surname(surn_obj)
-
-    return orig_pat
 
 
 class EastSlavicNameTools(PatronymicMixin, tool.Tool):
