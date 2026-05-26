@@ -8,7 +8,7 @@ Flags post-1918 records using archaic/informal possessive endings.
 
 from typing import Optional, Set, Tuple
 
-from engine.compat import Person
+from gramps.gen.lib import Person
 from engine.rule import BaseRule, RuleContext, ProposedChange
 from engine.constants import SEVERITY_WARNING, LOCALE_EAST_SLAVIC, REFORM_YEAR_1918
 from engine.morphology import generate_east_slavic_patronymic

@@ -6,6 +6,7 @@ Shared utility functions and mixins for patronymic inference and validation.
 Extracted from patronymics_tool.py and patronymics_gramplet.py to eliminate code duplication.
 """
 
+
 class PatronymicMixin:
     """
     Mixin class providing shared patronymic-related methods.

@@ -8,7 +8,7 @@ Flags if the grammatical gender of the patronymic suffix conflicts with person's
 
 from typing import Optional, Set, Tuple
 
-from engine.compat import Person
+from gramps.gen.lib import Person
 from engine.rule import BaseRule, RuleContext, ProposedChange
 from engine.constants import (
     SEVERITY_ERROR,

@@ -8,7 +8,7 @@ Flags pre-1918 records using modern formal endings and suggests possessive genit
 
 from typing import Optional, Set, Tuple
 
-from engine.compat import Person
+from gramps.gen.lib import Person
 from engine.rule import BaseRule, RuleContext, ProposedChange
 from engine.constants import (
     SEVERITY_WARNING,

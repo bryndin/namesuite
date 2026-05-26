@@ -6,8 +6,11 @@ Headless logic tests for the individual validation rules.
 """
 
 import unittest
+from tests.compat_mocks import mock_gramps, Person
 
-from engine.compat import Person
+# Initialize mocks before importing engine modules
+mock_gramps()
+
 from engine.rule import RuleContext
 from engine.constants import LOCALE_RU
 

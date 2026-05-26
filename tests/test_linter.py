@@ -8,142 +8,17 @@ for Gramps Patronymic Inference and Consistency checks.
 
 # ruff: noqa: E402
 
-import sys
 import unittest
 from unittest.mock import MagicMock
 
 # -------------------------------------------------------------------------
 # Headless Decoupling Mocks
-# Mock Gramps and GTK dependencies to ensure tests run 100% headlessly.
 # -------------------------------------------------------------------------
+from tests.compat_mocks import mock_gramps, Person
 
-# GTK & GLib mocks
-gi_mock = MagicMock()
-gi_repository_mock = MagicMock()
-gtk_mock = MagicMock()
-glib_mock = MagicMock()
+# Initialize mocks
+mock_gramps()
 
-gi_repository_mock.Gtk = gtk_mock
-gi_repository_mock.GLib = glib_mock
-
-sys.modules["gi"] = gi_mock
-sys.modules["gi.repository"] = gi_repository_mock
-sys.modules["gi.repository.Gtk"] = gtk_mock
-sys.modules["gi.repository.GLib"] = glib_mock
-
-# Create parent package mocks
-gramps_mock = MagicMock()
-gramps_gen_mock = MagicMock()
-gramps_gen_db_mock = MagicMock()
-gramps_gui_mock = MagicMock()
-gramps_gui_plug_mock = MagicMock()
-gramps_gui_dialog_mock = MagicMock()
-
-
-class DbTxn:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-
-
-gramps_gen_db_mock.DbTxn = DbTxn
-
-
-class MockToolBase:
-    def __init__(self, *args, **kwargs):
-        pass
-
-
-class MockToolOptionsBase:
-    def __init__(self, *args, **kwargs):
-        pass
-
-
-tool_module = MagicMock()
-tool_module.Tool = MockToolBase
-tool_module.ToolOptions = MockToolOptionsBase
-gramps_gui_plug_mock.tool = tool_module
-
-# Gramps localization mock
-gen_const = MagicMock()
-gen_const.GRAMPS_LOCALE.translation.gettext = lambda x: x
-
-
-class NameOriginType:
-    UNKNOWN = 0
-    CUSTOM = 1
-    PATRONYMIC = 5
-
-
-class Surname:
-    def __init__(self, surname_str="", origin=NameOriginType.UNKNOWN):
-        self._surname = surname_str
-        self._origin = origin
-
-    def get_surname(self) -> str:
-        return self._surname
-
-    def get_origintype(self):
-        return self._origin
-
-
-class Name:
-    def __init__(self):
-        self._first_name = ""
-        self._type = None
-        self._surnames = []
-
-    def get_first_name(self):
-        return self._first_name
-
-    def set_first_name(self, name_str):
-        self._first_name = name_str
-
-    def set_type(self, val):
-        self._type = val
-
-    def get_surname_list(self):
-        return self._surnames
-
-    def add_surname(self, surname):
-        self._surnames.append(surname)
-
-    def set_surname_list(self, list_):
-        self._surnames = list_
-
-
-class NameType:
-    UNKNOWN = -1
-    CUSTOM = 0
-    AKA = 1
-    BIRTH = 2
-    MARRIED = 3
-
-gen_lib = MagicMock()
-gen_lib.NameOriginType = NameOriginType
-gen_lib.Surname = Surname
-gen_lib.Name = Name
-gen_lib.NameType = NameType
-
-# Populate sys.modules for all required levels
-sys.modules["gramps"] = gramps_mock
-sys.modules["gramps.gen"] = gramps_gen_mock
-sys.modules["gramps.gen.const"] = gen_const
-sys.modules["gramps.gen.db"] = gramps_gen_db_mock
-sys.modules["gramps.gen.lib"] = gen_lib
-sys.modules["gramps.gui"] = gramps_gui_mock
-sys.modules["gramps.gui.plug"] = gramps_gui_plug_mock
-sys.modules["gramps.gui.dialog"] = gramps_gui_dialog_mock
-
-# Now we can safely import components
-from gramps.gen.lib import Surname, NameOriginType
-
-from engine.compat import Person
 from engine.linter import (
     PlaceCache,
     RuleEngine,
