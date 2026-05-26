@@ -289,3 +289,17 @@ class EastSlavicToolsPresenter:
     def rollback_run(self, exec_id: str):
         """Reverts a specific execution run."""
         return self.rollback_service.rollback_execution(exec_id)
+
+    def refresh_history(self):
+        """Refreshes the rollback log view."""
+        self.view.log_store.clear()
+        history = self.rollback_service.get_history()
+        for run in history:
+            self.view.log_store.append(
+                [
+                    run.get("execution_id"),
+                    run.get("timestamp"),
+                    len(run.get("changes", [])),
+                    run.get("plugin_id", "Inference"),
+                ]
+            )
