@@ -1,24 +1,80 @@
 from gramps.gen.plug import Gramplet
+from gramps.gen.types import PersonHandle
 
-from name_processor.drivers.db_wrapper import GrampsDbWrapper
-from name_processor.services.patronymic_inference import PatronymicInferenceService
-from name_processor.controllers.gramplet_controller import GrampletController
-from name_processor.ui.gramplet_view import GrampletView
+from name_processor.repositories.gramps_read import GrampsReadRepository
+from name_processor.repositories.gramps_write import GrampsWriteRepository
+from name_processor.services.patronymic import PatronymicInferenceService
+from name_processor.services.confidence_engine import ConfidenceEngine
+from name_processor.services.chronology import ChronologyService
+from name_processor.controllers.gramplet import GrampletController
+from name_processor.views.gramplet import GrampletView
+from name_processor.models.result import PatronymicInferenceStatus
 
 
 class PatronymicSuggestionGramplet(Gramplet):
-    def __init__(self, dbstate):
-        self.dbstate = dbstate
-        self.db_wrapper = GrampsDbWrapper(self.dbstate)
+    def __init__(self, gui, nav_group: int = 0) -> None:
+        # 1. Declare placeholders BEFORE running the parent constructor
+        self.view = None
+        self.controller = None
+        self.read_repo = None
+        self.write_repo = None
+        self.confidence_engine = None
+        self.chronology_service = None
+        self.patronymic_service = None
 
-        self.inference_service = PatronymicInferenceService(self.db_wrapper)
+        # 2. Run super constructor (which invokes init() and db_changed())
+        super().__init__(gui, nav_group)
+
+    def init(self) -> None:
+        """
+        Runs once when the Gramplet is registered.
+        Sets up the static visual interface.
+        """
         self.view = GrampletView(self)
-        self.controller = GrampletController(self.view, self.inference_service)
-        self.view.set_controller(self.controller)
-
-    def build_widget(self):
         self.view.init()
-        return self.view.get_root_widget()
 
-    def active_changed(self, handle):
-        self.controller.on_active_changed(handle)
+        # Swap default textview with custom layout (runs once)
+        self.gui.get_container_widget().remove(self.gui.textview)
+        self.gui.WIDGET = self.view.get_root_widget()
+        self.gui.get_container_widget().add(self.gui.WIDGET)
+        self.gui.WIDGET.show()
+
+    def db_changed(self) -> None:
+        """
+        Overridden to recreate the database-dependent dependency graph
+        whenever the database state changes (e.g., opened, switched, or closed).
+        """
+        if self.dbstate.is_open():
+            # Recreate repositories tied to the new database session
+            self.read_repo = GrampsReadRepository(self.dbstate)
+            self.write_repo = GrampsWriteRepository(self.dbstate)
+
+            # Recreate domain services
+            self.confidence_engine = ConfidenceEngine(self.read_repo)
+            self.chronology_service = ChronologyService(self.read_repo)
+            self.patronymic_service = PatronymicInferenceService(
+                self.read_repo, self.confidence_engine, self.chronology_service
+            )
+
+            # Recreate the controller and link it to the existing view
+            self.controller = GrampletController(
+                self.view,
+                self.patronymic_service,
+                self.read_repo,
+                self.write_repo,
+            )
+            if self.view:
+                self.view.set_controller(self.controller)
+        else:
+            # DB has closed - cleanly tear down backend dependencies
+            self.controller = None
+            if self.view:
+                self.view.set_controller(None)
+                self.view.show_status_message(
+                    PatronymicInferenceStatus.NO_ACTIVE_PERSON, apply_sensitive=False
+                )
+
+    def active_changed(self, handle: PersonHandle) -> None:
+        """Called automatically by Gramps when the active person changes."""
+        if self.dbstate.is_open() and self.controller:
+            self.controller.on_active_changed(handle)
