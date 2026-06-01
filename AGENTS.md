@@ -5,7 +5,7 @@
 This project uses a virtual environment located in `.venv`. Ensure it is activated before running commands:
 
 ```bash
-source .venv/bin/activate
+source ~/projects/gramps/gramps-patronymic-inference/.venv/bin/activate
 ```
 
 ## Running Tests
@@ -13,7 +13,7 @@ source .venv/bin/activate
 All tests are run using `pytest`:
 
 ```bash
-pytest
+source ~/projects/gramps/gramps-patronymic-inference/.venv/bin/activate && pytest
 ```
 
 **Note:** The `gramps` package is not available in this environment. Tests depend on modules that would normally be provided by the Gramps installation; therefore, any code importing from `gramps.*` must be thoroughly mocked within the test file's setup.
@@ -23,13 +23,27 @@ pytest
 This project uses `ruff` for linting:
 
 ```bash
-ruff check .
+source ~/projects/gramps/gramps-patronymic-inference/.venv/bin/activate && ruff check .
 ```
 
 To auto-fix linting issues:
 
 ```bash
-ruff check . --fix
+source ~/projects/gramps/gramps-patronymic-inference/.venv/bin/activate && ruff check . --fix
+```
+
+## Code Formatting
+
+After modifying Python files, format them using `ruff format`:
+
+```bash
+source ~/projects/gramps/gramps-patronymic-inference/.venv/bin/activate && ruff format <file_path>
+```
+
+For multiple files:
+
+```bash
+source ~/projects/gramps/gramps-patronymic-inference/.venv/bin/activate && ruff format <file1> <file2> ...
 ```
 
 ## Code Modification Rules

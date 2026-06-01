@@ -6,15 +6,17 @@ register(
     id="name_standardization_tool",
     name=_("Standardize Names"),
     category=TOOL_DBPROC,  # Standard database processing category
-    description=_("Suite for given name standardization and patronymic name inference."),
+    description=_(
+        "Suite for given name standardization and patronymic name inference."
+    ),
     version="1.0",
     gramps_target_version="6.0",
     status=STABLE,
     fname="names_tool.py",
     authors=["Dmitry Bryndin"],
     authors_email=["1129396+bryndin@users.noreply.github.com"],
-    toolclass="NameProcessorTools",
-    optionclass="NameProcessorToolsOptions",
+    toolclass="NamesTool",
+    optionclass="NamesToolOptions",
 )
 
 register(
