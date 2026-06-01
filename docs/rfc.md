@@ -1,4 +1,4 @@
-# RFC: Automated Patronymic Inference and Reversibility Framework for Gramps
+# RFC: Automated Patronymic Inference Framework for Gramps
 
 **Authors:** Senior Software Architect, Lead Genealogist, Gramps Addon Specialist, Localization Expert, Data Modeling Specialist
 **Status:** Under Active Review
@@ -8,7 +8,7 @@
 
 ## 1. Collaborative Panel Context
 
-This Request for Comments (RFC) outlines the technical and genealogical architecture for automated patronymic name inference within Gramps databases. It describes an extensible plugin-driven design, a strict historical-geographical heuristic pipeline, and a non-intrusive metadata storage framework.
+This Request for Comments (RFC) outlines the technical and genealogical architecture for automated patronymic name inference within Gramps databases. It describes an extensible plugin-driven design and a strict historical-geographical heuristic pipeline.
 
 To ensure the feature remains easy to maintain, safe for data integrity, and historically accurate, our panel has co-designed this specification:
 
@@ -16,7 +16,7 @@ To ensure the feature remains easy to maintain, safe for data integrity, and his
 - **Senior Genealogist (S.G.):** Directs the chronological naming rules, warns against historical anachronisms, and sets the validation parameters.
 - **Gramps Addon Specialist (G.S.):** Ensures integration can be completed without patching upstream core files by using decoupled Tool and Gramplet interfaces.
 - **Localization Expert (L.E.):** Focuses on orthography rules, soft/hard stem morphological rules, Cyrillic-to-Latin transliterations, and script detection rules.
-- **Data Modeling Specialist (D.M.):** Designs the centralized, offline transaction logging system, avoiding database pollution while guaranteeing clean rollback actions.
+- **Data Modeling Specialist (D.M.):** Ensures batch operations execute cleanly within standard database transactions to avoid database pollution.
 
 ---
 
@@ -54,9 +54,7 @@ graph TD
     A[Select Scope via Filter] --> B[Run Dry-Run Simulation]
     B --> C[Generate Interactive Preview Report]
     C -->|Exclude Candidates| B
-    C -->|Approved & Confirmed| D[Commit Mutations & Write Log]
-    D --> E[Execution Transaction Registered]
-    E -->|Rollback Requested| F[Revert Transaction via State Verification]
+    C -->|Approved & Confirmed| D[Commit Mutations]
 ```
 
 #### Workflow 1: The Batch Refinement Wizard (P1)
@@ -66,20 +64,19 @@ Delivered as a standard **Tool Addon** (`TOOL` plugin type) accessible via `Tool
 1. **Filter & Scope Definition:** The user selects target individuals using Gramps filters (e.g., a specific tag, date range, or geographical region).
 2. **Dry-Run Simulation:** The engine evaluates candidate name targets and generates a comprehensive, read-only preview report inside a GTK TreeView. No database writes are executed during this step.
 3. **Review and Execution:** The user reviews confidence scores, geographical clues, and structural explanations, with the ability to selectively deselect candidates before committing changes.
-4. **Logging and Serialization:** The tool writes the original and modified values to a localized, offline transaction log file, then performs a safe, batched transaction to mutate the primary names in the Gramps database.
+4. **Execution:** The tool performs a safe, batched transaction to mutate the primary names in the Gramps database.
 
 **Workflow 2: Inline Contextual Gramplet (P2)**
 Delivered as a **Sidebar/Bottombar Gramplet Addon** (`GRAMPLET` plugin type), active in both the _People_ and _Relationships_ views.
 
 1. **Active Listener Trigger:** The Gramplet connects to `active-person-changed`.
-2. **Contextual Evaluation:** The engine checks if the active person lacks a patronymic but has a linked father. This is most effective in the _Relationships view_, where the user can visually cross-reference the father's name on the same screen.
+2. **Contextual Evaluation:** The engine checks if the active person lacks a patronymic but has a linked father. This is most effective in the _Relationships_ view, where the user can visually cross-reference the father's name on the same screen.
 3. **Visual Recommendation:** A sidebar widget displays the inferred patronymic, confidence score, and a single-click **[Apply]** button.
 
 ### 1.4 Success Metrics
 
 - **Linguistic Accuracy:** $\ge 98\%$ correct suffix formations on verified historical noun-stems under testing.
 - **Clean Database State:** $100\%$ zero database schema changes or custom database-level notes created, preserving compatibility with GEDCOM validators.
-- **Strict Reversibility:** $100\%$ restoration of modified names to their original state during an undo execution, provided the user has not manually modified the generated name in the interim.
 
 ### 1.5 Non-Goals & Scope Limits
 
@@ -102,7 +99,6 @@ graph TD
     ESNP --> ME[Morphology Engine]
     ESNP --> HE[Heuristic Evaluator]
     ESNP --> WDB[Write to SQLite DB]
-    ESNP --> WLG[Append to Offline JSON Log]
 ```
 
 ### 2.1 The Extensible Inference Architecture
@@ -117,6 +113,7 @@ To avoid hardcoding rules for regional naming variants, the engine uses a decoup
   - `localized_name -> str`: Translated name for user configurations.
   - `check_applicability(person, db) -> float`: Evaluates regional/cultural suitability (0.0 to 1.0) based on records and lineage signals.
   - `generate_patronymic(father_name, is_male, target_year, pre_reform_script) -> List[InferenceCandidate]`: Translates a father's name into potential candidates based on target chronology and orthography settings.
+
 - **`InferenceEngineManager`**: Discovers registered plugins, estimates target reference years ($Y_{ref}$) using lineage traversal, scans candidate records, and handles batch database transactions.
 
 ---
@@ -132,58 +129,6 @@ The plugin extracts the base noun stem using a unified morphological parser (`Mo
 
 ---
 
-### 2.3 Centralized Private Transaction Log (No Database Pollution)
-
-To ensure the family tree database remains completely standard-compliant, we avoid writing custom tables, parameters, or "Provenance Notes" to the database. Instead, all changes are recorded in a centralized offline JSON log file in the user's private configuration directory:
-
-- **Linux/macOS:** `~/.gramps/reversibility_logs/<database_id>.json`
-- **Windows:** `%APPDATA%\gramps\reversibility_logs\<database_id>.json`
-
-#### Centralized JSON Schema
-
-```json
-{
-  "database_id": "my_family_tree_db_xyz",
-  "executions": [
-    {
-      "execution_id": "exec_20260520_210000",
-      "timestamp": "2026-05-20T21:00:00Z",
-      "plugin_id": "east_slavic_patronymic",
-      "changes": [
-        {
-          "person_handle": "e0a13c9e4b1",
-          "original_value": "",
-          "inferred_value": "Иванович",
-          "father_handle": "c8f9b14d2e0",
-          "reference_year": 1945,
-          "is_temporal_fallback": true,
-          "pre_reform": false,
-          "confidence_score": 0.20,
-          "applied_heuristics": [
-            "DATABASE_TEMPORAL_FALLBACK"
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-
----
-
-### 2.4 Reversibility Engine with State Verification
-
-Because we are working entirely within a standard decoupled addon, we cannot install database-level trigger listeners to monitor changes. Instead, we perform a **State Verification Match** during rollback operations:
-
-1. **Load Transaction Log:** The engine parses the database-specific JSON log for the target `execution_id`.
-2. **Retrieve Record & Verify:** For each recorded change, the engine fetches the target person from the active database.
-3. **Immutability Check:**
-   - If the current patronymic value in the database matches the `inferred_value` exactly, it is reverted back to the `original_value`.
-   - If the database value differs, it implies that the user has manually edited the record since the batch inference. The engine skips the rollback for this record to preserve the user's manual modifications.
-4. **Commit & Cleanup:** All validated rollbacks are executed inside a safe database transaction block (`DbTxn`), and the execution record is removed from the JSON log.
-
----
-
 ## Section 3: Heuristics & Morphology Specification
 
 ### 3.1 Reference Year Resolution Algorithm
@@ -192,9 +137,11 @@ To accurately identify the orthographic and naming standards in use, the engine 
 
 1. **Tier 1: Latest Recorded Event Year:** The engine scans all events attached to the person (Birth, Baptism, Marriage, Census, Death, Burial). It extracts the maximum (latest) valid year from this pool. Because death or late-census records naturally fall at the end of a life, this guarantees the most mature temporal anchor for that individual.
 2. **Tier 2: Generational Graph Traversal (BFS):** If the individual's record contains no dated events, the engine executes a Breadth-First Search (BFS) outward through the family graph up to a predefined depth limit (e.g., $d_{max} = 4$).
+
    - As it traverses, the engine tracks the **Generational Distance ($\Delta G$)** from the target individual to each discovered relative (e.g., Parents $\Delta G = +1$, Siblings $\Delta G = 0$, Children $\Delta G = -1$).
    - Upon encountering the closest graph depth that yields valid dated events, it collects all event years from all individuals at that specific depth.
    - The temporal anchor is estimated by normalizing and finding the median of these events: $Y_{ref} = \text{median}(Y_{relative} + (\Delta G \times 25))$.
+
 3. **Tier 3: Database-Wide Trend Fallback:** If Tier 1 and Tier 2 both exhaust the depth limit without establishing a temporal anchor, the engine resolves the era by calculating the median event year of the entire active Gramps database during initialization. If this global median year is $\ge 1918$, the engine defaults to the Modern Epoch strategy; if $< 1918$, it applies the Pre-1918 Epoch strategy. The resulting name is flagged as `is_temporal_fallback` with a low base confidence score (`0.20`).
 
 ---
@@ -220,6 +167,7 @@ Prior to the 1918 Russian Revolution and the 1918 orthographic reforms, individu
 - **Format Rules:**
   - _Male:_ Father's Name + Possessive Suffix (`-ov` / `-ev` / `-in`) $\rightarrow$ e.g., `Иван Сергеев` (or `Иванъ Сергіевъ` under pre-reform rules).
   - _Female:_ Father's Name + Possessive Suffix (`-ova` / `-eva` / `-ina`) $\rightarrow$ e.g., `Анна Сергеева` (or `Анна Сергіева`).
+
 - **Orthography Enforcement (Pre-1918 Cyrillic Script Check):**
   If pre-reform orthography is enabled, standard spelling rules are applied (e.g. replacement of `и` with `і` before vowels, terminal hard sign `ъ` appended to hard consonants, e.g., `Иванъ Петровъ`).
 
@@ -230,6 +178,7 @@ Following the fall of the Russian Empire and Soviet legal standardizations, form
 - **Format Rules:**
   - _Male:_ `-ович` (`-ovich`) / `-евич` (`-evich`) / `-ич` (`-ich`) $\rightarrow$ e.g., `Иван Сергеевич`.
   - _Female:_ `-овна` (`-ovna`) / `-евна` (`-evna`) / `-ична` (`-ichna`) $\rightarrow$ e.g., `Анна Сергеевна`.
+
 - **Orthography Enforcement:** Since this epoch falls entirely after the 1918 orthographic reform, pre-revolutionary spellings (such as `ъ` or `і`) are **never** generated.
 
 ---
@@ -316,13 +265,12 @@ We employ a comprehensive testing suite to verify morphological generation and d
 
 > [!IMPORTANT]
 > **Integration Testing Notice:**
-> Integration tests (`tests/test_integration.py`) are **not active** in our automated test runner. The upstream Gramps core library relies heavily on PyGObject (the `gi` package). PyGObject acts as a binding to the host system's native GObject/GTK environment, which requires installing native development headers globally. To avoid polluting the development host's global package namespace and because of the lack of a simple, robust method to isolate these native bindings within portable virtual environments, active verification is performed through clean unit tests (`tests/test_morphology.py`, `tests/test_logging.py`) and mock wrappers that do not load GTK dependencies.
+> Integration tests (`tests/test_integration.py`) are **not active** in our automated test runner. The upstream Gramps core library relies heavily on PyGObject (the `gi` package). PyGObject acts as a binding to the host system's native GObject/GTK environment, which requires installing native development headers globally. To avoid polluting the development host's global package namespace and because of the lack of a simple, robust method to isolate these native bindings within portable virtual environments, active verification is performed through clean unit tests (`tests/test_morphology.py`) and mock wrappers that do not load GTK dependencies.
 
 ### 4.1 Unit Testing Strategy
 
 - **Linguistic Correctness:** Validates soft, hard, sibilant, and contracted stems against a standardized dictionary of Russian male given names (`tests/male_names.txt`), verifying correct suffix generation for both male and female offspring.
 - **Epoch Chronology Verification:** Asserts that pre-1918 and post-1918 inputs correctly route to simple genitives and formal suffixes, respectively, and that pre-reform orthography is successfully applied under target epochs.
-- **Logging Correctness:** Simulates JSON transaction log generation, parsing, appending, and element removal without interacting with live databases.
 
 ### 4.2 Property-Based Testing (Hypothesis Framework)
 
@@ -338,7 +286,7 @@ To implement the database linting and consistency checks effectively, this modul
 
 The Linter will be integrated directly into the **Phase 1 Database Tool (P1)**, but strictly excluded from the **Phase 2 Sidebar Gramplet (P2)**.
 
-Because both generation and auditing are batch operations over the database, they belong in the `TOOL` plugin space. To prevent UI clutter, the main tool utilizes a tabbed architecture, separating the distinct workflows while running on a unified backend engine. This ensures both tools share the exact same morphological parser, exception dictionaries, and `DbTxn` offline transaction log.
+Because both generation and auditing are batch operations over the database, they belong in the `TOOL` plugin space. To prevent UI clutter, the main tool utilizes a tabbed architecture, separating the distinct workflows while running on a unified backend engine. This ensures both tools share the exact same morphological parser, exception dictionaries, and standard `DbTxn` handling.
 
 ### 5.2 UI Integration (The GTK Tool Window)
 
@@ -349,25 +297,22 @@ The main Tool Addon window uses a `Gtk.Notebook` (tabbed interface) to split the
 
 **Auditor Tab UI Layout:**
 
-1. **Filter Header:** Dropdowns to narrow the linting scope (e.g., "Entire Database", "Filter by Tag", "Filter by Place").
+1. **Filter Header:** Dropdowns to narrow the linting scope (e.g., "Entire Database", "Filter by Tag", "Selected Individuals").
 2. **Rule Configuration (Settings):** Instead of a complex, opaque priority weighting system, the UI provides a "Configure Rules" dialog where users can toggle specific rules (e.g., disable `WARN_MISSING_HARD_SIGN` entirely) before running the scan.
 3. **Audit Button & Progress Bar:** Triggers the read-only scan.
 4. **Results `Gtk.TreeView`:** A multi-column list displaying `Person ID | Current Value | Triggered Rule | Suggested Fix`. If multiple rules trigger on a single person, they appear as separate line items. The `Suggested Fix` column uses Pango markup to visually highlight the specific characters being modified.
-5. **Action Footer:** A global checkbox to "Select All Safe Corrections" and an `[Apply Selected to Transaction Log]` button.
+5. **Action Footer:** A global checkbox to "Select All Safe Corrections" and an `[Apply Selected]` button.
 
 ### 5.3 Validation Rules Engine & API
 
 To support future linguistic expansions and shifting historical borders, the auditing engine uses a decoupled Strategy-pattern design.
 
-#### 5.3.1 Evaluation Context & Session Caching
+#### 5.3.1 Evaluation Context
 
-Instead of passing discrete variables, the engine passes a frozen `Context` dataclass to each rule. Rules do not explicitly declare their dependencies; instead, heavy database operations (like geographical lookups) use lazy evaluation.
-
-To prevent stale data without the overhead of Gramps database event listeners, the `place_context` utilizes a **session-scoped LRU cache**. The cache is instantiated when the user clicks "Audit" and is completely destroyed when the batch run completes.
+Instead of passing discrete variables, the engine passes a frozen `Context` dataclass to each rule. Rules do not explicitly declare their dependencies; instead, they receive all available contextual data required for evaluation directly from the dispatcher.
 
 ```python
 from dataclasses import dataclass
-from typing import Optional
 
 @dataclass(frozen=True)
 class RuleContext:
@@ -377,12 +322,6 @@ class RuleContext:
     gramps_gender: int  # Gramps internal enum (Person.MALE, Person.FEMALE, Person.UNKNOWN)
     reference_year: int # Computed Y_ref
     locale: str         # ISO 639-1 (e.g., 'ru', 'uk', 'be')
-
-    @property
-    def place_context(self) -> list[str]:
-        # Lazy evaluation: fetches from the session-scoped LRU cache only when invoked by a rule
-        pass
-
 ```
 
 #### 5.3.2 Rule Interface (`BaseRule`)
@@ -397,7 +336,6 @@ from typing import Optional, Tuple, Set
 class ProposedChange:
     explanation: str
     suggested_string: str
-    diff_markup: str # For GTK Pango rendering
 
 class BaseRule(ABC):
     @property
@@ -430,7 +368,6 @@ class BaseRule(ABC):
         Returns a ProposedChange object if the rule fails.
         """
         pass
-
 ```
 
 #### 5.3.3 Engine Registry & Dispatcher
@@ -471,7 +408,7 @@ These rules are crucial for correcting initial temporal guesses. If a person's n
 
 ### 5.5 Resolution Workflow
 
-Once the user completes their review of the `TreeView` list, clicking **[Apply Selected Corrections]** routes the selected fixes through the existing Phase 1 architecture. This ensures that every correction is treated identically to a new inference: it is safely wrapped in a database transaction (`DbTxn`) and serialized to the immutable JSON transaction log, guaranteeing total reversibility.
+Once the user completes their review of the `TreeView` list, clicking **[Apply Selected]** routes the selected fixes through the existing Phase 1 architecture. This ensures that every correction is treated identically to a new inference: it is safely wrapped in a database transaction (`DbTxn`).
 
 ---
 
