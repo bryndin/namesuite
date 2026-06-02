@@ -336,10 +336,10 @@ class MorphologyService:
                 return patronymic[:-4] + "ова"
             elif patronymic.endswith("евна"):
                 return patronymic[:-4] + "ева"
+            elif patronymic.endswith("инична"):  # Moved BEFORE "ична"
+                return patronymic[:-6] + "ина"
             elif patronymic.endswith("ична"):
                 return patronymic[:-4] + "ина"
-            elif patronymic.endswith("инична"):
-                return patronymic[:-6] + "ина"
 
         return patronymic
 
