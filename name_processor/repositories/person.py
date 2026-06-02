@@ -1,5 +1,3 @@
-from typing import Optional, List
-
 from gramps.gen.lib import Person as GrampsPerson
 from gramps.gen.lib.nameorigintype import NameOriginType
 
@@ -40,7 +38,7 @@ class GrampsPersonProxy:
         )
 
     @property
-    def father_handle(self) -> Optional[str]:
+    def father_handle(self) -> str | None:
         # Traverses parent families where the subject is a child
         families = self._person.get_parent_family_handle_list()
         if not families:
@@ -49,7 +47,7 @@ class GrampsPersonProxy:
         return family.get_father_handle() if family else None
 
     @property
-    def mother_handle(self) -> Optional[str]:
+    def mother_handle(self) -> str | None:
         # Traverses parent families where the subject is a child
         families = self._person.get_parent_family_handle_list()
         if not families:
@@ -58,7 +56,7 @@ class GrampsPersonProxy:
         return family.get_mother_handle() if family else None
 
     @property
-    def children_handles(self) -> List[str]:
+    def children_handles(self) -> list[str]:
         # Traverses spouse/parent families to find children
         children = []
         for family_handle in self._person.get_family_handle_list():
@@ -70,7 +68,7 @@ class GrampsPersonProxy:
         return children
 
     @property
-    def siblings_handles(self) -> List[str]:
+    def siblings_handles(self) -> list[str]:
         # Traverses parent families to find other children
         siblings = []
         for family_handle in self._person.get_parent_family_handle_list():
@@ -83,7 +81,7 @@ class GrampsPersonProxy:
         return siblings
 
     @property
-    def event_years(self) -> List[int]:
+    def event_years(self) -> list[int]:
         # Moved date extraction logic from service to adapter layer
         years = []
         for ref in self._person.get_event_ref_list():
@@ -97,6 +95,6 @@ class GrampsPersonProxy:
         return years
 
     @property
-    def given_name(self) -> Optional[str]:
+    def given_name(self) -> str | None:
         primary_name = self._person.get_primary_name()
         return primary_name.get_first_name() if primary_name else None

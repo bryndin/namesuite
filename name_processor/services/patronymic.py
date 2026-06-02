@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from name_processor.models.result import (
     PatronymicInferenceStatus,
@@ -27,7 +27,7 @@ class PatronymicInferenceService:
         self.chronology_service = chronology_service
 
     def infer_patronymic(
-        self, person: PatronymicSubject, father: Optional[PatronymicSubject]
+        self, person: PatronymicSubject, father: PatronymicSubject | None
     ) -> Result:
         """
         Generate a patronymic candidate for a single person.

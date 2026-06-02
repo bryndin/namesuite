@@ -1,5 +1,5 @@
 import itertools
-from typing import Optional, Generator
+from collections.abc import Generator
 
 from name_processor.repositories.person import GrampsPersonProxy
 from name_processor.protocols.patronymic import PatronymicSubject
@@ -10,7 +10,7 @@ class GrampsReadRepository:
     def __init__(self, dbstate):
         self.db = dbstate.db
 
-    def get_person_proxy(self, handle: str) -> Optional[PatronymicSubject]:
+    def get_person_proxy(self, handle: str) -> PatronymicSubject | None:
         gramps_person = self.db.get_person_from_handle(handle)
         if not gramps_person:
             return None
@@ -18,11 +18,11 @@ class GrampsReadRepository:
         # Fulfills both PatronymicSubject and ChronologySubject protocols
         return GrampsPersonProxy(gramps_person, self.db)
 
-    def get_chronology_subject(self, handle: str) -> Optional[ChronologySubject]:
+    def get_chronology_subject(self, handle: str) -> ChronologySubject | None:
         """Provides chronology structural access."""
         return self.get_person_proxy(handle)
 
-    def get_database_median_year(self) -> Optional[int]:
+    def get_database_median_year(self) -> int | None:
         """
         Calculate the median year from all events in the database.
 
@@ -45,7 +45,7 @@ class GrampsReadRepository:
 
     def get_database_median_year_chunked(
         self, chunk_size: int = 500
-    ) -> Generator[None, None, Optional[int]]:
+    ) -> Generator[None, None, int | None]:
         """
         Generator that yields None while processing to keep the GUI responsive.
         Returns the final median year via StopIteration when finished.

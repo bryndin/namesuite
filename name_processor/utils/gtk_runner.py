@@ -1,10 +1,11 @@
-from typing import Generator, Callable, Any, Optional
+from collections.abc import Generator, Callable
+from typing import Any
 
 from gi.repository import GLib
 
 
 def run_in_idle_loop(
-    generator: Generator, on_complete: Optional[Callable[[Any], None]] = None
+    generator: Generator, on_complete: Callable[[Any], None] | None = None
 ) -> None:
     """
     Executes a chunked generator in the GTK idle loop to prevent UI freezing.

@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, List
 
 
 class Gender(Enum):
@@ -19,5 +18,5 @@ class Person:
     gender: Gender
     has_patronymic: bool
     display_name: str
-    father_handle: Optional[str] = None
-    alternate_first_names: List[str] = field(default_factory=list)
+    father_handle: str | None = None
+    alternate_first_names: list[str] = field(default_factory=list)

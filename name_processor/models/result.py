@@ -1,6 +1,5 @@
 from enum import Enum
 from dataclasses import dataclass
-from typing import Optional
 
 
 class PatronymicInferenceStatus(Enum):
@@ -17,19 +16,19 @@ class PatronymicInferenceStatus(Enum):
 
 @dataclass(frozen=True)
 class Context:
-    gramps_id: Optional[str] = None
-    display_name: Optional[str] = None
-    father_name: Optional[str] = None
-    reference_year: Optional[int] = None
-    inferred_patronymic: Optional[str] = None
-    confidence: Optional[float] = None
-    rule_source: Optional[str] = None
+    gramps_id: str | None = None
+    display_name: str | None = None
+    father_name: str | None = None
+    reference_year: int | None = None
+    inferred_patronymic: str | None = None
+    confidence: float | None = None
+    rule_source: str | None = None
 
 
 @dataclass
 class Result:
     """Result of inferring a patronymic for a single person."""
 
-    value: Optional[str] = None
-    context: Optional[Context] = None
-    status: Optional[PatronymicInferenceStatus] = None
+    value: str | None = None
+    context: Context | None = None
+    status: PatronymicInferenceStatus | None = None

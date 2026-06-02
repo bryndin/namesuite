@@ -1,4 +1,3 @@
-from typing import Optional, Set, List, Tuple
 from collections import deque
 from name_processor.protocols.chronology import ChronologySubject, ChronologyRepository
 
@@ -7,12 +6,12 @@ class ChronologyService:
     def __init__(self, read_repo: ChronologyRepository):
         self.repo = read_repo
         # Lazy load the database median year only if a fallback is required
-        self._db_median_year: Optional[int] = None
+        self._db_median_year: int | None = None
 
     def set_db_median_year(self, median_year: int) -> None:
         self._db_median_year = median_year
 
-    def estimate_reference_year(self, person_handle: str) -> Optional[int]:
+    def estimate_reference_year(self, person_handle: str) -> int | None:
         """
         Calculates the historical reference year (Y_ref) for a person.
         Falls back through three tiers:
@@ -37,14 +36,14 @@ class ChronologyService:
         # Tier 3: Database Fallback (Lazy loaded)
         return self._db_median_year
 
-    def _get_person_event_year(self, person: ChronologySubject) -> Optional[int]:
+    def _get_person_event_year(self, person: ChronologySubject) -> int | None:
         """Collects valid years from a person's events and averages them."""
         years = person.event_years
         if years:
             return int(sum(years) / len(years))
         return None
 
-    def _bfs_estimate_year(self, start_handle: str) -> Optional[int]:
+    def _bfs_estimate_year(self, start_handle: str) -> int | None:
         """
         Performs BFS graph search up to depth 4 to estimate birth year based on relatives.
         g = generational offset relative to the target person:
@@ -52,12 +51,12 @@ class ChronologyService:
           - Parent: g = 1 (Relative Birth + 25)
           - Child: g = -1 (Relative Birth - 25)
         """
-        visited: Set[str] = {start_handle}
+        visited: set[str] = {start_handle}
         # Using deque for O(1) pops in BFS
-        queue: deque[Tuple[str, int, int]] = deque(
+        queue: deque[tuple[str, int, int]] = deque(
             [(start_handle, 0, 0)]
         )  # (handle, gen_offset, depth)
-        candidates: List[int] = []
+        candidates: list[int] = []
 
         while queue:
             handle, gen_offset, depth = queue.popleft()

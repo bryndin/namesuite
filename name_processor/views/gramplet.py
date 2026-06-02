@@ -6,7 +6,7 @@ Contains all GTK components and i18n message handling.
 """
 
 from gi.repository import Gtk
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gui.dialog import ErrorDialog
@@ -76,7 +76,7 @@ class GrampletView:
         self.box.pack_start(self.apply_btn, False, False, 0)
         self.box.show_all()
 
-    def get_root_widget(self) -> Optional[Gtk.Box]:
+    def get_root_widget(self) -> Gtk.Box | None:
         """Returns the root GTK widget for Gramps to embed."""
         return self.box
 

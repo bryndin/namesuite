@@ -6,7 +6,6 @@ orthographic script preferences.
 """
 
 import re
-from typing import Optional, Tuple
 
 from name_processor.models.constants import LOCALE_RU, REFORM_YEAR_1918
 
@@ -88,7 +87,7 @@ class MorphologyService:
         return text
 
     @classmethod
-    def parse_stem(cls, father_name: str) -> Tuple[str, str, str]:
+    def parse_stem(cls, father_name: str) -> tuple[str, str, str]:
         """
         Analyzes the father's given name ending to classify the linguistic stem.
 
@@ -190,9 +189,9 @@ class MorphologyService:
         cls,
         father_name: str,
         is_male: bool,
-        year: Optional[int] = None,
+        year: int | None = None,
         pre_reform_script: bool = False,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Generates a patronymic name from the father's given name according to the
         specified epoch and orthography.
