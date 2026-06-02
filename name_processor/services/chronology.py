@@ -9,6 +9,9 @@ class ChronologyService:
         # Lazy load the database median year only if a fallback is required
         self._db_median_year: Optional[int] = None
 
+    def set_db_median_year(self, median_year: int) -> None:
+        self._db_median_year = median_year
+
     def estimate_reference_year(self, person_handle: str) -> Optional[int]:
         """
         Calculates the historical reference year (Y_ref) for a person.
@@ -32,9 +35,6 @@ class ChronologyService:
             return estimated_year
 
         # Tier 3: Database Fallback (Lazy loaded)
-        if self._db_median_year is None:
-            self._db_median_year = self.repo.get_database_median_year()
-
         return self._db_median_year
 
     def _get_person_event_year(self, person: ChronologySubject) -> Optional[int]:

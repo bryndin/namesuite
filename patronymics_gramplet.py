@@ -1,3 +1,7 @@
+from typing import Generator, Callable, Any, Optional
+
+from gi.repository import GLib
+
 from gramps.gen.plug import Gramplet
 from gramps.gen.types import PersonHandle
 
@@ -9,6 +13,7 @@ from name_processor.services.chronology import ChronologyService
 from name_processor.controllers.gramplet import GrampletController
 from name_processor.views.gramplet import GrampletView
 from name_processor.models.result import PatronymicInferenceStatus
+from name_processor.utils.gtk_runner import run_in_idle_loop
 
 
 class PatronymicSuggestionGramplet(Gramplet):
@@ -65,8 +70,12 @@ class PatronymicSuggestionGramplet(Gramplet):
             )
             if self.view:
                 self.view.set_controller(self.controller)
+
+            # Start the non-blocking database scan
+            self._start_background_median_calc()
         else:
             # DB has closed - cleanly tear down backend dependencies
+            self._median_generator = None
             self.controller = None
             if self.view:
                 self.view.set_controller(None)
@@ -78,3 +87,22 @@ class PatronymicSuggestionGramplet(Gramplet):
         """Called automatically by Gramps when the active person changes."""
         if self.dbstate.is_open() and self.controller:
             self.controller.on_active_changed(handle)
+
+    def _start_background_median_calc(self) -> None:
+        if not self.read_repo:
+            return
+
+        # 1. Get the generator from the repository
+        median_generator = self.read_repo.get_database_median_year_chunked()
+
+        # 2. Define what happens when it finishes
+        def on_median_calculated(median_year: int | None) -> None:
+            if median_year is not None and self.chronology_service:
+                self.chronology_service.set_db_median_year(median_year)
+
+                # Update UI if needed
+                if self.controller and self.controller.current_handle:
+                    self.controller.on_active_changed(self.controller.current_handle)
+
+        # 3. Hand it to the generic runner
+        run_in_idle_loop(median_generator, on_complete=on_median_calculated)
