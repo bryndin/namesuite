@@ -1,7 +1,3 @@
-from typing import Generator, Callable, Any, Optional
-
-from gi.repository import GLib
-
 from gramps.gen.plug import Gramplet
 from gramps.gen.types import PersonHandle
 
@@ -71,6 +67,14 @@ class PatronymicSuggestionGramplet(Gramplet):
             if self.view:
                 self.view.set_controller(self.controller)
 
+            # Connect to database modification signals
+            self._db_signal_handles = [
+                self.dbstate.db.connect("person-update", self._on_data_modified),
+                self.dbstate.db.connect("person-rebuild", self._on_data_modified),
+                self.dbstate.db.connect("family-update", self._on_data_modified),
+                self.dbstate.db.connect("family-rebuild", self._on_data_modified),
+            ]
+
             # Start the non-blocking database scan
             self._start_background_median_calc()
         else:
@@ -87,6 +91,29 @@ class PatronymicSuggestionGramplet(Gramplet):
         """Called automatically by Gramps when the active person changes."""
         if self.dbstate.is_open() and self.controller:
             self.controller.on_active_changed(handle)
+
+    def _disconnect_db_signals(self) -> None:
+        """Safely unhooks database signals to prevent memory leaks."""
+        if (
+            self._db_signal_handles
+            and self.dbstate
+            and getattr(self.dbstate, "db", None)
+        ):
+            for handle in self._db_signal_handles:
+                self.dbstate.db.disconnect(handle)
+        self._db_signal_handles = []
+
+    def _on_data_modified(self, *args, **kwargs) -> None:
+        """
+        Triggered by Gramps on Edit, Undo, or Redo.
+        Accepts *args because Gramps passes lists of modified handles.
+        """
+        if self.controller and self.controller.current_handle:
+            # We don't bother checking if the specific handle is in the args.
+            # If the father's name changed, the father's handle is in the args,
+            # but we still need to update the current person's patronymic.
+            # Simply re-triggering the controller is the safest approach.
+            self.controller.on_active_changed(self.controller.current_handle)
 
     def _start_background_median_calc(self) -> None:
         if not self.read_repo:
