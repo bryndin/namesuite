@@ -1,0 +1,108 @@
+from unittest.mock import Mock, patch
+import pytest
+
+from name_processor.repositories.gramps_read import GrampsReadRepository
+
+
+@pytest.fixture
+def mock_dbstate():
+    dbstate = Mock()
+    dbstate.db = Mock()
+    return dbstate
+
+
+@pytest.fixture
+def read_repo(mock_dbstate):
+    return GrampsReadRepository(mock_dbstate)
+
+
+def test_get_person_proxy_returns_none(read_repo, mock_dbstate):
+    mock_dbstate.db.get_person_from_handle.return_value = None
+    assert read_repo.get_person_proxy("bad_handle") is None
+
+
+@patch("name_processor.repositories.gramps_read.GrampsPersonProxy")
+def test_get_person_proxy_success(mock_proxy_class, read_repo, mock_dbstate):
+    mock_person = Mock()
+    mock_dbstate.db.get_person_from_handle.return_value = mock_person
+
+    result = read_repo.get_person_proxy("h123")
+
+    mock_proxy_class.assert_called_once_with(mock_person, mock_dbstate.db)
+    assert result == mock_proxy_class.return_value
+
+
+@patch("name_processor.repositories.gramps_read.GrampsPersonProxy")
+def test_get_chronology_subject_success(mock_proxy_class, read_repo, mock_dbstate):
+    mock_person = Mock()
+    mock_dbstate.db.get_person_from_handle.return_value = mock_person
+
+    result = read_repo.get_chronology_subject("h123")
+    assert result == mock_proxy_class.return_value
+
+
+def test_get_database_median_year_empty(read_repo, mock_dbstate):
+    mock_dbstate.db.get_event_handles.return_value = []
+    assert read_repo.get_database_median_year() is None
+
+
+def test_get_database_median_year_success(read_repo, mock_dbstate):
+    mock_dbstate.db.get_event_handles.return_value = ["e1", "e2", "e3", "e_invalid"]
+
+    def create_mock_event(year):
+        if year is None:
+            return None
+        event = Mock()
+        date_obj = Mock()
+        date_obj.is_empty.return_value = False
+        date_obj.get_year.return_value = year
+        event.get_date_object.return_value = date_obj
+        return event
+
+    mock_dbstate.db.get_event_from_handle.side_effect = [
+        create_mock_event(1900),
+        create_mock_event(1800),
+        create_mock_event(1950),
+        None,  # Invalid event
+    ]
+
+    # Sorted years: 1800, 1900, 1950. Median is index 1 (1900).
+    assert read_repo.get_database_median_year() == 1900
+
+
+def test_get_database_median_year_chunked(read_repo, mock_dbstate):
+    # Create 5 mock events
+    mock_dbstate.db.get_event_handles.return_value = ["e1", "e2", "e3", "e4", "e5"]
+
+    def create_mock_event(year):
+        event = Mock()
+        date_obj = Mock()
+        date_obj.is_empty.return_value = False
+        date_obj.get_year.return_value = year
+        event.get_date_object.return_value = date_obj
+        return event
+
+    # Unsorted years: 1910, 1950, 1890, 1900, 1920
+    # Sorted: 1890, 1900, 1910, 1920, 1950 -> Median: 1910
+    mock_dbstate.db.get_event_from_handle.side_effect = [
+        create_mock_event(1910),
+        create_mock_event(1950),
+        create_mock_event(1890),
+        create_mock_event(1900),
+        create_mock_event(1920),
+    ]
+
+    generator = read_repo.get_database_median_year_chunked(chunk_size=2)
+
+    # Chunk 1 (e1, e2)
+    assert next(generator) is None
+    # Chunk 2 (e3, e4)
+    assert next(generator) is None
+    # Chunk 3 (e5)
+    assert next(generator) is None
+
+    # Completion
+    with pytest.raises(StopIteration) as excinfo:
+        next(generator)
+
+    assert excinfo.value.value == 1910
