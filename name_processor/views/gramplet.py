@@ -49,12 +49,12 @@ class GrampletView:
 
     def __init__(self, gramplet) -> None:
         self.gramplet = gramplet
-        self.controller = None
-        self.box = None
-        self.label = None
-        self.apply_btn = None
+        self.controller: GrampletController | None = None
+        self.box: Gtk.Box | None = None
+        self.label: Gtk.Label | None = None
+        self.apply_btn: Gtk.Button | None = None
 
-    def set_controller(self, controller: "GrampletController") -> None:
+    def set_controller(self, controller: GrampletController | None) -> None:
         self.controller = controller
 
     def init(self) -> None:

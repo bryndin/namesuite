@@ -10,17 +10,18 @@ class GrampsReadRepository:
     def __init__(self, dbstate):
         self.db = dbstate.db
 
-    def get_person_proxy(self, handle: str) -> PatronymicSubject | None:
+    def _get_concrete_proxy(self, handle: str) -> GrampsPersonProxy | None:
+        """Private method returning the concrete implementation."""
         gramps_person = self.db.get_person_from_handle(handle)
         if not gramps_person:
             return None
-
-        # Fulfills both PatronymicSubject and ChronologySubject protocols
         return GrampsPersonProxy(gramps_person, self.db)
 
+    def get_person_proxy(self, handle: str) -> PatronymicSubject | None:
+        return self._get_concrete_proxy(handle)
+
     def get_chronology_subject(self, handle: str) -> ChronologySubject | None:
-        """Provides chronology structural access."""
-        return self.get_person_proxy(handle)
+        return self._get_concrete_proxy(handle)
 
     def get_database_median_year(self) -> int | None:
         """
@@ -43,9 +44,7 @@ class GrampsReadRepository:
             return years[len(years) // 2]
         return None
 
-    def get_database_median_year_chunked(
-        self, chunk_size: int = 500
-    ) -> Generator[None, None, int | None]:
+    def get_database_median_year_chunked(self, chunk_size: int = 500) -> Generator:
         """
         Generator that yields None while processing to keep the GUI responsive.
         Returns the final median year via StopIteration when finished.

@@ -15,13 +15,13 @@ from name_processor.utils.gtk_runner import run_in_idle_loop
 class PatronymicSuggestionGramplet(Gramplet):
     def __init__(self, gui, nav_group: int = 0) -> None:
         # 1. Declare placeholders BEFORE running the parent constructor
-        self.view = None
-        self.controller = None
-        self.read_repo = None
-        self.write_repo = None
-        self.confidence_engine = None
-        self.chronology_service = None
-        self.patronymic_service = None
+        self._view: GrampletView | None = None
+        self._controller: GrampletController | None = None
+        self._read_repo: GrampsReadRepository | None = None
+        self._write_repo: GrampsWriteRepository | None = None
+        self._confidence_engine: ConfidenceEngine | None = None
+        self._chronology_service: ChronologyService | None = None
+        self._patronymic_service: PatronymicInferenceService | None = None
 
         # 2. Run super constructor (which invokes init() and db_changed())
         super().__init__(gui, nav_group)
@@ -47,25 +47,25 @@ class PatronymicSuggestionGramplet(Gramplet):
         """
         if self.dbstate.is_open():
             # Recreate repositories tied to the new database session
-            self.read_repo = GrampsReadRepository(self.dbstate)
-            self.write_repo = GrampsWriteRepository(self.dbstate)
+            self._read_repo = GrampsReadRepository(self.dbstate)
+            self._write_repo = GrampsWriteRepository(self.dbstate)
 
             # Recreate domain services
-            self.confidence_engine = ConfidenceEngine(self.read_repo)
-            self.chronology_service = ChronologyService(self.read_repo)
-            self.patronymic_service = PatronymicInferenceService(
-                self.read_repo, self.confidence_engine, self.chronology_service
+            self._confidence_engine = ConfidenceEngine(self._read_repo)
+            self._chronology_service = ChronologyService(self._read_repo)
+            self._patronymic_service = PatronymicInferenceService(
+                self._read_repo, self._confidence_engine, self._chronology_service
             )
 
             # Recreate the controller and link it to the existing view
-            self.controller = GrampletController(
-                self.view,
-                self.patronymic_service,
-                self.read_repo,
-                self.write_repo,
+            self._controller = GrampletController(
+                self._view,
+                self._patronymic_service,
+                self._read_repo,
+                self._write_repo,
             )
-            if self.view:
-                self.view.set_controller(self.controller)
+            if self._view:
+                self._view.set_controller(self._controller)
 
             # Connect to database modification signals
             self._db_signal_handles = [
@@ -79,18 +79,17 @@ class PatronymicSuggestionGramplet(Gramplet):
             self._start_background_median_calc()
         else:
             # DB has closed - cleanly tear down backend dependencies
-            self._median_generator = None
-            self.controller = None
-            if self.view:
-                self.view.set_controller(None)
-                self.view.show_status_message(
+            self._controller = None
+            if self._view:
+                self._view.set_controller(None)
+                self._view.show_status_message(
                     PatronymicInferenceStatus.NO_ACTIVE_PERSON, apply_sensitive=False
                 )
 
     def active_changed(self, handle: PersonHandle) -> None:
         """Called automatically by Gramps when the active person changes."""
-        if self.dbstate.is_open() and self.controller:
-            self.controller.on_active_changed(handle)
+        if self.dbstate.is_open() and self._controller:
+            self._controller.on_active_changed(handle)
 
     def _disconnect_db_signals(self) -> None:
         """Safely unhooks database signals to prevent memory leaks."""
@@ -108,28 +107,28 @@ class PatronymicSuggestionGramplet(Gramplet):
         Triggered by Gramps on Edit, Undo, or Redo.
         Accepts *args because Gramps passes lists of modified handles.
         """
-        if self.controller and self.controller.current_handle:
+        if self._controller and self._controller.current_handle:
             # We don't bother checking if the specific handle is in the args.
             # If the father's name changed, the father's handle is in the args,
             # but we still need to update the current person's patronymic.
             # Simply re-triggering the controller is the safest approach.
-            self.controller.on_active_changed(self.controller.current_handle)
+            self._controller.on_active_changed(self._controller.current_handle)
 
     def _start_background_median_calc(self) -> None:
-        if not self.read_repo:
+        if not self._read_repo:
             return
 
         # 1. Get the generator from the repository
-        median_generator = self.read_repo.get_database_median_year_chunked()
+        median_generator = self._read_repo.get_database_median_year_chunked()
 
         # 2. Define what happens when it finishes
         def on_median_calculated(median_year: int | None) -> None:
-            if median_year is not None and self.chronology_service:
-                self.chronology_service.set_db_median_year(median_year)
+            if median_year is not None and self._chronology_service:
+                self._chronology_service.set_db_median_year(median_year)
 
                 # Update UI if needed
-                if self.controller and self.controller.current_handle:
-                    self.controller.on_active_changed(self.controller.current_handle)
+                if self._controller and self._controller.current_handle:
+                    self._controller.on_active_changed(self._controller.current_handle)
 
         # 3. Hand it to the generic runner
         run_in_idle_loop(median_generator, on_complete=on_median_calculated)
