@@ -19,7 +19,7 @@ class AltNamesService:
         preserved_name = Name(source=primary_name)
 
         # Reclassify the preserved name to distinguish it from the new primary
-        preserved_name.set_type(NameType(NameType.ALSO_KNOWN_AS))
+        preserved_name.set_type(NameType(NameType.AKA))
 
         gramps_person.add_alternate_name(preserved_name)
 

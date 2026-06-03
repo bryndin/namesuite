@@ -41,7 +41,7 @@ class NamesTool(tool.Tool):
         )
 
         # 3. Presentation Layer
-        self._view = ToolWindow(self)
+        self._view = ToolWindow(None)
         self._controller = ToolController(
             tool_instance=self,  # <--- Pass the tool itself
             view=self._view,

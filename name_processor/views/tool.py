@@ -241,7 +241,7 @@ class ToolWindow:
         scroll_win.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scan_box.pack_start(scroll_win, True, True, 0)
 
-        self.list_store = Gtk.ListStore(bool, str, str, int, str, str, str, str, str)
+        self.list_store = Gtk.ListStore(bool, str, str, str, str, str, str, str, str)
         self.tree_view = Gtk.TreeView(model=self.list_store)
         scroll_win.add(self.tree_view)
         self.setup_inference_columns()
@@ -490,17 +490,17 @@ class ToolWindow:
 
     def _append_rename_proposal_to_store(self, prop) -> None:
         """Append a given name rename proposal to the given store."""
-        markup = f'<span weight="bold" foreground="blue">{pango_escape(prop.proposed_name)}</span>'
+        markup = f'<span weight="bold" foreground="blue">{pango_escape(prop.proposed_given_name)}</span>'
         self.given_store.append(
             [
                 True,  # GIVEN_COL_CHECKBOX
                 prop.gramps_id,  # GIVEN_COL_GRAMPS_ID
                 prop.display_name,  # GIVEN_COL_DISPLAY_NAME
-                prop.current_name,  # GIVEN_COL_CURRENT
+                prop.original_given_name,  # GIVEN_COL_CURRENT
                 markup,  # GIVEN_COL_PROPOSED
                 _(prop.alt_action),  # GIVEN_COL_ALT_ACTION
-                prop.person_handle,  # GIVEN_COL_HANDLE
-                prop.proposed_name,  # GIVEN_COL_PROPOSED_RAW
+                prop.handle,  # GIVEN_COL_HANDLE
+                prop.proposed_given_name,  # GIVEN_COL_PROPOSED_RAW
             ]
         )
 
