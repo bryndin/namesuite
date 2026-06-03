@@ -1,15 +1,15 @@
 from gramps.gen.plug import Gramplet
 from gramps.gen.types import PersonHandle
 
+from name_processor.controllers.gramplet import GrampletController
+from name_processor.models.result import PatronymicInferenceStatus
 from name_processor.repositories.gramps_read import GrampsReadRepository
 from name_processor.repositories.gramps_write import GrampsWriteRepository
 from name_processor.services.patronymic import PatronymicInferenceService
 from name_processor.services.confidence_engine import ConfidenceEngine
 from name_processor.services.chronology import ChronologyService
-from name_processor.controllers.gramplet import GrampletController
-from name_processor.views.gramplet import GrampletView
-from name_processor.models.result import PatronymicInferenceStatus
 from name_processor.utils.gtk_runner import run_in_idle_loop
+from name_processor.views.gramplet import GrampletView
 
 
 class PatronymicSuggestionGramplet(Gramplet):

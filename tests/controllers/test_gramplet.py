@@ -75,14 +75,14 @@ def test_on_active_changed_success(controller, mocks):
     mocks["patronymic_service"].infer_patronymic.assert_called_once_with(
         mock_person, mock_father
     )
-    assert controller.suggested_patronymic == "Ivanovich"
+    assert controller._suggested_patronymic == "Ivanovich"
     mocks["view"].show_suggestion.assert_called_once_with("Ivanovich", "Ivan")
 
 
 def test_on_apply_clicked_does_nothing_if_no_suggestion(controller, mocks):
     # Arrange
     controller.current_handle = "h123"
-    controller.suggested_patronymic = None
+    controller._suggested_patronymic = None
 
     # Act
     controller.on_apply_clicked()
@@ -94,7 +94,7 @@ def test_on_apply_clicked_does_nothing_if_no_suggestion(controller, mocks):
 def test_on_apply_clicked_success(controller, mocks):
     # Arrange
     controller.current_handle = "h123"
-    controller.suggested_patronymic = "Ivanovich"
+    controller._suggested_patronymic = "Ivanovich"
 
     # Act
     controller.on_apply_clicked()

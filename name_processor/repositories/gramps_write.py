@@ -41,7 +41,7 @@ def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:
 
 class GrampsWriteRepository:
     def __init__(self, dbstate):
-        self.db = dbstate.db
+        self._db = dbstate.db
 
     def update_given_names(self, names: dict[str, str]):
         """
@@ -50,9 +50,9 @@ class GrampsWriteRepository:
         Args:
             names: A dictionary mapping person handles to new given names
         """
-        with DbTxn("Update Given Names", self.db) as t:
+        with DbTxn("Update Given Names", self._db) as t:
             for handle, name in names.items():
-                person = self.db.get_person_from_handle(handle)
+                person = self._db.get_person_from_handle(handle)
                 if not person:
                     continue
 
@@ -60,7 +60,7 @@ class GrampsWriteRepository:
                 if not primary_name:
                     continue
                 primary_name.set_first_name(name)
-                self.db.commit_person(person, t)
+                self._db.commit_person(person, t)
 
     def update_patronymic_names(self, patronymics: dict[str, str]):
         """
@@ -69,13 +69,13 @@ class GrampsWriteRepository:
         Args:
             patronymics: A dictionary mapping person handles to new patronymics
         """
-        with DbTxn("Update Patronymic Names", self.db) as t:
+        with DbTxn("Update Patronymic Names", self._db) as t:
             for handle, patronymic in patronymics.items():
-                person = self.db.get_person_from_handle(handle)
+                person = self._db.get_person_from_handle(handle)
                 if not person:
                     continue
                 primary_name = person.get_primary_name()
                 if not primary_name:
                     continue
                 update_or_add_patronymic(primary_name, patronymic)
-                self.db.commit_person(person, t)
+                self._db.commit_person(person, t)

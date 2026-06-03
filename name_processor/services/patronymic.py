@@ -22,9 +22,9 @@ class PatronymicInferenceService:
         confidence_engine: "ConfidenceEngine",
         chronology_service: "ChronologyService",
     ):
-        self.read_repo = read_repo
-        self.confidence_engine = confidence_engine
-        self.chronology_service = chronology_service
+        self._read_repo = read_repo
+        self._confidence_engine = confidence_engine
+        self._chronology_service = chronology_service
 
     def infer_patronymic(
         self, person: PatronymicSubject, father: PatronymicSubject | None
@@ -48,8 +48,8 @@ class PatronymicInferenceService:
         if not father.given_name:
             return Result(status=PatronymicInferenceStatus.FATHER_NO_NAME)
 
-        ref_year = self.chronology_service.estimate_reference_year(person.handle)
-        # confidence = self.confidence_engine.calculate(
+        ref_year = self._chronology_service.estimate_reference_year(person.handle)
+        # confidence = self._confidence_engine.calculate(
         #     person.handle, person.display_name
         # )
 

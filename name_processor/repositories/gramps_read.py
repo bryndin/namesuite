@@ -8,14 +8,14 @@ from name_processor.protocols.chronology import ChronologySubject
 
 class GrampsReadRepository:
     def __init__(self, dbstate):
-        self.db = dbstate.db
+        self._db = dbstate.db
 
     def _get_concrete_proxy(self, handle: str) -> GrampsPersonProxy | None:
         """Private method returning the concrete implementation."""
-        gramps_person = self.db.get_person_from_handle(handle)
+        gramps_person = self._db.get_person_from_handle(handle)
         if not gramps_person:
             return None
-        return GrampsPersonProxy(gramps_person, self.db)
+        return GrampsPersonProxy(gramps_person, self._db)
 
     def get_person_proxy(self, handle: str) -> PatronymicSubject | None:
         return self._get_concrete_proxy(handle)
@@ -30,8 +30,8 @@ class GrampsReadRepository:
         :returns: The median year, or None if no events with valid years exist.
         """
         years = []
-        for handle in self.db.get_event_handles():
-            event = self.db.get_event_from_handle(handle)
+        for handle in self._db.get_event_handles():
+            event = self._db.get_event_from_handle(handle)
             if event:
                 date_obj = event.get_date_object()
                 if date_obj and not date_obj.is_empty():
@@ -50,7 +50,7 @@ class GrampsReadRepository:
         Returns the final median year via StopIteration when finished.
         """
         years = []
-        handles = self.db.get_event_handles()
+        handles = self._db.get_event_handles()
         handle_iter = iter(handles)
 
         while True:
@@ -59,7 +59,7 @@ class GrampsReadRepository:
                 break
 
             for handle in chunk:
-                event = self.db.get_event_from_handle(handle)
+                event = self._db.get_event_from_handle(handle)
                 if event:
                     date_obj = event.get_date_object()
                     if date_obj and not date_obj.is_empty():

@@ -49,55 +49,55 @@ class GrampletView:
 
     def __init__(self, gramplet) -> None:
         self.gramplet = gramplet
-        self.controller: GrampletController | None = None
-        self.box: Gtk.Box | None = None
-        self.label: Gtk.Label | None = None
-        self.apply_btn: Gtk.Button | None = None
+        self._controller: GrampletController | None = None
+        self._box: Gtk.Box | None = None
+        self._label: Gtk.Label | None = None
+        self._apply_btn: Gtk.Button | None = None
 
     def set_controller(self, controller: GrampletController | None) -> None:
-        self.controller = controller
+        self._controller = controller
 
     def init(self) -> None:
         """Sets up the GTK user interface panel."""
         # Build UI Box
-        self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        self.box.set_border_width(8)
+        self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self._box.set_border_width(8)
 
         # Display Message
-        self.label = Gtk.Label(label=self.MESSAGES["INITIAL"])
-        self.label.set_xalign(0.0)
-        self.label.set_line_wrap(True)
-        self.box.pack_start(self.label, True, True, 0)
+        self._label = Gtk.Label(label=self.MESSAGES["INITIAL"])
+        self._label.set_xalign(0.0)
+        self._label.set_line_wrap(True)
+        self._box.pack_start(self._label, True, True, 0)
 
         # Action Trigger
-        self.apply_btn = Gtk.Button(label=_("Apply Suggestion"))
-        self.apply_btn.set_sensitive(False)
-        self.apply_btn.connect("clicked", self._on_apply_clicked)
-        self.box.pack_start(self.apply_btn, False, False, 0)
-        self.box.show_all()
+        self._apply_btn = Gtk.Button(label=_("Apply Suggestion"))
+        self._apply_btn.set_sensitive(False)
+        self._apply_btn.connect("clicked", self._on_apply_clicked)
+        self._box.pack_start(self._apply_btn, False, False, 0)
+        self._box.show_all()
 
     def get_root_widget(self) -> Gtk.Box | None:
         """Returns the root GTK widget for Gramps to embed."""
-        return self.box
+        return self._box
 
     def _on_apply_clicked(self, widget: Gtk.Button) -> None:
         """Handle apply button click event."""
-        if self.controller:
-            self.controller.on_apply_clicked()
+        if self._controller:
+            self._controller.on_apply_clicked()
 
     def show_status_message(
         self, message_key: PatronymicInferenceStatus, apply_sensitive: bool = False
     ):
         """Display a status message from the MESSAGES dictionary."""
-        self.label.set_text(self.MESSAGES.get(message_key, ""))
-        self.apply_btn.set_sensitive(apply_sensitive)
+        self._label.set_text(self.MESSAGES.get(message_key, ""))
+        self._apply_btn.set_sensitive(apply_sensitive)
 
     def show_suggestion(self, patronymic: str, father_name: str):
         """Display a patronymic suggestion with the father's name."""
-        self.label.set_text(
+        self._label.set_text(
             self.MESSAGES["SUGGESTION_TEMPLATE"].format(patronymic, father_name)
         )
-        self.apply_btn.set_sensitive(True)
+        self._apply_btn.set_sensitive(True)
 
     def display_error(self, title_key: str, message: str):
         """Display an error dialog."""

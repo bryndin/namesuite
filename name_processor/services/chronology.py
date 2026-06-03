@@ -4,7 +4,7 @@ from name_processor.protocols.chronology import ChronologySubject, ChronologyRep
 
 class ChronologyService:
     def __init__(self, read_repo: ChronologyRepository):
-        self.repo = read_repo
+        self._repo: ChronologyRepository = read_repo
         # Lazy load the database median year only if a fallback is required
         self._db_median_year: int | None = None
 
@@ -19,7 +19,7 @@ class ChronologyService:
         2. Generational BFS graph traversal (up to depth 4).
         3. Database-wide median fallback.
         """
-        person = self.repo.get_chronology_subject(person_handle)
+        person = self._repo.get_chronology_subject(person_handle)
         if not person:
             return None
 
@@ -64,7 +64,7 @@ class ChronologyService:
                 continue
 
             # Fetch subject once per iteration
-            subject = self.repo.get_chronology_subject(handle)
+            subject = self._repo.get_chronology_subject(handle)
             if not subject:
                 continue
 
