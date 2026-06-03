@@ -131,10 +131,11 @@ class ToolController:
         def on_complete(found_any: bool) -> None:
             self._view.update_given_apply_button()
             if not found_any:
-                from gramps.gui.dialog import OkDialog
+                self._view.show_no_results_message()
 
-                OkDialog(
-                    "No Results", "No matching given names found.", self._view.window
+            if not found_any:
+                self._view.show_ok_dialog(
+                    "No Results", "No matching given names found."
                 )
 
         run_in_idle_loop(scan_generator(), on_complete)
@@ -152,17 +153,18 @@ class ToolController:
             if h in self._standardize_candidates
         ]
 
-        with self._write_repo.transaction("Batch Given Name Standardization") as trans:
+        with self._write_repo.transaction("Batch Given Name Standardization") as t:
             for change in approved_changes:
-                gramps_person = self._read_repo.get_raw_person(change.handle)
-                if not gramps_person:
+                person = self._read_repo.get_raw_person(change.handle)
+                if not person:
                     continue
-                if preserve_alt:
-                    self._alt_names_service.preserve_primary_name(gramps_person)
 
-                primary_name = gramps_person.get_primary_name()
-                primary_name.set_first_name(change.proposed_given_name)
-                self._write_repo.commit_person(trans, gramps_person)
+                if preserve_alt:
+                    self._alt_names_service.preserve_primary_name(person)
+
+                self._write_repo.apply_first_name_correction(
+                    t, person, change.proposed_given_name
+                )
 
         return True
 
@@ -219,9 +221,7 @@ class ToolController:
 
         run_in_idle_loop(scan_generator(), on_complete=self._view.on_scan_complete)
 
-    def apply_checked_inferences(self, pre_reform: bool) -> bool:
-        from name_processor.repositories.gramps_write import update_or_add_patronymic
-
+    def apply_checked_inferences(self) -> bool:
         handles = self._view.get_checked_inference_handles()
         if not handles:
             return False
@@ -232,13 +232,9 @@ class ToolController:
                 if not candidate:
                     continue
 
-                person = self._read_repo.get_raw_person(handle)
-                if not person:
-                    continue
-
-                primary_name = person.get_primary_name()
-                update_or_add_patronymic(primary_name, candidate.inferred_patronymic)
-                self._write_repo.commit_person(trans, person)
+                self._write_repo.apply_patronymic_correction(
+                    trans, handle, candidate.inferred_patronymic
+                )
 
         return True
 
@@ -280,24 +276,18 @@ class ToolController:
         )
 
     def apply_checked_audit_fixes(self, use_pre_reform: bool) -> bool:
-        from name_processor.repositories.gramps_write import update_or_add_patronymic
-
         handles = self._view.get_checked_audit_handles()
         if not handles:
             return False
 
-        with self._write_repo.transaction("Batch Patronymic Audit Fixes") as trans:
+        with self._write_repo.transaction("Batch Patronymic Audit Fixes") as t:
             for handle in handles:
                 issue = self._audit_candidates.get(handle)
                 if not issue:
                     continue
 
-                person = self._read_repo.get_raw_person(handle)
-                if not person:
-                    continue
-
-                primary_name = person.get_primary_name()
-                update_or_add_patronymic(primary_name, issue.suggested_fix)
-                self._write_repo.commit_person(trans, person)
+                self._write_repo.apply_patronymic_correction(
+                    t, handle, issue.suggested_fix
+                )
 
         return True

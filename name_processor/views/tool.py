@@ -345,11 +345,7 @@ class ToolWindow:
 
         # Validate source input
         if not source:
-            OkDialog(
-                _("Invalid Input"),
-                _("Source name cannot be empty."),
-                self.window,
-            )
+            self.show_ok_dialog(_("Invalid Input"), _("Source name cannot be empty."))
             return
 
         # Validate regex pattern when Regular Expression match mode is selected
@@ -357,26 +353,35 @@ class ToolWindow:
             try:
                 re.compile(source)
             except re.error:
-                OkDialog(
+                self.show_ok_dialog(
                     _("Invalid Input"),
                     _("Invalid regular expression pattern in source name."),
-                    self.window,
+                )
+                return
+            return
+
+        # Validate regex pattern when Regular Expression match mode is selected
+        if match_type == 2:  # Regular Expression
+            try:
+                re.compile(source)
+            except re.error:
+                self.show_ok_dialog(
+                    _("Invalid Input"),
+                    _("Invalid regular expression pattern in source name."),
                 )
                 return
 
         # Validate target input for non-empty when provided
         if target and not target.strip():
-            OkDialog(
-                _("Invalid Input"),
-                _("Target name cannot contain only whitespace."),
-                self.window,
+            self.show_ok_dialog(
+                _("Invalid Input"), _("Target name cannot contain only whitespace.")
             )
             return
 
         has_results = self.controller.run_standardize_scan(source, target, match_type)
         self.update_given_apply_button()
         if not has_results:
-            OkDialog(_("No Results"), _("No matching given names found."), self.window)
+            self.show_ok_dialog(_("No Results"), _("No matching given names found."))
 
     def on_given_apply_clicked(self, widget) -> None:
         if self.controller.apply_checked_standardizations():
@@ -392,15 +397,13 @@ class ToolWindow:
         """Called by controller when inference scan completes."""
         self.update_action_buttons()
         if total_found == 0:
-            OkDialog(
+            self.show_ok_dialog(
                 _("No Results"),
                 _("No candidates for patronymic inference found."),
-                self.window,
             )
 
     def on_apply_clicked(self, widget) -> None:
-        pre_reform = self.script_check.get_active()
-        if self.controller.apply_checked_inferences(pre_reform):
+        if self.controller.apply_checked_inferences():
             self.list_store.clear()
             self.update_action_buttons()
 
@@ -520,7 +523,7 @@ class ToolWindow:
         self.audit_select_all.set_active(True)
         self.update_audit_apply_button()
         if total_found == 0:
-            OkDialog(_("No Results"), _("No issues found."), self.window)
+            self.show_ok_dialog(_("No Results"), _("No issues found."))
 
     def update_action_buttons(self) -> None:
         self.scan_btn.set_sensitive(True)
@@ -782,3 +785,6 @@ class ToolWindow:
             for row in self.audit_store
             if row[self.AUDIT_COL_CHECKBOX]
         }
+
+    def show_ok_dialog(self, title: str, message: str) -> None:
+        OkDialog(title, message, self.window)
