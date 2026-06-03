@@ -260,6 +260,14 @@ class ToolController:
         def generator():
             # View idle loop natively calls next(generator) chunk by chunk
             for person_proxy in self._read_repo.iter_all_person_proxies():
+                # Apply scope filter
+                if audit_scope == AuditScope.MALES_ONLY:
+                    if person_proxy.gender.name != "MALE":
+                        continue
+                elif audit_scope == AuditScope.FEMALES_ONLY:
+                    if person_proxy.gender.name != "FEMALE":
+                        continue
+
                 issues = self._audit_service.audit_person(
                     person_proxy, enabled_rules_set, use_pre_reform
                 )
