@@ -5,6 +5,7 @@ Contains all GTK widgets, layout structures, and column definitions.
 """
 
 import logging
+from typing import TYPE_CHECKING
 import re
 
 from gi.repository import GLib, Gtk
@@ -15,6 +16,10 @@ from gramps.gen.errors import WindowActiveError
 
 from name_processor.models.audit import AuditScope
 from name_processor.views.constants import IDLE_CHUNK_AUDIT
+
+if TYPE_CHECKING:
+    from name_processor.controllers.tool import ToolController
+    from name_processor.models.audit import AuditIssue
 
 logger = logging.getLogger(__name__)
 
@@ -88,16 +93,16 @@ class ToolWindow:
     def __init__(self, callback=None) -> None:
         """Initializes the GTK Window."""
         self.callback = callback
-        self.controller = None
+        self.controller: "ToolController" = None
 
         # Local view state (UI specific)
-        self.enabled_rules = {}
-        self.audit_issues = []
+        self.enabled_rules: dict[str, bool] = {}
+        self.audit_issues: list["AuditIssue"] = []
 
         # Build GTK Window UI
         self.build_window()
 
-    def set_controller(self, controller) -> None:
+    def set_controller(self, controller: "ToolController") -> None:
         """Sets the controller instance and runs initial loads."""
         self.controller = controller
         self.enabled_rules = {

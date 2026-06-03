@@ -4,8 +4,6 @@ Rule: WarnModernSuffixArchaicEra
 Flags pre-1918 records using modern formal endings and suggests possessive genitives.
 """
 
-from typing import Optional, Set, Tuple
-
 from name_processor.services.audit_rules.base import BaseRule
 from name_processor.models.audit import RuleContext, ProposedChange
 from name_processor.models.audit import Gender
@@ -27,16 +25,14 @@ class WarnModernSuffixArchaicEra(BaseRule):
         return SEVERITY_WARNING
 
     @property
-    def supported_locales(self) -> Set[str]:
+    def supported_locales(self) -> set[str]:
         return LOCALE_EAST_SLAVIC
 
     @property
-    def active_era(self) -> Tuple[Optional[int], Optional[int]]:
+    def active_era(self) -> tuple[int | None, int | None]:
         return (None, 1917)
 
-    def evaluate(
-        self, ctx: RuleContext, use_pre_reform: bool
-    ) -> Optional[ProposedChange]:
+    def evaluate(self, ctx: RuleContext, use_pre_reform: bool) -> ProposedChange | None:
         if not ctx.current_patronymic or (
             ctx.reference_year is not None and ctx.reference_year >= REFORM_YEAR_1918
         ):

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Set, Tuple
 from name_processor.models.audit import RuleContext, ProposedChange
 
 
@@ -18,18 +17,16 @@ class BaseRule(ABC):
 
     @property
     @abstractmethod
-    def supported_locales(self) -> Set[str]:
+    def supported_locales(self) -> set[str]:
         pass
 
     @property
     @abstractmethod
-    def active_era(self) -> Tuple[Optional[int], Optional[int]]:
+    def active_era(self) -> tuple[int | None, int | None]:
         pass
 
     @abstractmethod
-    def evaluate(
-        self, ctx: RuleContext, use_pre_reform: bool
-    ) -> Optional[ProposedChange]:
+    def evaluate(self, ctx: RuleContext, use_pre_reform: bool) -> ProposedChange | None:
         """
         Evaluates context. Returns None if rule passes, or a ProposedChange
         if consistency issues are detected.

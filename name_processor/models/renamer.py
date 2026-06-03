@@ -1,9 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import re
+import re
 
 
 class MatchMode(Enum):
@@ -19,7 +16,7 @@ class RuleConfig:
     mode: MatchMode
     source: str
     target: str
-    pattern: Optional["re.Pattern"] = None
+    pattern: re.Pattern | None = None
     is_valid: bool = True
     error_msg: str = ""
 

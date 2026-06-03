@@ -1,13 +1,12 @@
-from typing import Optional, List, Generator
+from collections.abc import Generator
 import itertools
 
 from name_processor.repositories.person import GrampsPersonProxy
-from name_processor.protocols.patronymic import PatronymicSubject
 from name_processor.protocols.chronology import ChronologySubject
 
 
 class GrampsReadRepository:
-    def __init__(self, dbstate):
+    def __init__(self, dbstate: object) -> None:
         self.db = dbstate.db
         self._cached_median_year = None
 
@@ -18,7 +17,7 @@ class GrampsReadRepository:
         """Returns the total number of individuals to power UI progress bars."""
         return self.db.get_number_of_people()
 
-    def get_raw_person(self, handle: str):
+    def get_raw_person(self, handle: str) -> object:
         """
         Returns the raw, mutable Gramps Person object.
         Used only for write operations and native Gramps Editor dialogs.
@@ -28,18 +27,18 @@ class GrampsReadRepository:
     # ==========================================
     # Proxy Access & Iterators
     # ==========================================
-    def get_person_proxy(self, handle: str) -> Optional[GrampsPersonProxy]:
+    def get_person_proxy(self, handle: str) -> GrampsPersonProxy | None:
         gramps_person = self.db.get_person_from_handle(handle)
         if not gramps_person:
             return None
         return GrampsPersonProxy(gramps_person, self.db)
 
-    def get_chronology_subject(self, handle: str) -> Optional[ChronologySubject]:
+    def get_chronology_subject(self, handle: str) -> ChronologySubject | None:
         return self.get_person_proxy(handle)
 
     def get_person_proxies_chunked(
         self, chunk_size: int = 250
-    ) -> Generator[List[GrampsPersonProxy], None, None]:
+    ) -> Generator[list[GrampsPersonProxy], None, None]:
         """
         Yields batches of person proxies to hide handle iteration
         and support GTK idle loop chunking.
@@ -65,7 +64,7 @@ class GrampsReadRepository:
     # ==========================================
     def get_database_median_year_chunked(
         self, chunk_size: int = 500
-    ) -> Generator[None, None, Optional[int]]:
+    ) -> Generator[None, None, int | None]:
         """Calculates the median year asynchronously."""
         years = []
         handles = self.db.get_event_handles()

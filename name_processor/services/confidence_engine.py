@@ -7,10 +7,10 @@ Encapsulates heuristics used to determine reliability of inference results.
 import re
 from typing import TYPE_CHECKING
 
-from name_processor.services.libs.morphology import SLAVIC_SURNAME_PATTERN
+from name_processor.services.morphology import SLAVIC_SURNAME_PATTERN
 
 if TYPE_CHECKING:
-    from name_processor.repositories.gramps import GrampsDbRepository
+    from name_processor.repositories.gramps_read import GrampsReadRepository
 
 # Confidence score thresholds
 CONFIDENCE_THRESHOLD_MINIMUM = 0.60
@@ -28,8 +28,8 @@ def has_cyrillic(text: str) -> bool:
 class ConfidenceEngine:
     """Calculates confidence scores (0.0 to 1.0) for patronymic inferences."""
 
-    def __init__(self, repository: "GrampsDbRepository") -> None:
-        self.repository = repository
+    def __init__(self, repository: GrampsReadRepository) -> None:
+        self._repository = repository
 
     def calculate(self, handle: str, display_name: str) -> float:
         """
@@ -43,13 +43,13 @@ class ConfidenceEngine:
             score += CONFIDENCE_SCORE_CYRILLIC
 
         # 2. Slavic Surname check
-        surnames = self.repository.get_surnames(handle)
+        surnames = self._repository.get_surnames(handle)
         if any(SLAVIC_SURNAME_PATTERN.search(s) for s in surnames):
             score += CONFIDENCE_SCORE_SLAVIC_SURNAME
 
         # 3. Sibling Check
-        for sib_handle in self.repository.get_sibling_handles(handle):
-            sib = self.repository.get_person_by_handle(sib_handle)
+        for sib_handle in self._repository.get_sibling_handles(handle):
+            sib = self.repository.get_person_from_handle(sib_handle)
             if sib and sib.has_patronymic:
                 score += CONFIDENCE_SCORE_SIBLING
                 break

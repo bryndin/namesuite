@@ -12,7 +12,7 @@ class GrampsPersonProxy:
     Data is ONLY extracted if the Service actually asks for it.
     """
 
-    def __init__(self, gramps_person: GrampsPerson, db):
+    def __init__(self, gramps_person: GrampsPerson, db: object) -> None:
         self._person = gramps_person
         self._db = db
 

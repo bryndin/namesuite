@@ -1,5 +1,5 @@
 import re
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from name_processor.models.renamer import MatchMode, RuleConfig, ProposedRename
 
@@ -40,7 +40,7 @@ class RenamerService:
 
     def evaluate_person(
         self, person: "GrampsPersonProxy", rule: RuleConfig
-    ) -> Optional[ProposedRename]:
+    ) -> ProposedRename | None:
         """
         Evaluates a person's primary given name against the replacement rule.
 

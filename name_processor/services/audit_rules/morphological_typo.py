@@ -5,7 +5,6 @@ Detects invalid consecutive duplicate characters at joint boundaries (e.g. Ан�
 """
 
 import re
-from typing import Optional, Set, Tuple
 
 from name_processor.services.audit_rules.base import BaseRule
 from name_processor.models.audit import RuleContext, ProposedChange
@@ -27,16 +26,14 @@ class WarnMorphologicalTypo(BaseRule):
         return SEVERITY_WARNING
 
     @property
-    def supported_locales(self) -> Set[str]:
+    def supported_locales(self) -> set[str]:
         return LOCALE_EAST_SLAVIC
 
     @property
-    def active_era(self) -> Tuple[Optional[int], Optional[int]]:
+    def active_era(self) -> tuple[int | None, int | None]:
         return (None, None)
 
-    def evaluate(
-        self, ctx: RuleContext, use_pre_reform: bool
-    ) -> Optional[ProposedChange]:
+    def evaluate(self, ctx: RuleContext, use_pre_reform: bool) -> ProposedChange | None:
         if not ctx.current_patronymic:
             return None
 

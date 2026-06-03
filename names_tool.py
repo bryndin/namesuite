@@ -16,8 +16,7 @@ from name_processor.services.audit import AuditService
 
 
 class NamesTool(tool.Tool):
-    def __init__(self, dbstate, user, options_class, name, callback):
-        # NOTE: Gramps tool initialization also includes `user` in modern versions
+    def __init__(self, dbstate, user, options_class, name, callback=None):
         super().__init__(dbstate, options_class, name)
         self.dbstate = dbstate
         self.user = user
@@ -54,8 +53,7 @@ class NamesTool(tool.Tool):
             chronology_service=self._chronology_service,
         )
 
-        if self._view:
-            self._view.set_controller(self._controller)
+        self._view.set_controller(self._controller)
 
     def run(self):
         self._view.window.show_all()

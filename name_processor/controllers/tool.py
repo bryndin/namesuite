@@ -1,22 +1,35 @@
-from typing import Dict, Set, Any
-from name_processor.utils.gtk_runner import run_in_idle_loop
+from typing import TYPE_CHECKING
+
 from name_processor.models.audit import AuditScope
 from name_processor.models.renamer import ProposedRename
+from name_processor.utils.gtk_runner import run_in_idle_loop
+
+if TYPE_CHECKING:
+    from name_processor.services.alt_names import AltNamesService
+    from name_processor.services.audit import AuditService
+    from name_processor.services.chronology import ChronologyService
+    from name_processor.services.patronymic import PatronymicInferenceService
+    from name_processor.services.renamer import RenamerService
+    from name_processor.models.audit import AuditIssue
+    from name_processor.repositories.gramps_read import GrampsReadRepository
+    from name_processor.repositories.gramps_write import GrampsWriteRepository
+    from name_processor.views.tool import ToolWindow
+    from names_tool import NamesTool
 
 
 class ToolController:
     def __init__(
         self,
-        tool_instance,
-        view,
-        read_repo,
-        write_repo,
-        patronymic_service,
-        renamer_service,
-        alt_names_service,
-        audit_service,
-        chronology_service,
-    ):
+        tool_instance: "NamesTool",
+        view: "ToolWindow",
+        read_repo: "GrampsReadRepository",
+        write_repo: "GrampsWriteRepository",
+        patronymic_service: "PatronymicInferenceService",
+        renamer_service: "RenamerService",
+        alt_names_service: "AltNamesService",
+        audit_service: "AuditService",
+        chronology_service: "ChronologyService",
+    ) -> None:
         self.tool = tool_instance
         self.dbstate = tool_instance.dbstate
         self.user = getattr(tool_instance, "user", None)
@@ -35,15 +48,15 @@ class ToolController:
         self._chronology_service = chronology_service
 
         # State Caches
-        self._given_names_cache: Set[str] = set()
-        self._standardize_candidates: Dict[str, ProposedRename] = {}
-        self._inference_candidates: Dict[str, Any] = {}
-        self._audit_candidates: Dict[str, Any] = {}
+        self._given_names_cache: set[str] = set()
+        self._standardize_candidates: dict[str, ProposedRename] = {}
+        self._inference_candidates: dict[str, object] = {}
+        self._audit_candidates: dict[str, AuditIssue] = {}
 
     def cleanup(self) -> None:
         pass
 
-    def get_gramps_person(self, handle: str):
+    def get_gramps_person(self, handle: str) -> object:
         """Used by the view to open the native Gramps Person Editor."""
         return self._read_repo.get_raw_person(handle)
 
@@ -53,7 +66,7 @@ class ToolController:
     def initialize_median_year_async(self) -> None:
         generator = self._read_repo.get_database_median_year_chunked()
 
-        def on_complete(median_year):
+        def on_complete(median_year: int | None) -> None:
             if median_year is not None:
                 self._chronology_service.set_db_median_year(median_year)
 
@@ -71,14 +84,14 @@ class ToolController:
                 yield None
             return names
 
-        def on_complete(final_names):
+        def on_complete(final_names: set[str] | None) -> None:
             if final_names:
                 self._given_names_cache.update(final_names)
                 self._view.setup_given_name_autocompletion()
 
         run_in_idle_loop(generator(), on_complete)
 
-    def get_given_names(self) -> Set[str]:
+    def get_given_names(self) -> set[str]:
         return self._given_names_cache
 
     # ==========================================
@@ -115,7 +128,7 @@ class ToolController:
                 yield None
             return found_any
 
-        def on_complete(found_any):
+        def on_complete(found_any: bool) -> None:
             self._view.update_given_apply_button()
             if not found_any:
                 from gramps.gui.dialog import OkDialog
@@ -232,11 +245,11 @@ class ToolController:
     # ==========================================
     # Tab 3: Audit Patronymics
     # ==========================================
-    def get_available_audit_rules(self) -> list:
+    def get_available_audit_rules(self) -> list[str]:
         return self._audit_service.get_available_audit_rules()
 
     def run_audit_scan(
-        self, audit_scope: AuditScope, enabled_rules_set: set, use_pre_reform: bool
+        self, audit_scope: AuditScope, enabled_rules_set: set[str], use_pre_reform: bool
     ) -> None:
         self._view.clear_audit_results()
         self._audit_candidates.clear()

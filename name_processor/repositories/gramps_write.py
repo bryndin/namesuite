@@ -12,7 +12,7 @@ def is_patronymic_origin(orig: NameOriginType) -> bool:
         return False
 
 
-def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:
+def update_or_add_patronymic(primary_name: object, new_patronymic_value: str) -> str:
     surnames = primary_name.get_surname_list()
     orig_pat = ""
     found = False
@@ -35,7 +35,7 @@ def update_or_add_patronymic(primary_name, new_patronymic_value) -> str:
 
 
 class GrampsWriteRepository:
-    def __init__(self, dbstate):
+    def __init__(self, dbstate: object) -> None:
         self._db = dbstate.db
 
     # ==========================================
@@ -50,7 +50,7 @@ class GrampsWriteRepository:
         with DbTxn(description, self._db) as trans:
             yield trans
 
-    def commit_person(self, trans: DbTxn, person) -> None:
+    def commit_person(self, trans: DbTxn, person: object) -> None:
         """
         Commits a fully prepared/mutated Person object to the database.
         """

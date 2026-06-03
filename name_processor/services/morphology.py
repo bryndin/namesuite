@@ -6,8 +6,12 @@ orthographic script preferences.
 """
 
 import re
+from typing import TYPE_CHECKING
 
 from name_processor.models.constants import LOCALE_RU, REFORM_YEAR_1918
+
+if TYPE_CHECKING:
+    from name_processor.models.audit import RuleContext
 
 # Sibilant characters that trigger -evich/-evna instead of -ovich/-ovna
 SIBILANTS = set("жшчщцЖШЧЩЦ")
@@ -256,7 +260,7 @@ class MorphologyService:
         return result
 
     @classmethod
-    def is_pre_reform(cls, ctx, use_pre_reform: bool) -> bool:
+    def is_pre_reform(cls, ctx: "RuleContext", use_pre_reform: bool) -> bool:
         """Check if the context satisfies the pre-reform conditions."""
         return (
             ctx.locale == LOCALE_RU

@@ -4,8 +4,6 @@ Rule: WarnMissingHardSign
 Flags pre-1918 Russian names missing a terminal orthographic hard sign 'ъ'.
 """
 
-from typing import Optional, Set, Tuple
-
 from name_processor.services.audit_rules.base import BaseRule
 from name_processor.models.audit import RuleContext, ProposedChange
 from name_processor.models.constants import (
@@ -26,16 +24,14 @@ class WarnMissingHardSign(BaseRule):
         return SEVERITY_WARNING
 
     @property
-    def supported_locales(self) -> Set[str]:
+    def supported_locales(self) -> set[str]:
         return {LOCALE_RU}
 
     @property
-    def active_era(self) -> Tuple[Optional[int], Optional[int]]:
+    def active_era(self) -> tuple[int | None, int | None]:
         return (None, 1917)
 
-    def evaluate(
-        self, ctx: RuleContext, use_pre_reform: bool
-    ) -> Optional[ProposedChange]:
+    def evaluate(self, ctx: RuleContext, use_pre_reform: bool) -> ProposedChange | None:
         # Short-circuit if pre-reform rules are disabled by the user
         if (
             not ctx.current_patronymic

@@ -1,8 +1,8 @@
 import logging
-from typing import TYPE_CHECKING, List, Set
+from typing import TYPE_CHECKING
 
 from name_processor.models.audit import AuditIssue, RuleContext
-from name_processor.models.constants import LOCALE_EAST_SLAVIC, LOCALE_RU
+from name_processor.models.constants import LOCALE_RU
 from name_processor.services.audit_rules.gender_mismatch import ErrGenderMismatch
 from name_processor.services.audit_rules.lineage_mismatch import ErrLineageMismatch
 from name_processor.services.audit_rules.modern_suffix_archaic_era import (
@@ -41,15 +41,15 @@ class AuditService:
             WarnMissingHardSign(),
         ]
 
-    def get_available_audit_rules(self) -> List[str]:
+    def get_available_audit_rules(self) -> list[str]:
         """Returns the IDs of all loaded rules to populate the UI configuration dialog."""
         return [rule.rule_id for rule in self._rules]
 
     def audit_person(
-        self, person: "GrampsPersonProxy", enabled_rules: Set[str], use_pre_reform: bool
-    ) -> List[AuditIssue]:
+        self, person: "GrampsPersonProxy", enabled_rules: set[str], use_pre_reform: bool
+    ) -> list[AuditIssue]:
         """Evaluates a single person against enabled rules and yields formatted DTOs."""
-        issues: List[AuditIssue] = []
+        issues: list[AuditIssue] = []
 
         # Determine existing patronymic. If none, there is nothing to audit.
         # (Assuming your person proxy exposes standard grammatical name parts)

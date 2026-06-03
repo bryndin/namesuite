@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 from name_processor.models.person import Gender
 
@@ -22,8 +21,8 @@ class RuleContext:
     display_name: str
     gender: Gender
     current_patronymic: str
-    father_given_name: Optional[str]
-    reference_year: Optional[int]
+    father_given_name: str | None
+    reference_year: int | None
     locale: str
 
 
