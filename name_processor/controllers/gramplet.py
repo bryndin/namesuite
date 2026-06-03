@@ -1,8 +1,22 @@
+from typing import TYPE_CHECKING
+
 from name_processor.models.result import PatronymicInferenceStatus
+
+if TYPE_CHECKING:
+    from name_processor.repositories.gramps_read import GrampsReadRepository
+    from name_processor.repositories.gramps_write import GrampsWriteRepository
+    from name_processor.services.patronymic import PatronymicInferenceService
+    from name_processor.views.gramplet import GrampletView
 
 
 class GrampletController:
-    def __init__(self, view, patronymic_service, read_repo, write_repo):
+    def __init__(
+        self,
+        view: GrampletView,
+        patronymic_service: PatronymicInferenceService,
+        read_repo: GrampsReadRepository,
+        write_repo: GrampsWriteRepository,
+    ) -> None:
         self.current_handle: str | None = None
 
         self._view = view
@@ -11,7 +25,7 @@ class GrampletController:
         self._write_repo = write_repo
         self._suggested_patronymic: str | None = None
 
-    def on_active_changed(self, handle):
+    def on_active_changed(self, handle: str) -> None:
         self.current_handle = handle
         self._suggested_patronymic = None
 
@@ -36,14 +50,21 @@ class GrampletController:
 
         if res.status == PatronymicInferenceStatus.SUCCESS:
             self._suggested_patronymic = res.value
-            self._view.show_suggestion(
-                res.value,
-                res.context.father_name,
-            )
+            if res.context and res.context.father_name:
+                if res.value:
+                    self._view.show_suggestion(
+                        res.value,
+                        res.context.father_name,
+                    )
+            else:
+                self._view.show_status_message(
+                    PatronymicInferenceStatus.NO_FATHER, apply_sensitive=False
+                )
         else:
-            self._view.show_status_message(res.status, apply_sensitive=False)
+            if res.status:
+                self._view.show_status_message(res.status, apply_sensitive=False)
 
-    def on_apply_clicked(self):
+    def on_apply_clicked(self) -> None:
         if not self.current_handle or not self._suggested_patronymic:
             return
 

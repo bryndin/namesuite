@@ -15,7 +15,7 @@ from name_processor.views.gramplet import GrampletView
 class PatronymicSuggestionGramplet(Gramplet):
     def __init__(self, gui, nav_group: int = 0) -> None:
         # 1. Declare placeholders BEFORE running the parent constructor
-        self._view: GrampletView | None = None
+        self._view = GrampletView(self)
         self._controller: GrampletController | None = None
         self._read_repo: GrampsReadRepository | None = None
         self._write_repo: GrampsWriteRepository | None = None
@@ -31,12 +31,11 @@ class PatronymicSuggestionGramplet(Gramplet):
         Runs once when the Gramplet is registered.
         Sets up the static visual interface.
         """
-        self.view = GrampletView(self)
-        self.view.init()
+        self._view.init()
 
         # Swap default textview with custom layout (runs once)
         self.gui.get_container_widget().remove(self.gui.textview)
-        self.gui.WIDGET = self.view.get_root_widget()
+        self.gui.WIDGET = self._view.get_root_widget()
         self.gui.get_container_widget().add(self.gui.WIDGET)
         self.gui.WIDGET.show()
 
