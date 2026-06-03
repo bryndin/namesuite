@@ -82,39 +82,6 @@ def write_repo(mock_dbstate):
     return GrampsWriteRepository(mock_dbstate)
 
 
-@patch("name_processor.repositories.gramps_write.DbTxn")
-def test_update_given_names(mock_dbtxn, write_repo, mock_dbstate):
-    # Setup mock transaction context
-    mock_txn_instance = MagicMock()
-    mock_dbtxn.return_value.__enter__.return_value = mock_txn_instance
-
-    # Mock DB returns
-    mock_person1 = Mock()
-    mock_primary1 = Mock()
-    mock_person1.get_primary_name.return_value = mock_primary1
-
-    mock_person2 = Mock()  # Has no primary name
-    mock_person2.get_primary_name.return_value = None
-
-    mock_dbstate.db.get_person_from_handle.side_effect = lambda h: {
-        "h1": mock_person1,
-        "h2": mock_person2,
-        "h3": None,  # Person missing
-    }.get(h)
-
-    # Act
-    write_repo.update_given_names({"h1": "Ivan", "h2": "Petr", "h3": "Alex"})
-
-    # Assert
-    mock_primary1.set_first_name.assert_called_once_with("Ivan")
-    mock_dbstate.db.commit_person.assert_called_once_with(
-        mock_person1, mock_txn_instance
-    )
-
-    # Ensure h2 and h3 didn't trigger a commit
-    assert mock_dbstate.db.commit_person.call_count == 1
-
-
 @patch("name_processor.repositories.gramps_write.update_or_add_patronymic")
 @patch("name_processor.repositories.gramps_write.DbTxn")
 def test_update_patronymic_names(

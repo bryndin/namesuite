@@ -41,33 +41,17 @@ def test_get_chronology_subject_success(mock_proxy_class, read_repo, mock_dbstat
     assert result == mock_proxy_class.return_value
 
 
-def test_get_database_median_year_empty(read_repo, mock_dbstate):
+def test_get_database_median_year_chunked_empty(read_repo, mock_dbstate):
     mock_dbstate.db.get_event_handles.return_value = []
-    assert read_repo.get_database_median_year() is None
-
-
-def test_get_database_median_year_success(read_repo, mock_dbstate):
-    mock_dbstate.db.get_event_handles.return_value = ["e1", "e2", "e3", "e_invalid"]
-
-    def create_mock_event(year):
-        if year is None:
-            return None
-        event = Mock()
-        date_obj = Mock()
-        date_obj.is_empty.return_value = False
-        date_obj.get_year.return_value = year
-        event.get_date_object.return_value = date_obj
-        return event
-
-    mock_dbstate.db.get_event_from_handle.side_effect = [
-        create_mock_event(1900),
-        create_mock_event(1800),
-        create_mock_event(1950),
-        None,  # Invalid event
-    ]
-
-    # Sorted years: 1800, 1900, 1950. Median is index 1 (1900).
-    assert read_repo.get_database_median_year() == 1900
+    
+    generator = read_repo.get_database_median_year_chunked()
+    
+    # A generator completing immediately raises StopIteration 
+    # with the final return value stored in excinfo.value.value
+    with pytest.raises(StopIteration) as excinfo:
+        next(generator)
+        
+    assert excinfo.value.value is None
 
 
 def test_get_database_median_year_chunked(read_repo, mock_dbstate):

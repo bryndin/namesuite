@@ -1,0 +1,813 @@
+# -*- coding: utf-8 -*-
+"""
+GTK Window layout for the Names Tool batch processing interface.
+Contains all GTK widgets, layout structures, and column definitions.
+"""
+
+import logging
+import re
+
+from gi.repository import GLib, Gtk
+from gramps.gen.const import GRAMPS_LOCALE as glocale
+from gramps.gui.dialog import OkDialog
+from gramps.gui.editors import EditPerson
+from gramps.gen.errors import WindowActiveError
+
+from name_processor.entities.models import AuditScope
+from name_processor.ui.constants import IDLE_CHUNK_AUDIT
+
+logger = logging.getLogger(__name__)
+
+_ = glocale.translation.gettext
+
+
+def pango_escape(text: str) -> str:
+    """Escapes XML special characters to prevent GTK Pango parsing crashes."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def generate_pango_diff(old_str: str, new_str: str) -> str:
+    """
+    Generates a simple before/after diff in Pango markup.
+    Format: <current> -> <suggested>
+    Example: Иванович -> Ивановна
+    """
+    old_esc = pango_escape(old_str)
+    new_esc = pango_escape(new_str)
+
+    if not old_esc and not new_esc:
+        return ""
+    if not old_esc:
+        return f"<span foreground='green'>{new_esc}</span>"
+    if not new_esc:
+        return f"<span foreground='red'>{old_esc}</span>"
+
+    return f"{old_esc} <span foreground='blue'>→</span> {new_esc}"
+
+
+class ToolWindow:
+    """
+    GTK Batch Processing Window. Acts as a Passive View in the MVP pattern.
+    All business logic and long-running tasks are delegated to the controller.
+    """
+
+    # Given Names store column indices (Tab 1 - Standardize)
+    GIVEN_COL_CHECKBOX = 0
+    GIVEN_COL_GRAMPS_ID = 1
+    GIVEN_COL_DISPLAY_NAME = 2
+    GIVEN_COL_CURRENT = 3
+    GIVEN_COL_PROPOSED = 4
+    GIVEN_COL_ALT_ACTION = 5
+    GIVEN_COL_HANDLE = 6
+    GIVEN_COL_PROPOSED_RAW = 7
+
+    # Audit store column indices
+    AUDIT_COL_CHECKBOX = 0
+    AUDIT_COL_DISPLAY_NAME = 1
+    AUDIT_COL_GRAMPS_ID = 2
+    AUDIT_COL_CURRENT_PAT = 3
+    AUDIT_COL_REF_YEAR = 4
+    AUDIT_COL_RULE_ID = 5
+    AUDIT_COL_DIFF_MARKUP = 6
+    AUDIT_COL_HANDLE = 7
+    AUDIT_COL_RULE_ID_DUP = 8
+    AUDIT_COL_SUGGESTED_STRING = 9
+    AUDIT_COL_RULE_SOURCE = 10
+
+    # List store column indices (Tab 1 - inference results)
+    LIST_COL_CHECKBOX = 0
+    LIST_COL_DISPLAY_NAME = 1
+    LIST_COL_FATHER_NAME = 2
+    LIST_COL_REF_YEAR = 3
+    LIST_COL_PATRONYMIC = 4
+    LIST_COL_CONFIDENCE = 5
+    LIST_COL_RULE_SOURCE = 6
+    LIST_COL_GRAMPS_ID = 7
+    LIST_COL_HANDLE = 8
+
+    # Log store column indices (Tab 3 - rollback history)
+    LOG_COL_EXEC_ID = 0
+    LOG_COL_TIMESTAMP = 1
+    LOG_COL_CHANGES_COUNT = 2
+    LOG_COL_PLUGIN_ID = 3
+
+    def __init__(self, callback=None) -> None:
+        """Initializes the GTK Window."""
+        self.callback = callback
+        self.controller = None
+
+        # Local view state (UI specific)
+        self.enabled_rules = {}
+        self.audit_issues = []
+
+        # Build GTK Window UI
+        self.build_window()
+
+    def set_controller(self, controller) -> None:
+        """Sets the controller instance and runs initial loads."""
+        self.controller = controller
+        self.enabled_rules = {
+            rule_id: True for rule_id in self.controller.get_available_audit_rules()
+        }
+        # Set up autocompletion for given name entry
+        self.setup_given_name_autocompletion()
+        # Run background calculations and fetch historical logs on display
+        try:
+            self.controller.initialize_median_year_async()
+        except Exception as e:
+            logger.error(f"Error initializing median year: {e}")
+            raise
+        try:
+            self.controller.initialize_given_names_async()
+        except Exception as e:
+            logger.error(f"Error initializing given names: {e}")
+            raise
+        try:
+            self.controller.refresh_history()
+        except Exception as e:
+            logger.error(f"Error refreshing history: {e}")
+            raise
+
+    def setup_given_name_autocompletion(self) -> None:
+        """Sets up autocompletion for the given source name entry using DB names."""
+        given_names_set = self.controller.get_given_names()
+        if not given_names_set:
+            return
+
+        # Create a list store with a single string column
+        completion_store = Gtk.ListStore(str)
+        for name in sorted(given_names_set):
+            completion_store.append([name])
+
+        # Create entry completion
+        completion = Gtk.EntryCompletion()
+        completion.set_model(completion_store)
+        completion.set_text_column(0)
+        completion.set_minimum_key_length(1)
+        completion.set_inline_completion(True)
+        completion.set_inline_selection(True)
+
+        # Attach completion to the entry
+        self.given_source_entry.set_completion(completion)
+
+    def build_window(self) -> None:
+        self.window = Gtk.Window(title=_("Infer East Slavic Patronymics"))
+        self.window.set_default_size(900, 600)
+        self.window.set_position(Gtk.WindowPosition.CENTER)
+        self.window.set_border_width(12)
+
+        self.window.connect("destroy", self.on_destroy)
+
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.window.add(main_box)
+
+        notebook = Gtk.Notebook()
+        main_box.pack_start(notebook, True, True, 0)
+
+        # --- TAB 0: Given Names (Standardization) ---
+        given_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        given_box.set_border_width(8)
+        notebook.append_page(given_box, Gtk.Label(label=_("Standardize Names")))
+
+        given_config_frame = Gtk.Frame(label=_("Search and Replace Options"))
+        given_box.pack_start(given_config_frame, False, False, 0)
+
+        given_config_grid = Gtk.Grid(column_spacing=10, row_spacing=10)
+        given_config_grid.set_border_width(8)
+        given_config_frame.add(given_config_grid)
+
+        given_config_grid.attach(Gtk.Label(label=_("Source Name:")), 0, 0, 1, 1)
+        self.given_source_entry = Gtk.Entry()
+        self.given_source_entry.set_placeholder_text(_("e.g. Иоанн"))
+        given_config_grid.attach(self.given_source_entry, 1, 0, 1, 1)
+
+        given_config_grid.attach(Gtk.Label(label=_("Target Name:")), 0, 1, 1, 1)
+        self.given_target_entry = Gtk.Entry()
+        self.given_target_entry.set_placeholder_text(_("e.g. Иван"))
+        given_config_grid.attach(self.given_target_entry, 1, 1, 1, 1)
+
+        given_config_grid.attach(Gtk.Label(label=_("Match Mode:")), 2, 0, 1, 1)
+        self.given_match_type_combo = Gtk.ComboBoxText()
+        self.given_match_type_combo.append_text(_("Exact Match"))
+        self.given_match_type_combo.append_text(_("Substring"))
+        self.given_match_type_combo.append_text(_("Regular Expression"))
+        self.given_match_type_combo.set_active(0)
+        given_config_grid.attach(self.given_match_type_combo, 3, 0, 1, 1)
+
+        self.given_scan_btn = Gtk.Button(label=_("Scan for Names"))
+        self.given_scan_btn.connect("clicked", self.on_given_scan_clicked)
+        given_config_grid.attach(self.given_scan_btn, 3, 1, 1, 1)
+
+        self.preserve_alt_check = Gtk.CheckButton(
+            label=_("Preserve original name as alternative")
+        )
+        self.preserve_alt_check.set_active(True)
+        given_box.pack_start(self.preserve_alt_check, False, False, 0)
+
+        given_scroll_win = Gtk.ScrolledWindow()
+        given_scroll_win.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        given_box.pack_start(given_scroll_win, True, True, 0)
+
+        self.given_store = Gtk.ListStore(bool, str, str, str, str, str, str, str)
+        self.given_tree = Gtk.TreeView(model=self.given_store)
+        given_scroll_win.add(self.given_tree)
+        self.setup_given_names_rename_columns()
+
+        given_footer_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        given_box.pack_start(given_footer_box, False, False, 0)
+
+        self.given_select_all = Gtk.CheckButton(label=_("Select All"))
+        self.given_select_all.set_active(True)
+        self.given_select_all.connect("toggled", self.on_given_select_all_toggled)
+        given_footer_box.pack_start(self.given_select_all, False, False, 0)
+
+        self.given_apply_btn = Gtk.Button(label=_("Apply Selected Corrections"))
+        self.given_apply_btn.set_sensitive(False)
+        self.given_apply_btn.connect("clicked", self.on_given_apply_clicked)
+        given_footer_box.pack_end(self.given_apply_btn, False, False, 0)
+
+        # --- TAB 1: Scan & Apply (Inference Engine) ---
+        scan_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        scan_box.set_border_width(8)
+        notebook.append_page(scan_box, Gtk.Label(label=_("Infer Patronymics")))
+
+        config_frame = Gtk.Frame(label=_("Inference Options"))
+        scan_box.pack_start(config_frame, False, False, 0)
+
+        config_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        config_box.set_border_width(8)
+        config_frame.add(config_box)
+
+        self.script_check = Gtk.CheckButton(
+            label=_("Match Pre-Revolutionary Orthography")
+        )
+        self.script_check.set_active(False)
+        config_box.pack_start(self.script_check, False, False, 0)
+
+        self.scan_btn = Gtk.Button(label=_("Scan Database"))
+        self.scan_btn.connect("clicked", self.on_scan_clicked)
+        config_box.pack_start(self.scan_btn, False, False, 0)
+
+        scroll_win = Gtk.ScrolledWindow()
+        scroll_win.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scan_box.pack_start(scroll_win, True, True, 0)
+
+        self.list_store = Gtk.ListStore(bool, str, str, int, str, str, str, str, str)
+        self.tree_view = Gtk.TreeView(model=self.list_store)
+        scroll_win.add(self.tree_view)
+        self.setup_inference_columns()
+
+        self.exec_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        scan_box.pack_start(self.exec_box, False, False, 0)
+
+        self.apply_btn = Gtk.Button(label=_("Commit Checked Inferences"))
+        self.apply_btn.set_sensitive(False)
+        self.apply_btn.connect("clicked", self.on_apply_clicked)
+        self.exec_box.pack_end(self.apply_btn, False, False, 0)
+
+        # --- TAB 2: Database Auditor (The Linter) ---
+        audit_tab_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        audit_tab_box.set_border_width(8)
+        notebook.append_page(audit_tab_box, Gtk.Label(label=_("Audit Patronymics")))
+
+        audit_header_frame = Gtk.Frame(label=_("Auditing Settings"))
+        audit_tab_box.pack_start(audit_header_frame, False, False, 0)
+
+        audit_header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
+        audit_header_box.set_border_width(8)
+        audit_header_frame.add(audit_header_box)
+
+        self.audit_scope_combo = Gtk.ComboBoxText()
+        self.audit_scope_combo.append_text(_("All Records"))
+        self.audit_scope_combo.append_text(_("Males Only"))
+        self.audit_scope_combo.append_text(_("Females Only"))
+        self.audit_scope_combo.set_active(0)
+        audit_header_box.pack_start(self.audit_scope_combo, False, False, 0)
+
+        self.rules_config_btn = Gtk.Button(label=_("Configure Rules..."))
+        self.rules_config_btn.connect("clicked", self.on_configure_rules_clicked)
+        audit_header_box.pack_start(self.rules_config_btn, False, False, 0)
+
+        self.audit_pre_reform_check = Gtk.CheckButton(
+            label=_("Match Pre-Revolutionary Orthography")
+        )
+        self.audit_pre_reform_check.set_active(False)
+        audit_header_box.pack_start(self.audit_pre_reform_check, False, False, 0)
+
+        audit_action_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        audit_tab_box.pack_start(audit_action_box, False, False, 0)
+
+        self.audit_run_btn = Gtk.Button(label=_("Audit Database"))
+        self.audit_run_btn.connect("clicked", self.on_audit_run_clicked)
+        audit_action_box.pack_start(self.audit_run_btn, False, False, 0)
+
+        self.audit_progress = Gtk.ProgressBar()
+        self.audit_progress.set_show_text(True)
+        audit_action_box.pack_start(self.audit_progress, True, True, 0)
+
+        audit_scroll = Gtk.ScrolledWindow()
+        audit_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        audit_tab_box.pack_start(audit_scroll, True, True, 0)
+
+        self.audit_store = Gtk.ListStore(
+            bool, str, str, str, int, str, str, str, str, str, str
+        )
+        self.audit_tree = Gtk.TreeView(model=self.audit_store)
+        audit_scroll.add(self.audit_tree)
+        self.setup_audit_columns()
+
+        audit_footer_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        audit_tab_box.pack_start(audit_footer_box, False, False, 0)
+
+        self.audit_select_all = Gtk.CheckButton(label=_("Select All Safe Corrections"))
+        self.audit_select_all.set_active(True)
+        self.audit_select_all.connect("toggled", self.on_audit_select_all_toggled)
+        audit_footer_box.pack_start(self.audit_select_all, False, False, 0)
+
+        self.audit_apply_btn = Gtk.Button(label=_("Apply Selected Corrections"))
+        self.audit_apply_btn.set_sensitive(False)
+        self.audit_apply_btn.connect("clicked", self.on_audit_apply_clicked)
+        audit_footer_box.pack_end(self.audit_apply_btn, False, False, 0)
+
+        # --- TAB 3: Reversibility & Rollbacks ---
+        rollback_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        rollback_box.set_border_width(8)
+        notebook.append_page(rollback_box, Gtk.Label(label=_("Revert")))
+
+        log_scroll = Gtk.ScrolledWindow()
+        log_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        rollback_box.pack_start(log_scroll, True, True, 0)
+
+        self.log_store = Gtk.ListStore(str, str, int, str)
+        self.log_tree = Gtk.TreeView(model=self.log_store)
+        log_scroll.add(self.log_tree)
+        self.setup_log_columns()
+
+        revert_footer_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        rollback_box.pack_start(revert_footer_box, False, False, 0)
+
+        self.revert_btn = Gtk.Button(label=_("Rollback Selected Transaction"))
+        self.revert_btn.connect("clicked", self.on_revert_clicked)
+        revert_footer_box.pack_end(self.revert_btn, False, False, 0)
+
+        # --- Double-Click Row Activation Connections ---
+        self.tree_view.connect("row-activated", self.on_list_row_activated)
+        self.audit_tree.connect("row-activated", self.on_audit_row_activated)
+        self.given_tree.connect("row-activated", self.on_given_row_activated)
+
+        self.window.show_all()
+
+    def on_destroy(self, widget) -> None:
+        if self.controller:
+            self.controller.cleanup()
+        if self.callback:
+            self.callback()
+
+    # --- Scanning & Processing Callbacks ---
+
+    def on_given_scan_clicked(self, widget) -> None:
+        source = self.given_source_entry.get_text().strip()
+        target = self.given_target_entry.get_text().strip()
+        match_type = self.given_match_type_combo.get_active()
+
+        # Validate source input
+        if not source:
+            OkDialog(
+                _("Invalid Input"),
+                _("Source name cannot be empty."),
+                self.window,
+            )
+            return
+
+        # Validate regex pattern when Regular Expression match mode is selected
+        if match_type == 2:  # Regular Expression
+            try:
+                re.compile(source)
+            except re.error:
+                OkDialog(
+                    _("Invalid Input"),
+                    _("Invalid regular expression pattern in source name."),
+                    self.window,
+                )
+                return
+
+        # Validate target input for non-empty when provided
+        if target and not target.strip():
+            OkDialog(
+                _("Invalid Input"),
+                _("Target name cannot contain only whitespace."),
+                self.window,
+            )
+            return
+
+        has_results = self.controller.run_standardize_scan(source, target, match_type)
+        self.update_given_apply_button()
+        if not has_results:
+            OkDialog(_("No Results"), _("No matching given names found."), self.window)
+
+    def on_given_apply_clicked(self, widget) -> None:
+        if self.controller.apply_checked_standardizations():
+            self.given_store.clear()
+            self.update_given_apply_button()
+            self.controller.refresh_history()
+
+    def on_scan_clicked(self, widget) -> None:
+        self.scan_btn.set_sensitive(False)
+        pre_reform = self.script_check.get_active()
+        self.controller.run_inference_scan(pre_reform)
+
+    def on_scan_complete(self, total_found) -> None:
+        """Called by controller when inference scan completes."""
+        self.update_action_buttons()
+        if total_found == 0:
+            OkDialog(
+                _("No Results"),
+                _("No candidates for patronymic inference found."),
+                self.window,
+            )
+
+    def on_apply_clicked(self, widget) -> None:
+        pre_reform = self.script_check.get_active()
+        if self.controller.apply_checked_inferences(pre_reform):
+            self.list_store.clear()
+            self.update_action_buttons()
+            self.controller.refresh_history()
+
+    def on_audit_run_clicked(self, widget) -> None:
+        self.audit_run_btn.set_sensitive(False)
+        scope_idx = self.audit_scope_combo.get_active()
+
+        # Explicit mapping from UI index to Enum
+        scope_map = {
+            0: AuditScope.ALL,
+            1: AuditScope.MALES_ONLY,
+            2: AuditScope.FEMALES_ONLY,
+        }
+        audit_scope = scope_map.get(scope_idx, AuditScope.ALL)
+
+        use_pre_reform = self.audit_pre_reform_check.get_active()
+        enabled_rules_set = {
+            r_id for r_id, enabled in self.enabled_rules.items() if enabled
+        }
+        self.controller.run_audit_scan(audit_scope, enabled_rules_set, use_pre_reform)
+
+    def on_audit_apply_clicked(self, widget) -> None:
+        use_pre_reform = self.audit_pre_reform_check.get_active()
+        if self.controller.apply_checked_audit_fixes(use_pre_reform):
+            self.clear_audit_results()
+            self.update_audit_apply_button()
+
+    # --- Auditor Utilities ---
+
+    def clear_audit_results(self) -> None:
+        self.audit_store.clear()
+        self.audit_issues = []
+
+    def start_idle_audit(self, audit_generator, total_count: int, on_complete) -> None:
+        idx = [0]
+
+        def audit_idle():
+            if not self.controller.db.is_open():
+                return False
+            try:
+                for __ in range(IDLE_CHUNK_AUDIT):
+                    issue = next(audit_generator)
+                    self.audit_issues.append(issue)
+                    self._append_issue_to_store(issue)
+            except StopIteration:
+                on_complete(len(self.audit_issues))
+                return False
+
+            idx[0] += IDLE_CHUNK_AUDIT
+            fraction = min(idx[0] / total_count, 1.0)
+            self.update_audit_progress(
+                fraction, f"{min(idx[0], total_count)} / {total_count}"
+            )
+            return True
+
+        GLib.idle_add(audit_idle)
+
+    def _append_issue_to_store(self, issue) -> None:
+        """Append an audit issue to the treeview store with Pango markup formatting."""
+        diff_markup = generate_pango_diff(issue.current_value, issue.suggested_fix)
+        self.audit_store.append(
+            [
+                True,  # AUDIT_COL_CHECKBOX
+                issue.display_name,  # AUDIT_COL_DISPLAY_NAME
+                issue.gramps_id,  # AUDIT_COL_GRAMPS_ID
+                issue.current_value,  # AUDIT_COL_CURRENT_PAT
+                issue.reference_year,  # AUDIT_COL_REF_YEAR
+                issue.rule_id,  # AUDIT_COL_RULE_ID
+                diff_markup,  # AUDIT_COL_DIFF_MARKUP
+                issue.person_handle,  # AUDIT_COL_HANDLE
+                issue.rule_id,  # AUDIT_COL_RULE_ID_DUP
+                issue.suggested_fix,  # AUDIT_COL_SUGGESTED_STRING
+                _(issue.rule_source),  # AUDIT_COL_RULE_SOURCE
+            ]
+        )
+
+    def _append_candidate_to_store(self, candidate) -> None:
+        """Append an inference candidate to the list store."""
+        self.list_store.append(
+            [
+                True,  # LIST_COL_CHECKBOX
+                candidate.display_name,  # LIST_COL_DISPLAY_NAME
+                candidate.father_name,  # LIST_COL_FATHER_NAME
+                candidate.reference_year,  # LIST_COL_REF_YEAR
+                candidate.inferred_patronymic,  # LIST_COL_PATRONYMIC
+                f"{int(candidate.confidence * 100)}%",  # LIST_COL_CONFIDENCE
+                _(candidate.rule_source),  # LIST_COL_RULE_SOURCE
+                candidate.gramps_id,  # LIST_COL_GRAMPS_ID
+                candidate.person_handle,  # LIST_COL_HANDLE
+            ]
+        )
+
+    def _append_rename_proposal_to_store(self, prop) -> None:
+        """Append a given name rename proposal to the given store."""
+        markup = f'<span weight="bold" foreground="blue">{pango_escape(prop.proposed_name)}</span>'
+        self.given_store.append(
+            [
+                True,  # GIVEN_COL_CHECKBOX
+                prop.gramps_id,  # GIVEN_COL_GRAMPS_ID
+                prop.display_name,  # GIVEN_COL_DISPLAY_NAME
+                prop.current_name,  # GIVEN_COL_CURRENT
+                markup,  # GIVEN_COL_PROPOSED
+                _(prop.alt_action),  # GIVEN_COL_ALT_ACTION
+                prop.person_handle,  # GIVEN_COL_HANDLE
+                prop.proposed_name,  # GIVEN_COL_PROPOSED_RAW
+            ]
+        )
+
+    def update_audit_progress(self, fraction, text) -> None:
+        self.audit_progress.set_fraction(fraction)
+        self.audit_progress.set_text(text)
+
+    def on_audit_complete(self, total_found) -> None:
+        self.audit_progress.set_fraction(1.0)
+        self.audit_progress.set_text(_("Audit Complete!"))
+        self.audit_run_btn.set_sensitive(True)
+        self.audit_select_all.set_active(True)
+        self.update_audit_apply_button()
+        if total_found == 0:
+            OkDialog(_("No Results"), _("No issues found."), self.window)
+
+    def update_action_buttons(self) -> None:
+        self.scan_btn.set_sensitive(True)
+        has_checked = any(row[self.LIST_COL_CHECKBOX] for row in self.list_store)
+        self.apply_btn.set_sensitive(has_checked)
+
+    def update_given_apply_button(self) -> None:
+        has_checked = any(row[self.GIVEN_COL_CHECKBOX] for row in self.given_store)
+        self.given_apply_btn.set_sensitive(has_checked)
+
+    def update_audit_apply_button(self) -> None:
+        has_checked = any(row[self.AUDIT_COL_CHECKBOX] for row in self.audit_store)
+        self.audit_apply_btn.set_sensitive(has_checked)
+
+    # --- Column Setup Methods ---
+
+    def setup_inference_columns(self) -> None:
+        renderer_toggle = Gtk.CellRendererToggle()
+        renderer_toggle.connect("toggled", self.on_list_row_toggled)
+        self.tree_view.append_column(
+            Gtk.TreeViewColumn(_("Use"), renderer_toggle, active=self.LIST_COL_CHECKBOX)
+        )
+        col = Gtk.TreeViewColumn(
+            _("ID"), Gtk.CellRendererText(), text=self.LIST_COL_GRAMPS_ID
+        )
+        col.set_sort_column_id(self.LIST_COL_GRAMPS_ID)
+        self.tree_view.append_column(col)
+
+        individual_col = Gtk.TreeViewColumn(
+            _("Individual"), Gtk.CellRendererText(), text=self.LIST_COL_DISPLAY_NAME
+        )
+        individual_col.set_expand(True)
+        individual_col.set_sort_column_id(self.LIST_COL_DISPLAY_NAME)
+        self.tree_view.append_column(individual_col)
+
+        father_col = Gtk.TreeViewColumn(
+            _("Father"), Gtk.CellRendererText(), text=self.LIST_COL_FATHER_NAME
+        )
+        father_col.set_expand(True)
+        father_col.set_sort_column_id(self.LIST_COL_FATHER_NAME)
+        self.tree_view.append_column(father_col)
+
+        patronymic_col = Gtk.TreeViewColumn(
+            _("Patronymic"), Gtk.CellRendererText(), text=self.LIST_COL_PATRONYMIC
+        )
+        patronymic_col.set_expand(True)
+        patronymic_col.set_sort_column_id(self.LIST_COL_PATRONYMIC)
+        self.tree_view.append_column(patronymic_col)
+        col = Gtk.TreeViewColumn(
+            _("Conf"), Gtk.CellRendererText(), text=self.LIST_COL_CONFIDENCE
+        )
+        col.set_sort_column_id(self.LIST_COL_CONFIDENCE)
+        self.tree_view.append_column(col)
+        col = Gtk.TreeViewColumn(
+            _("Ref Year"), Gtk.CellRendererText(), text=self.LIST_COL_REF_YEAR
+        )
+        col.set_sort_column_id(self.LIST_COL_REF_YEAR)
+        self.tree_view.append_column(col)
+        col = Gtk.TreeViewColumn(
+            _("Ref Year Src"), Gtk.CellRendererText(), text=self.LIST_COL_RULE_SOURCE
+        )
+        col.set_sort_column_id(self.LIST_COL_RULE_SOURCE)
+        self.tree_view.append_column(col)
+
+    def setup_given_names_rename_columns(self) -> None:
+        renderer_toggle = Gtk.CellRendererToggle()
+        renderer_toggle.connect("toggled", self.on_given_row_toggled)
+        self.given_tree.append_column(
+            Gtk.TreeViewColumn(
+                _("Use"), renderer_toggle, active=self.GIVEN_COL_CHECKBOX
+            )
+        )
+        col = Gtk.TreeViewColumn(
+            _("ID"), Gtk.CellRendererText(), text=self.GIVEN_COL_GRAMPS_ID
+        )
+        col.set_sort_column_id(self.GIVEN_COL_GRAMPS_ID)
+        self.given_tree.append_column(col)
+
+        individual_col = Gtk.TreeViewColumn(
+            _("Individual"), Gtk.CellRendererText(), text=self.GIVEN_COL_DISPLAY_NAME
+        )
+        individual_col.set_expand(True)
+        individual_col.set_sort_column_id(self.GIVEN_COL_DISPLAY_NAME)
+        self.given_tree.append_column(individual_col)
+
+        current_col = Gtk.TreeViewColumn(
+            _("Current"), Gtk.CellRendererText(), text=self.GIVEN_COL_CURRENT
+        )
+        current_col.set_expand(True)
+        current_col.set_sort_column_id(self.GIVEN_COL_CURRENT)
+        self.given_tree.append_column(current_col)
+
+        proposed_col = Gtk.TreeViewColumn(
+            _("Proposed"), Gtk.CellRendererText(), markup=self.GIVEN_COL_PROPOSED
+        )
+        proposed_col.set_expand(True)
+        proposed_col.set_sort_column_id(self.GIVEN_COL_PROPOSED_RAW)
+        self.given_tree.append_column(proposed_col)
+
+        action_col = Gtk.TreeViewColumn(
+            _("Action"), Gtk.CellRendererText(), text=self.GIVEN_COL_ALT_ACTION
+        )
+        action_col.set_sort_column_id(self.GIVEN_COL_ALT_ACTION)
+        self.given_tree.append_column(action_col)
+
+    def setup_audit_columns(self) -> None:
+        renderer_toggle = Gtk.CellRendererToggle()
+        renderer_toggle.connect("toggled", self.on_audit_row_toggled)
+        self.audit_tree.append_column(
+            Gtk.TreeViewColumn(
+                _("Use"), renderer_toggle, active=self.AUDIT_COL_CHECKBOX
+            )
+        )
+        col = Gtk.TreeViewColumn(
+            _("ID"), Gtk.CellRendererText(), text=self.AUDIT_COL_GRAMPS_ID
+        )
+        col.set_sort_column_id(self.AUDIT_COL_GRAMPS_ID)
+        self.audit_tree.append_column(col)
+
+        individual_col = Gtk.TreeViewColumn(
+            _("Individual"), Gtk.CellRendererText(), text=self.AUDIT_COL_DISPLAY_NAME
+        )
+        individual_col.set_expand(True)
+        individual_col.set_sort_column_id(self.AUDIT_COL_DISPLAY_NAME)
+        self.audit_tree.append_column(individual_col)
+
+        current_col = Gtk.TreeViewColumn(
+            _("Current"), Gtk.CellRendererText(), text=self.AUDIT_COL_CURRENT_PAT
+        )
+        current_col.set_expand(True)
+        current_col.set_sort_column_id(self.AUDIT_COL_CURRENT_PAT)
+        self.audit_tree.append_column(current_col)
+
+        correction_col = Gtk.TreeViewColumn(
+            _("Correction"), Gtk.CellRendererText(), markup=self.AUDIT_COL_DIFF_MARKUP
+        )
+        correction_col.set_expand(True)
+        correction_col.set_sort_column_id(self.AUDIT_COL_SUGGESTED_STRING)
+        self.audit_tree.append_column(correction_col)
+
+        year_col = Gtk.TreeViewColumn(
+            _("Year"), Gtk.CellRendererText(), text=self.AUDIT_COL_REF_YEAR
+        )
+        year_col.set_sort_column_id(self.AUDIT_COL_REF_YEAR)
+        self.audit_tree.append_column(year_col)
+
+        rule_col = Gtk.TreeViewColumn(
+            _("Rule"), Gtk.CellRendererText(), text=self.AUDIT_COL_RULE_ID
+        )
+        rule_col.set_sort_column_id(self.AUDIT_COL_RULE_ID)
+        self.audit_tree.append_column(rule_col)
+
+        src_col = Gtk.TreeViewColumn(
+            _("Source"), Gtk.CellRendererText(), text=self.AUDIT_COL_RULE_SOURCE
+        )
+        src_col.set_sort_column_id(self.AUDIT_COL_RULE_SOURCE)
+        self.audit_tree.append_column(src_col)
+
+    # --- Row Toggle Handlers ---
+
+    def on_list_row_toggled(self, widget, path) -> None:
+        self.list_store[path][self.LIST_COL_CHECKBOX] = not self.list_store[path][
+            self.LIST_COL_CHECKBOX
+        ]
+        self.update_action_buttons()
+
+    def on_given_row_toggled(self, widget, path) -> None:
+        self.given_store[path][self.GIVEN_COL_CHECKBOX] = not self.given_store[path][
+            self.GIVEN_COL_CHECKBOX
+        ]
+        self.update_given_apply_button()
+
+    def on_audit_row_toggled(self, widget, path) -> None:
+        self.audit_store[path][self.AUDIT_COL_CHECKBOX] = not self.audit_store[path][
+            self.AUDIT_COL_CHECKBOX
+        ]
+        self.update_audit_apply_button()
+
+        all_selected = all(row[self.AUDIT_COL_CHECKBOX] for row in self.audit_store)
+        self.audit_select_all.set_active(all_selected)
+
+    # --- Select All Handlers ---
+
+    def on_given_select_all_toggled(self, widget) -> None:
+        for row in self.given_store:
+            row[self.GIVEN_COL_CHECKBOX] = widget.get_active()
+        self.update_given_apply_button()
+
+    def on_audit_select_all_toggled(self, widget) -> None:
+        for row in self.audit_store:
+            row[self.AUDIT_COL_CHECKBOX] = widget.get_active()
+        self.update_audit_apply_button()
+
+    # --- Configure Rules Dialog ---
+
+    def on_configure_rules_clicked(self, widget) -> None:
+        dialog = Gtk.Dialog(
+            title=_("Configure Rules"), parent=self.window, flags=Gtk.DialogFlags.MODAL
+        )
+        dialog.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        dialog.get_content_area().add(vbox)
+        checks = {}
+        for rule_id in self.controller.get_available_audit_rules():
+            chk = Gtk.CheckButton(label=rule_id)
+            chk.set_active(self.enabled_rules[rule_id])
+            vbox.pack_start(chk, False, False, 0)
+            checks[rule_id] = chk
+        dialog.show_all()
+        if dialog.run() == Gtk.ResponseType.OK:
+            for r_id, chk in checks.items():
+                self.enabled_rules[r_id] = chk.get_active()
+        dialog.destroy()
+
+    # --- Person Edit Dialog ---
+
+    def _open_person_edit_dialog(self, treeview, path, handle_column) -> None:
+        handle = treeview.get_model()[path][handle_column]
+        gramps_person = self.controller.get_gramps_person(handle)
+        dbstate = self.controller.dbstate
+        uistate = getattr(self.controller.user, "uistate", None)
+        if gramps_person is None or dbstate is None or uistate is None:
+            return
+
+        try:
+            EditPerson(dbstate, uistate, [], gramps_person)
+        except WindowActiveError:
+            pass
+
+    def on_list_row_activated(self, tv, path, col) -> None:
+        self._open_person_edit_dialog(tv, path, self.LIST_COL_HANDLE)
+
+    def on_audit_row_activated(self, tv, path, col) -> None:
+        self._open_person_edit_dialog(tv, path, self.AUDIT_COL_HANDLE)
+
+    def on_given_row_activated(self, tv, path, col) -> None:
+        self._open_person_edit_dialog(tv, path, self.GIVEN_COL_HANDLE)
+
+    def get_checked_standardization_handles(self) -> set:
+        """Returns the set of person handles for checked standardization rows."""
+        return {
+            row[self.GIVEN_COL_HANDLE]
+            for row in self.given_store
+            if row[self.GIVEN_COL_CHECKBOX]
+        }
+
+    def get_checked_inference_handles(self) -> set:
+        """Returns the set of person handles for checked inference rows."""
+        return {
+            row[self.LIST_COL_HANDLE]
+            for row in self.list_store
+            if row[self.LIST_COL_CHECKBOX]
+        }
+
+    def get_checked_audit_handles(self) -> set:
+        """Returns the set of person handles for checked audit rows."""
+        return {
+            row[self.AUDIT_COL_HANDLE]
+            for row in self.audit_store
+            if row[self.AUDIT_COL_CHECKBOX]
+        }

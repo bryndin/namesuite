@@ -1,43 +1,60 @@
-# names_tool.py
-# -*- coding: utf-8 -*-
-
 from gramps.gui.plug import tool
+from name_processor.controllers.tool import ToolController
+from name_processor.repositories.gramps_read import GrampsReadRepository
+from name_processor.repositories.gramps_write import GrampsWriteRepository
+from name_processor.views.tool import ToolWindow
 
-from name_processor.drivers.db_wrapper import GrampsDbWrapper
-from name_processor.services.patronymic_inference import PatronymicInferenceService
-from name_processor.services.rename import RenameService
-from name_processor.services.patronymic_audit import PatronymicAuditService
-from name_processor.controllers.tool_controller import ToolController
-from name_processor.ui.tool_window import NamesToolWindow
+# Domain Services
+from name_processor.services.chronology import ChronologyService
+from name_processor.services.confidence_engine import ConfidenceEngine
+from name_processor.services.patronymic import PatronymicInferenceService
+from name_processor.services.renamer import RenamerService
+from name_processor.services.alt_names import AltNamesService
+
+# Ensure you have an AuditService stub or class created
+from name_processor.services.audit import AuditService
 
 
 class NamesTool(tool.Tool):
-    def __init__(self, dbstate, user, options_class, name, callback=None):
-        self.db_wrapper = GrampsDbWrapper(dbstate)
+    def __init__(self, dbstate, user, options_class, name):
+        # NOTE: Gramps tool initialization also includes `user` in modern versions
+        super().__init__(dbstate, options_class, name)
+        self.user = user
 
-        # Initialize Services with the wrapper for persistence layer access
-        self.inference_service = PatronymicInferenceService(self.db_wrapper)
-        self.standardizer_service = RenameService(self.db_wrapper)
-        self.audit_service = PatronymicAuditService(self.db_wrapper)
+        # 1. Repositories
+        self._read_repo = GrampsReadRepository(dbstate)
+        self._write_repo = GrampsWriteRepository(dbstate)
 
-        # Instantiate View and Controller layers
-        self.view = NamesToolWindow(callback)
-        self.controller = ToolController(
-            self.view,
-            self.db_wrapper,
-            user,
-            self.inference_service,
-            self.standardizer_service,
-            self.audit_service,
+        # 2. Domain Services
+        self._chronology_service = ChronologyService(self._read_repo)
+        self._confidence_engine = ConfidenceEngine(self._read_repo)
+
+        self._patronymic_service = PatronymicInferenceService(
+            self._read_repo, self._confidence_engine, self._chronology_service
         )
 
-        self.view.set_controller(self.controller)
-        tool.Tool.__init__(self, dbstate, options_class, name)
+        self._alt_names_service = AltNamesService()
+        self._renamer_service = RenamerService()
+        self._audit_service = AuditService(
+            read_repo=self._read_repo, chronology_service=self._chronology_service
+        )
+
+        # 3. Presentation Layer
+        self._view = ToolWindow(self)
+        self._controller = ToolController(
+            tool_instance=self,  # <--- Pass the tool itself
+            view=self._view,
+            read_repo=self._read_repo,
+            write_repo=self._write_repo,
+            patronymic_service=self._patronymic_service,
+            renamer_service=self._renamer_service,
+            alt_names_service=self._alt_names_service,
+            audit_service=self._audit_service,
+            chronology_service=self._chronology_service,
+        )
+
+        if self._view:
+            self._view.set_controller(self._controller)
 
     def run(self):
-        self.view.window.show_all()
-
-
-class NamesToolOptions(tool.ToolOptions):
-    def __init__(self, name, person_id=None):
-        tool.ToolOptions.__init__(self, name, person_id)
+        self._view.window.show_all()

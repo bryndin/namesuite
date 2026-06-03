@@ -20,6 +20,10 @@ class GrampsPersonProxy:
         return self._person.get_handle()
 
     @property
+    def gramps_id(self) -> str:
+        return self._person.get_gramps_id()
+
+    @property
     def gender(self) -> Gender:
         # Translate Gramps int to Domain Enum
         return (

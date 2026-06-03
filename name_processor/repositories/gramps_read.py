@@ -1,5 +1,5 @@
+from typing import Optional, List, Generator
 import itertools
-from collections.abc import Generator
 
 from name_processor.repositories.person import GrampsPersonProxy
 from name_processor.protocols.patronymic import PatronymicSubject
@@ -8,49 +8,67 @@ from name_processor.protocols.chronology import ChronologySubject
 
 class GrampsReadRepository:
     def __init__(self, dbstate):
-        self._db = dbstate.db
+        self.db = dbstate.db
+        self._cached_median_year = None
 
-    def _get_concrete_proxy(self, handle: str) -> GrampsPersonProxy | None:
-        """Private method returning the concrete implementation."""
-        gramps_person = self._db.get_person_from_handle(handle)
+    # ==========================================
+    # System Operations
+    # ==========================================
+    def get_person_count(self) -> int:
+        """Returns the total number of individuals to power UI progress bars."""
+        return self.db.get_number_of_people()
+
+    def get_raw_person(self, handle: str):
+        """
+        Returns the raw, mutable Gramps Person object.
+        Used only for write operations and native Gramps Editor dialogs.
+        """
+        return self.db.get_person_from_handle(handle)
+
+    # ==========================================
+    # Proxy Access & Iterators
+    # ==========================================
+    def get_person_proxy(self, handle: str) -> Optional[GrampsPersonProxy]:
+        gramps_person = self.db.get_person_from_handle(handle)
         if not gramps_person:
             return None
-        return GrampsPersonProxy(gramps_person, self._db)
+        return GrampsPersonProxy(gramps_person, self.db)
 
-    def get_person_proxy(self, handle: str) -> PatronymicSubject | None:
-        return self._get_concrete_proxy(handle)
+    def get_chronology_subject(self, handle: str) -> Optional[ChronologySubject]:
+        return self.get_person_proxy(handle)
 
-    def get_chronology_subject(self, handle: str) -> ChronologySubject | None:
-        return self._get_concrete_proxy(handle)
-
-    def get_database_median_year(self) -> int | None:
+    def get_person_proxies_chunked(
+        self, chunk_size: int = 250
+    ) -> Generator[List[GrampsPersonProxy], None, None]:
         """
-        Calculate the median year from all events in the database.
-
-        :returns: The median year, or None if no events with valid years exist.
+        Yields batches of person proxies to hide handle iteration
+        and support GTK idle loop chunking.
         """
+        handles = self.db.get_person_handles()
+        for i in range(0, len(handles), chunk_size):
+            chunk = []
+            for handle in handles[i : i + chunk_size]:
+                proxy = self.get_person_proxy(handle)
+                if proxy:
+                    chunk.append(proxy)
+            yield chunk
+
+    def iter_all_person_proxies(self) -> Generator[GrampsPersonProxy, None, None]:
+        """Yields person proxies one by one for direct iteration."""
+        for handle in self.db.get_person_handles():
+            proxy = self.get_person_proxy(handle)
+            if proxy:
+                yield proxy
+
+    # ==========================================
+    # Aggregations
+    # ==========================================
+    def get_database_median_year_chunked(
+        self, chunk_size: int = 500
+    ) -> Generator[None, None, Optional[int]]:
+        """Calculates the median year asynchronously."""
         years = []
-        for handle in self._db.get_event_handles():
-            event = self._db.get_event_from_handle(handle)
-            if event:
-                date_obj = event.get_date_object()
-                if date_obj and not date_obj.is_empty():
-                    year = date_obj.get_year()
-                    if year and year > 0:
-                        years.append(year)
-
-        if years:
-            years.sort()
-            return years[len(years) // 2]
-        return None
-
-    def get_database_median_year_chunked(self, chunk_size: int = 500) -> Generator:
-        """
-        Generator that yields None while processing to keep the GUI responsive.
-        Returns the final median year via StopIteration when finished.
-        """
-        years = []
-        handles = self._db.get_event_handles()
+        handles = self.db.get_event_handles()
         handle_iter = iter(handles)
 
         while True:
@@ -59,19 +77,16 @@ class GrampsReadRepository:
                 break
 
             for handle in chunk:
-                event = self._db.get_event_from_handle(handle)
+                event = self.db.get_event_from_handle(handle)
                 if event:
                     date_obj = event.get_date_object()
                     if date_obj and not date_obj.is_empty():
                         year = date_obj.get_year()
                         if year and year > 0:
                             years.append(year)
-
-            # Yield control back to the GTK main loop after processing a chunk
             yield None
 
         if years:
             years.sort()
             return years[len(years) // 2]
-
         return None
