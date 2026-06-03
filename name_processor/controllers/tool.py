@@ -97,9 +97,7 @@ class ToolController:
     # ==========================================
     # Tab 1: Standardize Names
     # ==========================================
-    def run_standardize_scan(
-        self, source: str, target: str, match_type_idx: int
-    ) -> bool:
+    def run_rename_scan(self, source: str, target: str, match_type_idx: int) -> bool:
         mode_map = {0: "exact", 1: "substring", 2: "regex"}
         rule = self._renamer_service.create_rule(
             mode_map.get(match_type_idx, "exact"), source, target
@@ -141,8 +139,8 @@ class ToolController:
         run_in_idle_loop(scan_generator(), on_complete)
         return True
 
-    def apply_checked_standardizations(self) -> bool:
-        handles = self._view.get_checked_standardization_handles()
+    def apply_checked_renamings(self) -> bool:
+        handles = self._view.get_checked_renaming_handles()
         if not handles:
             return False
 

@@ -56,7 +56,7 @@ class ToolWindow:
     All business logic and long-running tasks are delegated to the controller.
     """
 
-    # Given Names store column indices (Tab 1 - Standardize)
+    # Given Names store column indices (Tab 1 - Rename Given Names)
     GIVEN_COL_CHECKBOX = 0
     GIVEN_COL_GRAMPS_ID = 1
     GIVEN_COL_DISPLAY_NAME = 2
@@ -158,10 +158,10 @@ class ToolWindow:
         notebook = Gtk.Notebook()
         main_box.pack_start(notebook, True, True, 0)
 
-        # --- TAB 0: Given Names (Standardization) ---
+        # --- TAB 0: Given Names (Rename Given Names) ---
         given_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         given_box.set_border_width(8)
-        notebook.append_page(given_box, Gtk.Label(label=_("Standardize Names")))
+        notebook.append_page(given_box, Gtk.Label(label=_("Rename Given Names")))
 
         given_config_frame = Gtk.Frame(label=_("Search and Replace Options"))
         given_box.pack_start(given_config_frame, False, False, 0)
@@ -378,13 +378,13 @@ class ToolWindow:
             )
             return
 
-        has_results = self.controller.run_standardize_scan(source, target, match_type)
+        has_results = self.controller.run_rename_scan(source, target, match_type)
         self.update_given_apply_button()
         if not has_results:
             self.show_ok_dialog(_("No Results"), _("No matching given names found."))
 
     def on_given_apply_clicked(self, widget) -> None:
-        if self.controller.apply_checked_standardizations():
+        if self.controller.apply_checked_renamings():
             self.given_store.clear()
             self.update_given_apply_button()
 
@@ -762,8 +762,8 @@ class ToolWindow:
     def on_given_row_activated(self, tv, path, col) -> None:
         self._open_person_edit_dialog(tv, path, self.GIVEN_COL_HANDLE)
 
-    def get_checked_standardization_handles(self) -> set:
-        """Returns the set of person handles for checked standardization rows."""
+    def get_checked_renaming_handles(self) -> set:
+        """Returns the set of person handles for checked renaming rows."""
         return {
             row[self.GIVEN_COL_HANDLE]
             for row in self.given_store
