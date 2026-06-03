@@ -8,9 +8,9 @@ import re
 from typing import Optional, Set, Tuple
 
 from name_processor.services.audit_rules.base import BaseRule
-from name_processor.entities.rule_models import RuleContext, ProposedChange
-from name_processor.entities.models import Gender
-from name_processor.services.constants import (
+from name_processor.models.audit import RuleContext, ProposedChange
+from name_processor.models.audit import Gender
+from name_processor.models.constants import (
     SEVERITY_WARNING,
     LOCALE_EAST_SLAVIC,
 )
@@ -34,7 +34,9 @@ class WarnMorphologicalTypo(BaseRule):
     def active_era(self) -> Tuple[Optional[int], Optional[int]]:
         return (None, None)
 
-    def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
+    def evaluate(
+        self, ctx: RuleContext, use_pre_reform: bool
+    ) -> Optional[ProposedChange]:
         if not ctx.current_patronymic:
             return None
 
@@ -45,7 +47,7 @@ class WarnMorphologicalTypo(BaseRule):
             # Re-generate from father's name if present for maximum accuracy
             if ctx.father_given_name:
                 is_male = ctx.gender == Gender.MALE
-                pre_reform = MorphologyService.is_pre_reform(ctx)
+                pre_reform = MorphologyService.is_pre_reform(ctx, use_pre_reform)
                 gen_expected = MorphologyService.generate_east_slavic_patronymic(
                     ctx.father_given_name,
                     is_male=is_male,
@@ -64,7 +66,7 @@ class WarnMorphologicalTypo(BaseRule):
         # 2. Check if a duplicate letter differs only from morphological standard
         if ctx.father_given_name:
             is_male = ctx.gender == Gender.MALE
-            pre_reform = MorphologyService.is_pre_reform(ctx)
+            pre_reform = MorphologyService.is_pre_reform(ctx, use_pre_reform)
             expected = MorphologyService.generate_east_slavic_patronymic(
                 ctx.father_given_name,
                 is_male=is_male,

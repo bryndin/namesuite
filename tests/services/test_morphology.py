@@ -322,26 +322,24 @@ class TestEastSlavicMorphology(unittest.TestCase):
         # Valid pre-reform
         ctx_mock.locale = LOCALE_RU
         ctx_mock.reference_year = REFORM_YEAR_1918 - 10
-        ctx_mock.use_pre_reform = True
-        self.assertTrue(MorphologyService.is_pre_reform(ctx_mock))
+        self.assertTrue(MorphologyService.is_pre_reform(ctx_mock, True))
 
         # Invalid locale
         ctx_mock.locale = "en"
-        self.assertFalse(MorphologyService.is_pre_reform(ctx_mock))
+        self.assertFalse(MorphologyService.is_pre_reform(ctx_mock, True))
 
         # Modern year
         ctx_mock.locale = LOCALE_RU
         ctx_mock.reference_year = REFORM_YEAR_1918 + 10
-        self.assertFalse(MorphologyService.is_pre_reform(ctx_mock))
+        self.assertFalse(MorphologyService.is_pre_reform(ctx_mock, True))
 
         # Missing year
         ctx_mock.reference_year = None
-        self.assertFalse(MorphologyService.is_pre_reform(ctx_mock))
+        self.assertFalse(MorphologyService.is_pre_reform(ctx_mock, True))
 
         # Feature disabled
         ctx_mock.reference_year = REFORM_YEAR_1918 - 10
-        ctx_mock.use_pre_reform = False
-        self.assertFalse(MorphologyService.is_pre_reform(ctx_mock))
+        self.assertFalse(MorphologyService.is_pre_reform(ctx_mock, False))
 
     def test_male_names_dataset(self):
         import os

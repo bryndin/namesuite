@@ -3,7 +3,7 @@ from typing import Optional, Set, Tuple
 from name_processor.services.audit_rules.base import BaseRule
 from name_processor.models.audit import RuleContext, ProposedChange
 from name_processor.models.person import Gender
-from name_processor.services.constants import SEVERITY_ERROR, LOCALE_EAST_SLAVIC
+from name_processor.models.constants import LOCALE_EAST_SLAVIC, SEVERITY_ERROR
 from name_processor.services.morphology import MorphologyService
 
 
@@ -16,7 +16,7 @@ class ErrGenderMismatch(BaseRule):
 
     @property
     def supported_locales(self) -> Set[str]:
-        return {LOCALE_EAST_SLAVIC}
+        return set(LOCALE_EAST_SLAVIC)
 
     @property
     def active_era(self) -> Tuple[Optional[int], Optional[int]]:

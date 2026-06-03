@@ -1,3 +1,4 @@
+from gramps.gen.display.name import displayer
 from gramps.gen.lib import Person as GrampsPerson
 from gramps.gen.lib.nameorigintype import NameOriginType
 
@@ -40,6 +41,15 @@ class GrampsPersonProxy:
             surname.get_origintype() == NameOriginType.PATRONYMIC
             for surname in primary_name.get_surname_list()
         )
+
+    @property
+    def patronymic(self) -> str | None:
+        # Return the surname with PATRONYMIC origin type
+        primary_name = self._person.get_primary_name()
+        for surname in primary_name.get_surname_list():
+            if surname.get_origintype() == NameOriginType.PATRONYMIC:
+                return surname.get_surname()
+        return None
 
     @property
     def father_handle(self) -> str | None:
@@ -102,3 +112,8 @@ class GrampsPersonProxy:
     def given_name(self) -> str | None:
         primary_name = self._person.get_primary_name()
         return primary_name.get_first_name() if primary_name else None
+
+    @property
+    def display_name(self) -> str:
+        primary_name = self._person.get_primary_name()
+        return displayer.display_name(primary_name) if primary_name else ""

@@ -2,7 +2,7 @@ import logging
 from typing import TYPE_CHECKING, List, Set
 
 from name_processor.models.audit import AuditIssue, RuleContext
-from name_processor.services.constants import LOCALE_UNIVERSAL, LOCALE_EAST_SLAVIC
+from name_processor.models.constants import LOCALE_EAST_SLAVIC, LOCALE_RU
 from name_processor.services.audit_rules.gender_mismatch import ErrGenderMismatch
 from name_processor.services.audit_rules.lineage_mismatch import ErrLineageMismatch
 from name_processor.services.audit_rules.modern_suffix_archaic_era import (
@@ -74,7 +74,7 @@ class AuditService:
             current_patronymic=current_patronymic,
             father_given_name=father_given_name,
             reference_year=ref_year,
-            locale=LOCALE_EAST_SLAVIC,  # Can be expanded dynamically later
+            locale=LOCALE_RU,  # Can be expanded dynamically later
         )
 
         # Evaluate rules
@@ -93,26 +93,27 @@ class AuditService:
             # Safe execution
             try:
                 change = rule.evaluate(ctx, use_pre_reform)
-                if change:
-                    issues.append(
-                        AuditIssue(
-                            person_handle=ctx.person_handle,
-                            gramps_id=ctx.gramps_id,
-                            display_name=ctx.display_name,
-                            current_value=ctx.current_patronymic,
-                            reference_year=str(ctx.reference_year)
-                            if ctx.reference_year
-                            else "N/A",
-                            rule_id=rule.rule_id,
-                            suggested_fix=change.suggested_string,
-                            rule_source="Morphology Engine",
-                            explanation=change.explanation,
-                        )
-                    )
             except Exception as e:
                 logger.error(
-                    f"[Linter Error] Rule '{rule.rule_id}' failed on '{ctx.gramps_id}': {e}",
-                    exc_info=True,
+                    f"Rule {rule.rule_id} failed for person {ctx.person_handle}: {e}"
                 )
-
+                continue
+            if change:
+                issues.append(
+                    AuditIssue(
+                        person_handle=ctx.person_handle,
+                        gramps_id=ctx.gramps_id,
+                        display_name=ctx.display_name,
+                        current_value=ctx.current_patronymic,
+                        suggested_fix=change.suggested_string,
+                        reference_year=str(ctx.reference_year)
+                        if ctx.reference_year
+                        else "N/A",
+                        rule_id=rule.rule_id,
+                        rule_source=rule.rule_id,  # Or custom name
+                        explanation=change.explanation,
+                        severity=rule.severity,
+                        is_pre_reform=use_pre_reform,
+                    )
+                )
         return issues

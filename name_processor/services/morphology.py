@@ -256,13 +256,13 @@ class MorphologyService:
         return result
 
     @classmethod
-    def is_pre_reform(cls, ctx) -> bool:
+    def is_pre_reform(cls, ctx, use_pre_reform: bool) -> bool:
         """Check if the context satisfies the pre-reform conditions."""
         return (
             ctx.locale == LOCALE_RU
             and ctx.reference_year is not None
             and ctx.reference_year < REFORM_YEAR_1918
-            and ctx.use_pre_reform
+            and use_pre_reform
         )
 
     @classmethod

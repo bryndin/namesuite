@@ -8,11 +8,8 @@ import re
 from typing import Optional, Set, Tuple
 
 from name_processor.services.audit_rules.base import BaseRule
-from name_processor.entities.rule_models import RuleContext, ProposedChange
-from name_processor.services.constants import (
-    SEVERITY_ERROR,
-    LOCALE_EAST_SLAVIC,
-)
+from name_processor.models.audit import RuleContext, ProposedChange
+from name_processor.models.constants import LOCALE_EAST_SLAVIC, SEVERITY_ERROR
 
 # Cyrillic and Latin Unicode blocks to detect homoglyph mixing
 CYRILLIC_PATTERN = re.compile(r"[\u0400-\u04FF]")
@@ -59,7 +56,9 @@ class ErrMixedScripts(BaseRule):
     def active_era(self) -> Tuple[Optional[int], Optional[int]]:
         return (None, None)
 
-    def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
+    def evaluate(
+        self, ctx: RuleContext, use_pre_reform: bool
+    ) -> Optional[ProposedChange]:
         if not ctx.current_patronymic:
             return None
 

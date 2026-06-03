@@ -6,7 +6,7 @@ from gi.repository import GLib
 
 def run_in_idle_loop(
     generator: Generator, on_complete: Callable[[Any], None] | None = None
-) -> None:
+) -> GLib.Source:
     """
     Executes a chunked generator in the GTK idle loop to prevent UI freezing.
 
@@ -28,4 +28,4 @@ def run_in_idle_loop(
             print(f"Background task failed: {e}")
             return False
 
-    GLib.idle_add(process_chunk)
+    return GLib.idle_add(process_chunk)

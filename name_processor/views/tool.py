@@ -13,8 +13,8 @@ from gramps.gui.dialog import OkDialog
 from gramps.gui.editors import EditPerson
 from gramps.gen.errors import WindowActiveError
 
-from name_processor.entities.models import AuditScope
-from name_processor.ui.constants import IDLE_CHUNK_AUDIT
+from name_processor.models.audit import AuditScope
+from name_processor.views.constants import IDLE_CHUNK_AUDIT
 
 logger = logging.getLogger(__name__)
 
@@ -85,12 +85,6 @@ class ToolWindow:
     LIST_COL_GRAMPS_ID = 7
     LIST_COL_HANDLE = 8
 
-    # Log store column indices (Tab 3 - rollback history)
-    LOG_COL_EXEC_ID = 0
-    LOG_COL_TIMESTAMP = 1
-    LOG_COL_CHANGES_COUNT = 2
-    LOG_COL_PLUGIN_ID = 3
-
     def __init__(self, callback=None) -> None:
         """Initializes the GTK Window."""
         self.callback = callback
@@ -121,11 +115,6 @@ class ToolWindow:
             self.controller.initialize_given_names_async()
         except Exception as e:
             logger.error(f"Error initializing given names: {e}")
-            raise
-        try:
-            self.controller.refresh_history()
-        except Exception as e:
-            logger.error(f"Error refreshing history: {e}")
             raise
 
     def setup_given_name_autocompletion(self) -> None:
@@ -310,7 +299,7 @@ class ToolWindow:
         audit_tab_box.pack_start(audit_scroll, True, True, 0)
 
         self.audit_store = Gtk.ListStore(
-            bool, str, str, str, int, str, str, str, str, str, str
+            bool, str, str, str, str, str, str, str, str, str, str
         )
         self.audit_tree = Gtk.TreeView(model=self.audit_store)
         audit_scroll.add(self.audit_tree)
@@ -328,27 +317,6 @@ class ToolWindow:
         self.audit_apply_btn.set_sensitive(False)
         self.audit_apply_btn.connect("clicked", self.on_audit_apply_clicked)
         audit_footer_box.pack_end(self.audit_apply_btn, False, False, 0)
-
-        # --- TAB 3: Reversibility & Rollbacks ---
-        rollback_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        rollback_box.set_border_width(8)
-        notebook.append_page(rollback_box, Gtk.Label(label=_("Revert")))
-
-        log_scroll = Gtk.ScrolledWindow()
-        log_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        rollback_box.pack_start(log_scroll, True, True, 0)
-
-        self.log_store = Gtk.ListStore(str, str, int, str)
-        self.log_tree = Gtk.TreeView(model=self.log_store)
-        log_scroll.add(self.log_tree)
-        self.setup_log_columns()
-
-        revert_footer_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        rollback_box.pack_start(revert_footer_box, False, False, 0)
-
-        self.revert_btn = Gtk.Button(label=_("Rollback Selected Transaction"))
-        self.revert_btn.connect("clicked", self.on_revert_clicked)
-        revert_footer_box.pack_end(self.revert_btn, False, False, 0)
 
         # --- Double-Click Row Activation Connections ---
         self.tree_view.connect("row-activated", self.on_list_row_activated)
@@ -409,7 +377,6 @@ class ToolWindow:
         if self.controller.apply_checked_standardizations():
             self.given_store.clear()
             self.update_given_apply_button()
-            self.controller.refresh_history()
 
     def on_scan_clicked(self, widget) -> None:
         self.scan_btn.set_sensitive(False)
@@ -431,7 +398,6 @@ class ToolWindow:
         if self.controller.apply_checked_inferences(pre_reform):
             self.list_store.clear()
             self.update_action_buttons()
-            self.controller.refresh_history()
 
     def on_audit_run_clicked(self, widget) -> None:
         self.audit_run_btn.set_sensitive(False)

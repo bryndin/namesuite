@@ -43,14 +43,14 @@ def test_get_chronology_subject_success(mock_proxy_class, read_repo, mock_dbstat
 
 def test_get_database_median_year_chunked_empty(read_repo, mock_dbstate):
     mock_dbstate.db.get_event_handles.return_value = []
-    
+
     generator = read_repo.get_database_median_year_chunked()
-    
-    # A generator completing immediately raises StopIteration 
+
+    # A generator completing immediately raises StopIteration
     # with the final return value stored in excinfo.value.value
     with pytest.raises(StopIteration) as excinfo:
         next(generator)
-        
+
     assert excinfo.value.value is None
 
 

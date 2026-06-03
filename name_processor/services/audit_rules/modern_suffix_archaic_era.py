@@ -7,9 +7,9 @@ Flags pre-1918 records using modern formal endings and suggests possessive genit
 from typing import Optional, Set, Tuple
 
 from name_processor.services.audit_rules.base import BaseRule
-from name_processor.entities.rule_models import RuleContext, ProposedChange
-from name_processor.entities.models import Gender
-from name_processor.services.constants import (
+from name_processor.models.audit import RuleContext, ProposedChange
+from name_processor.models.audit import Gender
+from name_processor.models.constants import (
     SEVERITY_WARNING,
     LOCALE_EAST_SLAVIC,
     REFORM_YEAR_1918,
@@ -34,7 +34,9 @@ class WarnModernSuffixArchaicEra(BaseRule):
     def active_era(self) -> Tuple[Optional[int], Optional[int]]:
         return (None, 1917)
 
-    def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
+    def evaluate(
+        self, ctx: RuleContext, use_pre_reform: bool
+    ) -> Optional[ProposedChange]:
         if not ctx.current_patronymic or (
             ctx.reference_year is not None and ctx.reference_year >= REFORM_YEAR_1918
         ):
@@ -45,7 +47,7 @@ class WarnModernSuffixArchaicEra(BaseRule):
         if any(ctx.current_patronymic.endswith(s) for s in modern_suffixes):
             is_male = ctx.gender == Gender.MALE
             # Adjust condition to respect the user toggle
-            pre_reform = MorphologyService.is_pre_reform(ctx)
+            pre_reform = MorphologyService.is_pre_reform(ctx, use_pre_reform)
 
             if ctx.father_given_name:
                 suggested = MorphologyService.generate_east_slavic_patronymic(

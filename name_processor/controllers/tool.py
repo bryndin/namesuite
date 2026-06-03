@@ -1,6 +1,6 @@
 from typing import Dict, Set, Any
 from name_processor.utils.gtk_runner import run_in_idle_loop
-from name_processor.entities.models import AuditScope
+from name_processor.models.audit import AuditScope
 from name_processor.models.renamer import ProposedRename
 
 
@@ -80,9 +80,6 @@ class ToolController:
 
     def get_given_names(self) -> Set[str]:
         return self._given_names_cache
-
-    def refresh_history(self) -> None:
-        self._view.log_store.clear()
 
     # ==========================================
     # Tab 1: Standardize Names

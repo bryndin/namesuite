@@ -1,6 +1,16 @@
 from dataclasses import dataclass
+from enum import Enum
 from typing import Optional
+
 from name_processor.models.person import Gender
+
+
+class AuditScope(Enum):
+    """Filter options for database-wide auditing."""
+
+    ALL = 0
+    MALES_ONLY = 1
+    FEMALES_ONLY = 2
 
 
 @dataclass
@@ -17,24 +27,28 @@ class RuleContext:
     locale: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class ProposedChange:
-    """The internal result from an individual rule."""
+    """Internal result from an individual rule."""
 
     explanation: str
     suggested_string: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class AuditIssue:
-    """The DTO sent back to the Controller and displayed in the View."""
+    """The DTO sent to the Controller and displayed in the View."""
 
     person_handle: str
     gramps_id: str
     display_name: str
     current_value: str
+    suggested_fix: str
     reference_year: str
     rule_id: str
-    suggested_fix: str
     rule_source: str
     explanation: str
+
+    # Metadata for UI-level filtering and sorting
+    severity: str
+    is_pre_reform: bool

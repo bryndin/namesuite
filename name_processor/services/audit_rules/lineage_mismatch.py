@@ -7,10 +7,10 @@ Flags if the patronymic base/root does not match the linked biological father's 
 from typing import Optional, Set, Tuple
 
 from name_processor.services.audit_rules.base import BaseRule
-from name_processor.entities.rule_models import RuleContext, ProposedChange
-from name_processor.entities.models import Gender
-from name_processor.services.constants import (
-    SEVERITY_ERROR,
+from name_processor.models.audit import RuleContext, ProposedChange
+from name_processor.models.constants import SEVERITY_ERROR
+from name_processor.models.person import Gender
+from name_processor.models.constants import (
     LOCALE_EAST_SLAVIC,
     LOCALE_RU,
 )
@@ -34,12 +34,14 @@ class ErrLineageMismatch(BaseRule):
     def active_era(self) -> Tuple[Optional[int], Optional[int]]:
         return (None, None)
 
-    def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
+    def evaluate(
+        self, ctx: RuleContext, use_pre_reform: bool
+    ) -> Optional[ProposedChange]:
         if not ctx.father_given_name or not ctx.current_patronymic:
             return None
 
         is_male = ctx.gender == Gender.MALE
-        pre_reform = is_pre_reform(ctx)
+        pre_reform = MorphologyService.is_pre_reform(ctx, use_pre_reform)
 
         # Resolve target expected patronymic for active context
         expected = MorphologyService.generate_east_slavic_patronymic(

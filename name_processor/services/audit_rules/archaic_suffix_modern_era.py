@@ -7,9 +7,9 @@ Flags post-1918 records using archaic/informal possessive endings.
 from typing import Optional, Set, Tuple
 
 from name_processor.services.audit_rules.base import BaseRule
-from name_processor.entities.rule_models import RuleContext, ProposedChange
-from name_processor.entities.models import Gender
-from name_processor.services.constants import (
+from name_processor.models.audit import RuleContext, ProposedChange
+from name_processor.models.audit import Gender
+from name_processor.models.constants import (
     SEVERITY_WARNING,
     LOCALE_EAST_SLAVIC,
     REFORM_YEAR_1918,
@@ -34,7 +34,9 @@ class WarnArchaicSuffixModernEra(BaseRule):
     def active_era(self) -> Tuple[Optional[int], Optional[int]]:
         return (REFORM_YEAR_1918, None)
 
-    def evaluate(self, ctx: RuleContext) -> Optional[ProposedChange]:
+    def evaluate(
+        self, ctx: RuleContext, use_pre_reform: bool
+    ) -> Optional[ProposedChange]:
         if not ctx.current_patronymic or (
             ctx.reference_year is not None and ctx.reference_year < REFORM_YEAR_1918
         ):

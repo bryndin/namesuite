@@ -16,9 +16,10 @@ from name_processor.services.audit import AuditService
 
 
 class NamesTool(tool.Tool):
-    def __init__(self, dbstate, user, options_class, name):
+    def __init__(self, dbstate, user, options_class, name, callback):
         # NOTE: Gramps tool initialization also includes `user` in modern versions
         super().__init__(dbstate, options_class, name)
+        self.dbstate = dbstate
         self.user = user
 
         # 1. Repositories
@@ -58,3 +59,8 @@ class NamesTool(tool.Tool):
 
     def run(self):
         self._view.window.show_all()
+
+
+class NamesToolOptions(tool.ToolOptions):
+    def __init__(self, name, person_id=None):
+        tool.ToolOptions.__init__(self, name, person_id)
