@@ -600,7 +600,9 @@ class ToolWindow:
         self.update_audit_apply_button()
 
         all_selected = all(row[self.AUDIT_COL_CHECKBOX] for row in self.audit_store)
+        self.audit_select_all.handler_block_by_func(self.on_audit_select_all_toggled)
         self.audit_select_all.set_active(all_selected)
+        self.audit_select_all.handler_unblock_by_func(self.on_audit_select_all_toggled)
 
     # --- Select All Handlers ---
 
