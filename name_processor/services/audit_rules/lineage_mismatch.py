@@ -11,6 +11,7 @@ from name_processor.models.person import Gender
 from name_processor.models.constants import (
     LOCALE_EAST_SLAVIC,
     LOCALE_RU,
+    REFORM_YEAR,
 )
 from name_processor.services.morphology import MorphologyService
 
@@ -52,25 +53,28 @@ class ErrLineageMismatch(BaseRule):
 
         # Cross-reference pre-1918 and post-1918 variant states to avoid flagging anachronisms as lineage mismatch
         expected_modern = MorphologyService.generate_east_slavic_patronymic(
-            ctx.father_given_name, is_male=is_male, year=1950, pre_reform_script=False
+            ctx.father_given_name,
+            is_male=is_male,
+            year=REFORM_YEAR + 10,
+            pre_reform_script=False,
         )
         expected_archaic = MorphologyService.generate_east_slavic_patronymic(
             ctx.father_given_name,
             is_male=is_male,
-            year=1850,
+            year=REFORM_YEAR - 10,
             pre_reform_script=(ctx.locale == LOCALE_RU),
         )
 
         opposite_modern = MorphologyService.generate_east_slavic_patronymic(
             ctx.father_given_name,
             is_male=not is_male,
-            year=1950,
+            year=REFORM_YEAR + 10,
             pre_reform_script=False,
         )
         opposite_archaic = MorphologyService.generate_east_slavic_patronymic(
             ctx.father_given_name,
             is_male=not is_male,
-            year=1850,
+            year=REFORM_YEAR - 10,
             pre_reform_script=(ctx.locale == LOCALE_RU),
         )
 

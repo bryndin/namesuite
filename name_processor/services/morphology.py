@@ -8,7 +8,7 @@ orthographic script preferences.
 import re
 from typing import TYPE_CHECKING
 
-from name_processor.models.constants import LOCALE_RU, REFORM_YEAR_1918
+from name_processor.models.constants import LOCALE_RU, REFORM_YEAR
 
 if TYPE_CHECKING:
     from name_processor.models.audit import RuleContext
@@ -219,7 +219,7 @@ class MorphologyService:
         # Determine Chronological Epoch (Pivot Windows)
         epoch = (
             EPOCH_PRE_REFORM
-            if (year is not None and year < REFORM_YEAR_1918)
+            if (year is not None and year < REFORM_YEAR)
             else EPOCH_POST_REFORM
         )
 
@@ -265,7 +265,7 @@ class MorphologyService:
         return (
             ctx.locale == LOCALE_RU
             and ctx.reference_year is not None
-            and ctx.reference_year < REFORM_YEAR_1918
+            and ctx.reference_year < REFORM_YEAR
             and use_pre_reform
         )
 

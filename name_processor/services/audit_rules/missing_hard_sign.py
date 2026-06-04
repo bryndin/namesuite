@@ -9,7 +9,7 @@ from name_processor.models.audit import RuleContext, ProposedChange
 from name_processor.models.constants import (
     SEVERITY_WARNING,
     LOCALE_RU,
-    REFORM_YEAR_1918,
+    REFORM_YEAR,
 )
 from name_processor.services.morphology import MorphologyService
 
@@ -36,10 +36,7 @@ class WarnMissingHardSign(BaseRule):
         if (
             not ctx.current_patronymic
             or not use_pre_reform
-            or (
-                ctx.reference_year is not None
-                and ctx.reference_year >= REFORM_YEAR_1918
-            )
+            or (ctx.reference_year is not None and ctx.reference_year >= REFORM_YEAR)
             or ctx.locale != LOCALE_RU
         ):
             return None

@@ -16,7 +16,7 @@ LOCALE_UNIVERSAL = "*"
 LOCALE_EAST_SLAVIC = {LOCALE_RU, LOCALE_UK, LOCALE_BE}
 
 # Historical year constants
-REFORM_YEAR_1918 = 1918
+REFORM_YEAR = 1918
 DEFAULT_DB_MEDIAN_YEAR = 1920
 
 # Confidence score thresholds

@@ -7,7 +7,7 @@ from name_processor.services.morphology import (
     MorphologyService,
     SLAVIC_SURNAME_PATTERN,
 )
-from name_processor.models.constants import LOCALE_RU, REFORM_YEAR_1918
+from name_processor.models.constants import LOCALE_RU, REFORM_YEAR
 
 
 class TestEastSlavicMorphology(unittest.TestCase):
@@ -321,7 +321,7 @@ class TestEastSlavicMorphology(unittest.TestCase):
 
         # Valid pre-reform
         ctx_mock.locale = LOCALE_RU
-        ctx_mock.reference_year = REFORM_YEAR_1918 - 10
+        ctx_mock.reference_year = REFORM_YEAR - 10
         self.assertTrue(MorphologyService.is_pre_reform(ctx_mock, True))
 
         # Invalid locale
@@ -330,7 +330,7 @@ class TestEastSlavicMorphology(unittest.TestCase):
 
         # Modern year
         ctx_mock.locale = LOCALE_RU
-        ctx_mock.reference_year = REFORM_YEAR_1918 + 10
+        ctx_mock.reference_year = REFORM_YEAR + 10
         self.assertFalse(MorphologyService.is_pre_reform(ctx_mock, True))
 
         # Missing year
@@ -338,7 +338,7 @@ class TestEastSlavicMorphology(unittest.TestCase):
         self.assertFalse(MorphologyService.is_pre_reform(ctx_mock, True))
 
         # Feature disabled
-        ctx_mock.reference_year = REFORM_YEAR_1918 - 10
+        ctx_mock.reference_year = REFORM_YEAR - 10
         self.assertFalse(MorphologyService.is_pre_reform(ctx_mock, False))
 
     def test_male_names_dataset(self):

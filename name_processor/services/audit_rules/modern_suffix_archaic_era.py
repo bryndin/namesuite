@@ -10,7 +10,7 @@ from name_processor.models.audit import Gender
 from name_processor.models.constants import (
     SEVERITY_WARNING,
     LOCALE_EAST_SLAVIC,
-    REFORM_YEAR_1918,
+    REFORM_YEAR,
 )
 from name_processor.services.morphology import MorphologyService
 
@@ -34,7 +34,7 @@ class WarnModernSuffixArchaicEra(BaseRule):
 
     def evaluate(self, ctx: RuleContext, use_pre_reform: bool) -> ProposedChange | None:
         if not ctx.current_patronymic or (
-            ctx.reference_year is not None and ctx.reference_year >= REFORM_YEAR_1918
+            ctx.reference_year is not None and ctx.reference_year >= REFORM_YEAR
         ):
             return None
 
@@ -59,7 +59,7 @@ class WarnModernSuffixArchaicEra(BaseRule):
 
             if suggested and suggested != ctx.current_patronymic:
                 return ProposedChange(
-                    explanation=f"Historical anachronism: Modern patronymic suffix in pre-{REFORM_YEAR_1918} era ({ctx.reference_year}).",
+                    explanation=f"Historical anachronism: Modern patronymic suffix in pre-{REFORM_YEAR} era ({ctx.reference_year}).",
                     suggested_string=suggested,
                 )
 
