@@ -187,6 +187,7 @@ class ToolWindow:
             label=_("Preserve original name as alternative")
         )
         self.preserve_alt_check.set_active(True)
+        self.preserve_alt_check.connect("toggled", self.on_preserve_alt_toggled)
         given_box.pack_start(self.preserve_alt_check, False, False, 0)
 
         given_scroll_win = Gtk.ScrolledWindow()
@@ -560,6 +561,17 @@ class ToolWindow:
         explanation_col.set_expand(True)
         explanation_col.set_sort_column_id(self.AUDIT_COL_EXPLANATION)
         self.audit_tree.append_column(explanation_col)
+
+    def on_preserve_alt_toggled(self, widget: Gtk.CheckButton) -> None:
+        """Handler for toggling the preserve alternative names option."""
+        if self.controller:
+            self.controller.update_preserve_alt(widget.get_active())
+
+    def update_given_store_actions(self, new_action: str) -> None:
+        """Update the Action column in given_store to match the new action."""
+        translated_action = _(new_action)
+        for row in self.given_store:
+            row[self.GIVEN_COL_ALT_ACTION] = translated_action
 
     # --- Row Toggle Handlers ---
 

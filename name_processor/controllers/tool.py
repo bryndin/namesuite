@@ -136,6 +136,18 @@ class ToolController:
         run_in_idle_loop(scan_generator(), on_complete)
         return True
 
+    def update_preserve_alt(self, preserve_alt: bool) -> None:
+        """Dynamically updates the proposed rename action on all stored objects
+        and refreshes the view.
+        """
+        new_action = (
+            AltAction.PRESERVE.value if preserve_alt else AltAction.OVERWRITE.value
+        )
+        for proposal in self._standardize_candidates.values():
+            proposal.alt_action = new_action
+
+        self._view.update_given_store_actions(new_action)
+
     def apply_checked_renamings(self) -> bool:
         handles = self._view.get_checked_renaming_handles()
         if not handles:
