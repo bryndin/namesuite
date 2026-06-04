@@ -8,7 +8,6 @@ from name_processor.protocols.chronology import ChronologySubject
 class GrampsReadRepository:
     def __init__(self, db: object) -> None:
         self._db = db
-        self._cached_median_year = None
 
     # ==========================================
     # System Operations
