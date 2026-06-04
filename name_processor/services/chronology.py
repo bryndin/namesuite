@@ -52,6 +52,8 @@ class ChronologyService:
           - Child: g = -1 (Relative Birth - 25)
         """
         visited: set[str] = {start_handle}
+        # Cache fetched subjects to avoid redundant DB calls
+        subject_cache: dict[str, ChronologySubject | None] = {}
         # Using deque for O(1) pops in BFS
         queue: deque[tuple[str, int, int]] = deque(
             [(start_handle, 0, 0)]
@@ -63,8 +65,10 @@ class ChronologyService:
             if depth > 4:
                 continue
 
-            # Fetch subject once per iteration
-            subject = self._repo.get_chronology_subject(handle)
+            # Fetch subject from cache or DB
+            if handle not in subject_cache:
+                subject_cache[handle] = self._repo.get_chronology_subject(handle)
+            subject = subject_cache[handle]
             if not subject:
                 continue
 
