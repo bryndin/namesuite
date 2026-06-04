@@ -37,10 +37,10 @@ class ChronologyService:
         return self._db_median_year
 
     def _get_person_event_year(self, person: ChronologySubject) -> int | None:
-        """Collects valid years from a person's events and averages them."""
+        """Returns the latest event year from the person's events."""
         years = person.event_years
         if years:
-            return int(sum(years) / len(years))
+            return max(years)
         return None
 
     def _bfs_estimate_year(self, start_handle: str) -> int | None:
