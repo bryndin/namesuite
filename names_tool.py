@@ -22,8 +22,8 @@ class NamesTool(tool.Tool):
         self.user = user
 
         # 1. Repositories
-        self._read_repo = GrampsReadRepository(dbstate)
-        self._write_repo = GrampsWriteRepository(dbstate)
+        self._read_repo = GrampsReadRepository(dbstate.db)
+        self._write_repo = GrampsWriteRepository(dbstate.db)
 
         # 2. Domain Services
         self._chronology_service = ChronologyService(self._read_repo)

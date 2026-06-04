@@ -1,4 +1,4 @@
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 import pytest
 
 from name_processor.repositories.person import GrampsPersonProxy

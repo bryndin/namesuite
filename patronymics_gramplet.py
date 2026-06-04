@@ -46,8 +46,8 @@ class PatronymicSuggestionGramplet(Gramplet):
         """
         if self.dbstate.is_open():
             # Recreate repositories tied to the new database session
-            self._read_repo = GrampsReadRepository(self.dbstate)
-            self._write_repo = GrampsWriteRepository(self.dbstate)
+            self._read_repo = GrampsReadRepository(self.dbstate.db)
+            self._write_repo = GrampsWriteRepository(self.dbstate.db)
 
             # Recreate domain services
             self._confidence_engine = ConfidenceEngine(self._read_repo)

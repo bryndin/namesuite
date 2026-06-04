@@ -71,35 +71,29 @@ def test_update_or_add_patronymic_adds_new(mock_surname_class):
 
 
 @pytest.fixture
-def mock_dbstate():
-    dbstate = Mock()
-    dbstate.db = MagicMock()
-    return dbstate
+def mock_db():
+    return MagicMock()
 
 
 @pytest.fixture
-def write_repo(mock_dbstate):
-    return GrampsWriteRepository(mock_dbstate)
+def write_repo(mock_db):
+    return GrampsWriteRepository(mock_db)
 
 
 @patch("name_processor.repositories.gramps_write.update_or_add_patronymic")
 @patch("name_processor.repositories.gramps_write.DbTxn")
-def test_update_patronymic_names(
-    mock_dbtxn, mock_update_func, write_repo, mock_dbstate
-):
+def test_update_patronymic_names(mock_dbtxn, mock_update_func, write_repo, mock_db):
     mock_txn_instance = MagicMock()
     mock_dbtxn.return_value.__enter__.return_value = mock_txn_instance
 
     mock_person = Mock()
     mock_primary = Mock()
     mock_person.get_primary_name.return_value = mock_primary
-    mock_dbstate.db.get_person_from_handle.return_value = mock_person
+    mock_db.get_person_from_handle.return_value = mock_person
 
     # Act
     write_repo.update_patronymic_names({"h1": "Ivanovich"})
 
     # Assert
     mock_update_func.assert_called_once_with(mock_primary, "Ivanovich")
-    mock_dbstate.db.commit_person.assert_called_once_with(
-        mock_person, mock_txn_instance
-    )
+    mock_db.commit_person.assert_called_once_with(mock_person, mock_txn_instance)

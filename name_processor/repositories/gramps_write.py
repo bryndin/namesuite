@@ -35,8 +35,8 @@ def update_or_add_patronymic(primary_name: object, new_patronymic_value: str) ->
 
 
 class GrampsWriteRepository:
-    def __init__(self, dbstate: object) -> None:
-        self._db = dbstate.db
+    def __init__(self, db: object) -> None:
+        self._db = db
 
     # ==========================================
     # New MVCS Pure Persistence Methods
