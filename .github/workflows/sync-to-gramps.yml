@@ -1,0 +1,67 @@
+name: Sync to Gramps Addons
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master 
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout NameSuite
+        uses: actions/checkout@v4
+
+      - name: Checkout addons-source fork
+        uses: actions/checkout@v4
+        with:
+          repository: bryndin/addons-source
+          token: ${{ secrets.GRAMPS_PAT }}
+          path: addons-source
+          ref: maintenance/gramps60
+
+      - name: Install rsync
+        run: sudo apt-get update && sudo apt-get install -y rsync
+
+      - name: Copy addon
+        run: |
+          rm -rf addons-source/NameSuite
+          mkdir -p addons-source/NameSuite
+
+          rsync -av \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="docs" \
+            ./ \
+            addons-source/NameSuite/
+
+      - name: Commit changes
+        run: |
+          cd addons-source
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git checkout -B update-namesuite
+
+          git add NameSuite
+
+          git diff --cached --quiet && exit 0
+
+          git commit -m "Update NameSuite addon"
+
+          git push -f origin update-namesuite
+
+      - name: Create or update PR
+        env:
+          GH_TOKEN: ${{ secrets.GRAMPS_PAT }}
+        run: |
+          gh pr create \
+            --repo gramps-project/addons-source \
+            --base maintenance/gramps60 \
+            --head bryndin:update-namesuite \
+            --title "Update NameSuite addon" \
+            --body "Automated sync from bryndin/namesuite" \
+          || true
