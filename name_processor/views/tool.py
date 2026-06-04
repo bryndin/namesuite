@@ -6,16 +6,15 @@ Contains all GTK widgets, layout structures, and column definitions.
 
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Callable, Iterator
+from typing import TYPE_CHECKING, Any, Callable
 
-from gi.repository import GLib, Gtk
+from gi.repository import Gtk
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gui.dialog import OkDialog
 from gramps.gui.editors import EditPerson
 from gramps.gen.errors import WindowActiveError
 
 from name_processor.models.audit import AuditScope
-from name_processor.views.constants import IDLE_CHUNK_AUDIT
 
 if TYPE_CHECKING:
     from name_processor.controllers.tool import ToolController
@@ -358,35 +357,6 @@ class ToolWindow:
         self.audit_store.clear()
         self.audit_issues = []
 
-    def start_idle_audit(
-        self,
-        audit_generator: Iterator[Any],
-        total_count: int,
-        on_complete: Callable[[int], None],
-    ) -> None:
-        idx = [0]
-
-        def audit_idle() -> bool:
-            if not self.controller.db.is_open():
-                return False
-            try:
-                for __ in range(IDLE_CHUNK_AUDIT):
-                    issue = next(audit_generator)
-                    self.audit_issues.append(issue)
-                    self._append_issue_to_store(issue)
-            except StopIteration:
-                on_complete(len(self.audit_issues))
-                return False
-
-            idx[0] += IDLE_CHUNK_AUDIT
-            fraction = min(idx[0] / total_count, 1.0)
-            self.update_audit_progress(
-                fraction, f"{min(idx[0], total_count)} / {total_count}"
-            )
-            return True
-
-        GLib.idle_add(audit_idle)
-
     def _append_issue_to_store(self, issue: Any) -> None:
         """Append an audit issue to the treeview store with Pango markup formatting."""
         diff_markup = generate_pango_diff(issue.current_value, issue.suggested_fix)
@@ -658,10 +628,10 @@ class ToolWindow:
             if row[self.GIVEN_COL_CHECKBOX]
         }
 
-    def get_checked_audit_handles(self) -> set[str]:
-        """Returns the set of person handles for checked audit rows."""
+    def get_checked_audit_keys(self) -> set[tuple[str, str]]:
+        """Returns the set of (person_handle, rule_id) for checked audit rows."""
         return {
-            row[self.AUDIT_COL_HANDLE]
+            (row[self.AUDIT_COL_HANDLE], row[self.AUDIT_COL_RULE_ID])
             for row in self.audit_store
             if row[self.AUDIT_COL_CHECKBOX]
         }

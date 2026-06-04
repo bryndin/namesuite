@@ -49,7 +49,7 @@ class ToolController:
         # State Caches
         self._given_names_cache: set[str] = set()
         self._rename_candidates: dict[str, ProposedRename] = {}
-        self._audit_candidates: dict[str, "AuditIssue"] = {}
+        self._audit_candidates: dict[tuple[str, str], "AuditIssue"] = {}
 
     def cleanup(self) -> None:
         pass
@@ -188,41 +188,62 @@ class ToolController:
         # Get total person count dynamically from the repo for the progress bar
         total_people = self._read_repo.get_person_count()
 
-        def generator():
-            # View idle loop natively calls next(generator) chunk by chunk
-            for person_proxy in self._read_repo.iter_all_person_proxies():
-                # Apply scope filter
-                if audit_scope == AuditScope.MALES_ONLY:
-                    if person_proxy.gender.name != "MALE":
-                        continue
-                elif audit_scope == AuditScope.FEMALES_ONLY:
-                    if person_proxy.gender.name != "FEMALE":
-                        continue
+        def scan_generator():
+            processed_count = 0
+            for proxy_chunk in self._read_repo.get_person_proxies_chunked(
+                chunk_size=250
+            ):
+                for person_proxy in proxy_chunk:
+                    processed_count += 1
 
-                issues = self._audit_service.audit_person(
-                    person_proxy, enabled_rules_set, use_pre_reform
+                    # Apply scope filter
+                    if audit_scope == AuditScope.MALES_ONLY:
+                        if person_proxy.gender.name != "MALE":
+                            continue
+                    elif audit_scope == AuditScope.FEMALES_ONLY:
+                        if person_proxy.gender.name != "FEMALE":
+                            continue
+
+                    issues = self._audit_service.audit_person(
+                        person_proxy, enabled_rules_set, use_pre_reform
+                    )
+                    for issue in issues:
+                        self._audit_candidates[(person_proxy.handle, issue.rule_id)] = (
+                            issue
+                        )
+                        self._view._append_issue_to_store(issue)
+                        self._view.audit_issues.append(issue)
+
+                fraction = (
+                    min(processed_count / total_people, 1.0)
+                    if total_people > 0
+                    else 1.0
                 )
-                for issue in issues:
-                    self._audit_candidates[person_proxy.handle] = issue
-                    yield issue
+                self._view.update_audit_progress(
+                    fraction, f"{min(processed_count, total_people)} / {total_people}"
+                )
+                yield None
 
-        self._view.start_idle_audit(
-            generator(), total_people, self._view.on_audit_complete
-        )
+            return processed_count
+
+        def on_complete(total_processed: int | None) -> None:
+            self._view.on_audit_complete(len(self._view.audit_issues))
+
+        run_in_idle_loop(scan_generator(), on_complete)
 
     def apply_checked_audit_fixes(self, use_pre_reform: bool) -> bool:
-        handles = self._view.get_checked_audit_handles()
-        if not handles:
+        keys = self._view.get_checked_audit_keys()
+        if not keys:
             return False
 
         with self._write_repo.transaction("Batch Patronymic Audit Fixes") as t:
-            for handle in handles:
-                issue = self._audit_candidates.get(handle)
+            for key in keys:
+                issue = self._audit_candidates.get(key)
                 if not issue:
                     continue
 
                 self._write_repo.apply_patronymic_correction(
-                    t, handle, issue.suggested_fix
+                    t, issue.person_handle, issue.suggested_fix
                 )
 
         return True
