@@ -14,6 +14,7 @@ from name_processor.services.audit_rules.archaic_suffix_modern_era import (
 from name_processor.services.audit_rules.mixed_scripts import ErrMixedScripts
 from name_processor.services.audit_rules.morphological_typo import WarnMorphologicalTypo
 from name_processor.services.audit_rules.missing_hard_sign import WarnMissingHardSign
+from name_processor.services.audit_rules.base import BaseRule
 
 if TYPE_CHECKING:
     from name_processor.repositories.gramps_read import GrampsReadRepository
@@ -31,7 +32,7 @@ class AuditService:
         self._chronology_service = chronology_service
 
         # Instantiate active rules
-        self._rules = [
+        self._rules: list[BaseRule] = [
             ErrGenderMismatch(),
             ErrLineageMismatch(),
             WarnModernSuffixArchaicEra(),
@@ -99,18 +100,18 @@ class AuditService:
                 )
                 continue
             if change:
+                ref_year_str = str(ctx.reference_year) if ctx.reference_year else "N/A"
                 issues.append(
                     AuditIssue(
                         person_handle=ctx.person_handle,
                         gramps_id=ctx.gramps_id,
                         display_name=ctx.display_name,
+                        father_name=ctx.father_given_name,
                         current_value=ctx.current_patronymic,
                         suggested_fix=change.suggested_string,
-                        reference_year=str(ctx.reference_year)
-                        if ctx.reference_year
-                        else "N/A",
+                        confidence=1.0,  # Placeholder; can be enhanced later
+                        reference_year=ref_year_str,
                         rule_id=rule.rule_id,
-                        rule_source=rule.rule_id,  # Or custom name
                         explanation=change.explanation,
                         severity=rule.severity,
                         is_pre_reform=use_pre_reform,

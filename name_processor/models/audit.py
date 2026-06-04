@@ -41,13 +41,15 @@ class AuditIssue:
     person_handle: str
     gramps_id: str
     display_name: str
+    father_name: str
     current_value: str
     suggested_fix: str
+    confidence: float
     reference_year: str
     rule_id: str
-    rule_source: str
     explanation: str
 
+    # TODO: decide if this is needed
     # Metadata for UI-level filtering and sorting
     severity: str
     is_pre_reform: bool

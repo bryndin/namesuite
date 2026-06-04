@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from name_processor.models.audit import AuditScope
 from name_processor.models.renamer import ProposedRename
@@ -24,9 +24,9 @@ class ToolController:
         view: "ToolWindow",
         read_repo: "GrampsReadRepository",
         write_repo: "GrampsWriteRepository",
-        patronymic_service: "PatronymicInferenceService",
         renamer_service: "RenamerService",
         alt_names_service: "AltNamesService",
+        patronymic_service: "PatronymicInferenceService",
         audit_service: "AuditService",
         chronology_service: "ChronologyService",
     ) -> None:
@@ -41,7 +41,6 @@ class ToolController:
         self._view = view
         self._read_repo = read_repo
         self._write_repo = write_repo
-        self._patronymic_service = patronymic_service
         self._renamer_service = renamer_service
         self._alt_names_service = alt_names_service
         self._audit_service = audit_service
@@ -50,13 +49,12 @@ class ToolController:
         # State Caches
         self._given_names_cache: set[str] = set()
         self._standardize_candidates: dict[str, ProposedRename] = {}
-        self._inference_candidates: dict[str, object] = {}
-        self._audit_candidates: dict[str, AuditIssue] = {}
+        self._audit_candidates: dict[str, "AuditIssue"] = {}
 
     def cleanup(self) -> None:
         pass
 
-    def get_gramps_person(self, handle: str) -> object:
+    def get_gramps_person(self, handle: str) -> Any:
         """Used by the view to open the native Gramps Person Editor."""
         return self._read_repo.get_raw_person(handle)
 
@@ -129,9 +127,6 @@ class ToolController:
         def on_complete(found_any: bool) -> None:
             self._view.update_given_apply_button()
             if not found_any:
-                self._view.show_no_results_message()
-
-            if not found_any:
                 self._view.show_ok_dialog(
                     "No Results", "No matching given names found."
                 )
@@ -167,77 +162,7 @@ class ToolController:
         return True
 
     # ==========================================
-    # Tab 2: Infer Patronymics
-    # ==========================================
-    def run_inference_scan(self, pre_reform: bool) -> None:
-        self._view.list_store.clear()
-        self._inference_candidates.clear()
-
-        def scan_generator():
-            found_count = 0
-            for proxy_chunk in self._read_repo.get_person_proxies_chunked(
-                chunk_size=250
-            ):
-                for person_proxy in proxy_chunk:
-                    father_proxy = None
-                    if person_proxy.father_handle:
-                        father_proxy = self._read_repo.get_person_proxy(
-                            person_proxy.father_handle
-                        )
-
-                    result = self._patronymic_service.infer_patronymic(
-                        person_proxy, father_proxy
-                    )
-
-                    if result.status.name == "SUCCESS":
-
-                        class DummyCandidate:
-                            pass
-
-                        candidate = DummyCandidate()
-                        candidate.display_name = person_proxy.display_name
-                        candidate.father_name = (
-                            result.context.father_name if result.context else ""
-                        )
-                        candidate.reference_year = str(
-                            self._chronology_service.estimate_reference_year(
-                                person_proxy.handle
-                            )
-                            or "N/A"
-                        )
-                        candidate.inferred_patronymic = result.value
-                        candidate.confidence = 0.95
-                        candidate.rule_source = "Morphology Engine"
-                        candidate.gramps_id = person_proxy.gramps_id
-                        candidate.person_handle = person_proxy.handle
-
-                        self._inference_candidates[person_proxy.handle] = candidate
-                        self._view._append_candidate_to_store(candidate)
-                        found_count += 1
-                yield None
-            return found_count
-
-        run_in_idle_loop(scan_generator(), on_complete=self._view.on_scan_complete)
-
-    def apply_checked_inferences(self) -> bool:
-        handles = self._view.get_checked_inference_handles()
-        if not handles:
-            return False
-
-        with self._write_repo.transaction("Batch Patronymic Inference") as trans:
-            for handle in handles:
-                candidate = self._inference_candidates.get(handle)
-                if not candidate:
-                    continue
-
-                self._write_repo.apply_patronymic_correction(
-                    trans, handle, candidate.inferred_patronymic
-                )
-
-        return True
-
-    # ==========================================
-    # Tab 3: Audit Patronymics
+    # Tab 2: Audit Patronymics
     # ==========================================
     def get_available_audit_rules(self) -> list[str]:
         return self._audit_service.get_available_audit_rules()
