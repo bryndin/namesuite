@@ -55,3 +55,20 @@ source ~/projects/gramps/gramps-patronymic-inference/.venv/bin/activate && ruff 
 - If a comment becomes partially outdated, update it rather than deleting it.
 - New non-obvious logic should include concise explanatory comments.
 - Treat comments as part of the maintained codebase, not disposable text.
+
+## Architecture
+
+This project uses MVCS (Model-View-Controller-Service) architecture. Agents must adhere to this architectural pattern when making changes:
+
+- **Models**: Data structures and business logic (in `models/`)
+- **Views**: UI/presentation layer (in `views/`)
+- **Controllers**: Orchestration between models and views (in `controllers/`)
+- **Services**: Business logic and external integrations (in `services/`)
+- **Repositories**: Data access layer (in `repositories/`)
+
+Ensure that code changes respect the separation of concerns defined by this architecture.
+
+## Type Hints
+
+All code must include Python type hints using Python 3.10+ syntax.
+Type hints are required for all function signatures, class attributes, and module-level variables.
