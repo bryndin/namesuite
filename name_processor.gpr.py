@@ -4,10 +4,10 @@
 register(
     TOOL,
     id="name_standardization_tool",
-    name=_("Standardize Names"),
+    name=_("Audit Given and Patronymic Names"),
     category=TOOL_DBPROC,  # Standard database processing category
     description=_(
-        "Suite for given name standardization and patronymic name inference."
+        "Tools to rename given name, audit and infer patronymic (East Slavic) names."
     ),
     version="1.0",
     gramps_target_version="6.0",
@@ -23,7 +23,9 @@ register(
     GRAMPLET,
     id="patronymic_suggestion_gramplet",
     name=_("Patronymic Suggestion"),
-    description=_("Suggests patronymic names in real-time as you navigate."),
+    description=_(
+        "Suggests (East Slavic) patronymic names in real-time as you navigate."
+    ),
     version="1.0",
     gramps_target_version="6.0",
     status=STABLE,
