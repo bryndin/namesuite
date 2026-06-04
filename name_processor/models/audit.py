@@ -41,7 +41,7 @@ class AuditIssue:
     person_handle: str
     gramps_id: str
     display_name: str
-    father_name: str
+    father_name: str | None
     current_value: str
     suggested_fix: str
     confidence: float
