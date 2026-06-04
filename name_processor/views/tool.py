@@ -79,6 +79,7 @@ class ToolWindow:
     AUDIT_COL_HANDLE = 9
     AUDIT_COL_RULE_ID_DUP = 10
     AUDIT_COL_SUGGESTED_STRING = 11
+    AUDIT_COL_EXPLANATION = 12
 
     def __init__(self, callback: Callable[[], None] | None = None) -> None:
         """Initializes the GTK Window."""
@@ -255,7 +256,7 @@ class ToolWindow:
         audit_tab_box.pack_start(audit_scroll, True, True, 0)
 
         self.audit_store = Gtk.ListStore(
-            bool, str, str, str, str, str, str, str, str, str, str, str
+            bool, str, str, str, str, str, str, str, str, str, str, str, str
         )
         self.audit_tree = Gtk.TreeView(model=self.audit_store)
         audit_scroll.add(self.audit_tree)
@@ -406,6 +407,7 @@ class ToolWindow:
                 issue.person_handle,  # AUDIT_COL_HANDLE
                 issue.rule_id,  # AUDIT_COL_RULE_ID_DUP
                 issue.suggested_fix,  # AUDIT_COL_SUGGESTED_STRING
+                issue.explanation,  # AUDIT_COL_EXPLANATION
             ]
         )
 
@@ -551,6 +553,13 @@ class ToolWindow:
         )
         rule_col.set_sort_column_id(self.AUDIT_COL_RULE_ID)
         self.audit_tree.append_column(rule_col)
+
+        explanation_col = Gtk.TreeViewColumn(
+            _("Explanation"), Gtk.CellRendererText(), text=self.AUDIT_COL_EXPLANATION
+        )
+        explanation_col.set_expand(True)
+        explanation_col.set_sort_column_id(self.AUDIT_COL_EXPLANATION)
+        self.audit_tree.append_column(explanation_col)
 
     # --- Row Toggle Handlers ---
 
