@@ -6,8 +6,8 @@ from name_processor.protocols.chronology import ChronologySubject
 
 
 class GrampsReadRepository:
-    def __init__(self, dbstate: object) -> None:
-        self.db = dbstate.db
+    def __init__(self, db: object) -> None:
+        self._db = db
         self._cached_median_year = None
 
     # ==========================================
@@ -15,23 +15,23 @@ class GrampsReadRepository:
     # ==========================================
     def get_person_count(self) -> int:
         """Returns the total number of individuals to power UI progress bars."""
-        return self.db.get_number_of_people()
+        return self._db.get_number_of_people()
 
     def get_raw_person(self, handle: str) -> object:
         """
         Returns the raw, mutable Gramps Person object.
         Used only for write operations and native Gramps Editor dialogs.
         """
-        return self.db.get_person_from_handle(handle)
+        return self._db.get_person_from_handle(handle)
 
     # ==========================================
     # Proxy Access & Iterators
     # ==========================================
     def get_person_proxy(self, handle: str) -> GrampsPersonProxy | None:
-        gramps_person = self.db.get_person_from_handle(handle)
+        gramps_person = self._db.get_person_from_handle(handle)
         if not gramps_person:
             return None
-        return GrampsPersonProxy(gramps_person, self.db)
+        return GrampsPersonProxy(gramps_person, self._db)
 
     def get_chronology_subject(self, handle: str) -> ChronologySubject | None:
         return self.get_person_proxy(handle)
@@ -43,7 +43,7 @@ class GrampsReadRepository:
         Yields batches of person proxies to hide handle iteration
         and support GTK idle loop chunking.
         """
-        handles = self.db.get_person_handles()
+        handles = self._db.get_person_handles()
         for i in range(0, len(handles), chunk_size):
             chunk = []
             for handle in handles[i : i + chunk_size]:
@@ -54,7 +54,7 @@ class GrampsReadRepository:
 
     def iter_all_person_proxies(self) -> Generator[GrampsPersonProxy, None, None]:
         """Yields person proxies one by one for direct iteration."""
-        for handle in self.db.get_person_handles():
+        for handle in self._db.get_person_handles():
             proxy = self.get_person_proxy(handle)
             if proxy:
                 yield proxy
@@ -67,7 +67,7 @@ class GrampsReadRepository:
     ) -> Generator[None, None, int | None]:
         """Calculates the median year asynchronously."""
         years = []
-        handles = self.db.get_event_handles()
+        handles = self._db.get_event_handles()
         handle_iter = iter(handles)
 
         while True:
@@ -76,7 +76,7 @@ class GrampsReadRepository:
                 break
 
             for handle in chunk:
-                event = self.db.get_event_from_handle(handle)
+                event = self._db.get_event_from_handle(handle)
                 if event:
                     date_obj = event.get_date_object()
                     if date_obj and not date_obj.is_empty():
