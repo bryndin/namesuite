@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
 from name_processor.models.audit import AuditScope
-from name_processor.models.renamer import ProposedRename
+from name_processor.models.renamer import ProposedRename, AltAction
 from name_processor.utils.gtk_runner import run_in_idle_loop
 
 if TYPE_CHECKING:
@@ -97,7 +97,7 @@ class ToolController:
     # ==========================================
     def run_rename_scan(self, source: str, target: str, match_type_idx: int) -> bool:
         mode_map = {0: "exact", 1: "substring", 2: "regex"}
-        rule = self._renamer_service.create_rule(
+        rule = self._renamer_service.create_config(
             mode_map.get(match_type_idx, "exact"), source, target
         )
         if not rule.is_valid:
@@ -116,7 +116,9 @@ class ToolController:
                     proposal = self._renamer_service.evaluate_person(person_proxy, rule)
                     if proposal:
                         proposal.alt_action = (
-                            "Preserve" if preserve_alt else "Overwrite"
+                            AltAction.PRESERVE.value
+                            if preserve_alt
+                            else AltAction.OVERWRITE.value
                         )
                         self._standardize_candidates[person_proxy.handle] = proposal
                         self._view._append_rename_proposal_to_store(proposal)

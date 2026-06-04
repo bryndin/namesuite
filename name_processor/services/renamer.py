@@ -1,16 +1,16 @@
 import re
 from typing import TYPE_CHECKING
 
-from name_processor.models.renamer import MatchMode, RuleConfig, ProposedRename
+from name_processor.models.renamer import MatchMode, RenameConfig, ProposedRename
 
 if TYPE_CHECKING:
     from name_processor.repositories.person import GrampsPersonProxy
 
 
 class RenamerService:
-    def create_rule(
+    def create_config(
         self, match_type: str, source_str: str, target_str: str
-    ) -> RuleConfig:
+    ) -> RenameConfig:
         """
         Validates the user configuration before the batch scan begins.
         Catches invalid Regular Expressions immediately.
@@ -18,7 +18,7 @@ class RenamerService:
         try:
             mode = MatchMode(match_type.lower())
         except ValueError:
-            return RuleConfig(
+            return RenameConfig(
                 mode=MatchMode.EXACT,
                 source=source_str,
                 target=target_str,
@@ -26,7 +26,7 @@ class RenamerService:
                 error_msg=f"Unsupported match type: {match_type}",
             )
 
-        config = RuleConfig(mode=mode, source=source_str, target=target_str)
+        config = RenameConfig(mode=mode, source=source_str, target=target_str)
 
         if mode == MatchMode.REGEX:
             try:
@@ -39,7 +39,7 @@ class RenamerService:
         return config
 
     def evaluate_person(
-        self, person: "GrampsPersonProxy", rule: RuleConfig
+        self, person: "GrampsPersonProxy", rule: RenameConfig
     ) -> ProposedRename | None:
         """
         Evaluates a person's primary given name against the replacement rule.

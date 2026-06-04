@@ -9,8 +9,13 @@ class MatchMode(Enum):
     REGEX = "regex"
 
 
+class AltAction(Enum):
+    PRESERVE = "Preserve"
+    OVERWRITE = "Overwrite"
+
+
 @dataclass
-class RuleConfig:
+class RenameConfig:
     """Stores and validates user-defined replacement rules."""
 
     mode: MatchMode
@@ -30,3 +35,4 @@ class ProposedRename:
     display_name: str
     original_given_name: str
     proposed_given_name: str
+    alt_action: str = AltAction.OVERWRITE.value
