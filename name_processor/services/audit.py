@@ -21,16 +21,21 @@ if TYPE_CHECKING:
     from name_processor.repositories.gramps_read import GrampsReadRepository
     from name_processor.services.chronology import ChronologyService
     from name_processor.repositories.person import GrampsPersonProxy
+    from name_processor.services.confidence import ConfidenceService
 
 logger = logging.getLogger(__name__)
 
 
 class AuditService:
     def __init__(
-        self, read_repo: "GrampsReadRepository", chronology_service: "ChronologyService"
+        self,
+        read_repo: "GrampsReadRepository",
+        chronology_service: "ChronologyService",
+        confidence_service: "ConfidenceService",
     ):
         self._read_repo = read_repo
         self._chronology_service = chronology_service
+        self._confidence_service = confidence_service
 
         # Instantiate active rules
         self._rules: list[BaseRule] = [
@@ -101,6 +106,9 @@ class AuditService:
                 continue
             if change:
                 ref_year_str = str(ctx.reference_year) if ctx.reference_year else "N/A"
+                confidence = self._confidence_service.calculate(
+                    ctx.person_handle, ctx.display_name
+                )
                 issues.append(
                     AuditIssue(
                         person_handle=ctx.person_handle,
@@ -109,7 +117,7 @@ class AuditService:
                         father_name=ctx.father_given_name,
                         current_value=ctx.current_patronymic,
                         suggested_fix=change.suggested_string,
-                        confidence=1.0,  # Placeholder; can be enhanced later
+                        confidence=confidence,
                         reference_year=ref_year_str,
                         rule_id=rule.rule_id,
                         explanation=change.explanation,

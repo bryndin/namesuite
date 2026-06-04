@@ -22,3 +22,4 @@ class ProposedPatronymic:
     status: PatronymicInferenceStatus = PatronymicInferenceStatus.UNKNOWN_ERROR
     patronymic: str | None = None
     father_name: str | None = None
+    confidence: float | None = None

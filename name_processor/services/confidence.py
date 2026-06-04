@@ -54,6 +54,4 @@ class ConfidenceService:
                 score += CONFIDENCE_SCORE_SIBLING
                 break
 
-        # TODO: Review and fix heuristics here
-        # return min(score, 1.0)
-        return 1.0
+        return min(score, 1.0)

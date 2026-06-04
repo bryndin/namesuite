@@ -50,9 +50,6 @@ class PatronymicInferenceService:
             return ProposedPatronymic(status=PatronymicInferenceStatus.FATHER_NO_NAME)
 
         ref_year = self._chronology_service.estimate_reference_year(person.handle)
-        # confidence = self._confidence_service.calculate(
-        #     person.handle, person.display_name
-        # )
 
         patronymic = MorphologyService.generate_east_slavic_patronymic(
             father_name=father.given_name,
@@ -62,10 +59,15 @@ class PatronymicInferenceService:
         )
 
         if patronymic:
+            confidence = self._confidence_service.calculate(
+                person.handle, person.display_name
+            )
+
             return ProposedPatronymic(
+                status=PatronymicInferenceStatus.SUCCESS,
                 patronymic=patronymic,
                 father_name=father.given_name,
-                status=PatronymicInferenceStatus.SUCCESS,
+                confidence=confidence,
             )
         else:
             return ProposedPatronymic(status=PatronymicInferenceStatus.MORPHOLOGY_FAIL)
