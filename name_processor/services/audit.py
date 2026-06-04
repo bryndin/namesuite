@@ -14,6 +14,7 @@ from name_processor.services.audit_rules.archaic_suffix_modern_era import (
 from name_processor.services.audit_rules.mixed_scripts import ErrMixedScripts
 from name_processor.services.audit_rules.morphological_typo import WarnMorphologicalTypo
 from name_processor.services.audit_rules.missing_hard_sign import WarnMissingHardSign
+from name_processor.services.audit_rules.missing_patronymic import InfoMissingPatronymic
 from name_processor.services.audit_rules.base import BaseRule
 
 if TYPE_CHECKING:
@@ -40,6 +41,7 @@ class AuditService:
             ErrMixedScripts(),
             WarnMorphologicalTypo(),
             WarnMissingHardSign(),
+            InfoMissingPatronymic(),
         ]
 
     def get_available_audit_rules(self) -> list[str]:
@@ -52,11 +54,9 @@ class AuditService:
         """Evaluates a single person against enabled rules and yields formatted DTOs."""
         issues: list[AuditIssue] = []
 
-        # Determine existing patronymic. If none, there is nothing to audit.
+        # Determine existing patronymic.
         # (Assuming your person proxy exposes standard grammatical name parts)
         current_patronymic = person.patronymic or ""
-        if not current_patronymic:
-            return issues
 
         # Build Context
         father_given_name = None
