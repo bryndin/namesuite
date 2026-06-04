@@ -19,6 +19,7 @@ from name_processor.models.audit import AuditScope
 if TYPE_CHECKING:
     from name_processor.controllers.tool import ToolController
     from name_processor.models.audit import AuditIssue
+    from name_processor.models.renamer import ProposedRename
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +43,11 @@ def generate_pango_diff(old_str: str, new_str: str) -> str:
     if not old_esc and not new_esc:
         return ""
     if not old_esc:
-        return f"<span foreground='green'>{new_esc}</span>"
+        return f"<span weight='bold'>{new_esc}</span>"
     if not new_esc:
-        return f"<span foreground='red'>{old_esc}</span>"
+        return f"{old_esc}"
 
-    return f"{old_esc} <span foreground='blue'>→</span> {new_esc}"
+    return f"{old_esc} → <span weight='bold'>{new_esc}</span>"
 
 
 class ToolWindow:
@@ -382,9 +383,25 @@ class ToolWindow:
             ]
         )
 
-    def _append_rename_proposal_to_store(self, prop: Any) -> None:
+    def _append_rename_proposal_to_store(
+        self, prop: "ProposedRename", match_mode: str
+    ) -> None:
         """Append a given name rename proposal to the given store."""
-        markup = f'<span weight="bold" foreground="blue">{pango_escape(prop.proposed_given_name)}</span>'
+        # For substring and regex modes, highlight only the matched portion
+        if match_mode in ("substring", "regex") and prop.matched_text:
+            proposed_esc = pango_escape(prop.proposed_given_name)
+            matched_esc = pango_escape(prop.matched_text)
+            # Replace the matched portion with highlighted version
+            markup = proposed_esc.replace(
+                matched_esc,
+                f'<span weight="bold">{matched_esc}</span>',
+            )
+        else:
+            # For exact match, highlight the entire proposed name
+            markup = (
+                f'<span weight="bold">{pango_escape(prop.proposed_given_name)}</span>'
+            )
+
         self.given_store.append(
             [
                 True,  # GIVEN_COL_CHECKBOX

@@ -36,3 +36,4 @@ class ProposedRename:
     original_given_name: str
     proposed_given_name: str
     alt_action: str = AltAction.OVERWRITE.value
+    matched_text: str = ""  # Text that was matched and replaced (for highlighting)

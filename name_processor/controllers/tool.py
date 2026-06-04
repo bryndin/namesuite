@@ -97,9 +97,8 @@ class ToolController:
     # ==========================================
     def run_rename_scan(self, source: str, target: str, match_type_idx: int) -> bool:
         mode_map = {0: "exact", 1: "substring", 2: "regex"}
-        rule = self._renamer_service.create_config(
-            mode_map.get(match_type_idx, "exact"), source, target
-        )
+        match_mode = mode_map.get(match_type_idx, "exact")
+        rule = self._renamer_service.create_config(match_mode, source, target)
         if not rule.is_valid:
             return False
 
@@ -121,7 +120,9 @@ class ToolController:
                             else AltAction.OVERWRITE.value
                         )
                         self._rename_candidates[person_proxy.handle] = proposal
-                        self._view._append_rename_proposal_to_store(proposal)
+                        self._view._append_rename_proposal_to_store(
+                            proposal, match_mode
+                        )
                         found_any = True
                 yield None
             return found_any
@@ -191,7 +192,7 @@ class ToolController:
         def scan_generator():
             processed_count = 0
             for proxy_chunk in self._read_repo.get_person_proxies_chunked(
-                chunk_size=250
+                chunk_size=50
             ):
                 for person_proxy in proxy_chunk:
                     processed_count += 1
