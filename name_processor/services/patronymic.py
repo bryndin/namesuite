@@ -10,7 +10,7 @@ from name_processor.services.morphology import MorphologyService
 
 if TYPE_CHECKING:
     from name_processor.repositories.gramps_read import GrampsReadRepository
-    from name_processor.services.confidence_engine import ConfidenceEngine
+    from name_processor.services.confidence import ConfidenceService
     from name_processor.services.chronology import ChronologyService
 
 
@@ -18,11 +18,11 @@ class PatronymicInferenceService:
     def __init__(
         self,
         read_repo: "GrampsReadRepository",
-        confidence_engine: "ConfidenceEngine",
+        confidence: "ConfidenceService",
         chronology_service: "ChronologyService",
     ):
         self._read_repo = read_repo
-        self._confidence_engine = confidence_engine
+        self._confidence_service = confidence
         self._chronology_service = chronology_service
 
     def infer_patronymic(
@@ -50,7 +50,7 @@ class PatronymicInferenceService:
             return ProposedPatronymic(status=PatronymicInferenceStatus.FATHER_NO_NAME)
 
         ref_year = self._chronology_service.estimate_reference_year(person.handle)
-        # confidence = self._confidence_engine.calculate(
+        # confidence = self._confidence_service.calculate(
         #     person.handle, person.display_name
         # )
 

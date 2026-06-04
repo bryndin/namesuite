@@ -6,7 +6,7 @@ from name_processor.models.infer import PatronymicInferenceStatus
 from name_processor.repositories.gramps_read import GrampsReadRepository
 from name_processor.repositories.gramps_write import GrampsWriteRepository
 from name_processor.services.patronymic import PatronymicInferenceService
-from name_processor.services.confidence_engine import ConfidenceEngine
+from name_processor.services.confidence import ConfidenceService
 from name_processor.services.chronology import ChronologyService
 from name_processor.utils.gtk_runner import run_in_idle_loop
 from name_processor.views.gramplet import GrampletView
@@ -19,7 +19,7 @@ class PatronymicSuggestionGramplet(Gramplet):
         self._controller: GrampletController | None = None
         self._read_repo: GrampsReadRepository | None = None
         self._write_repo: GrampsWriteRepository | None = None
-        self._confidence_engine: ConfidenceEngine | None = None
+        self._confidence_service: ConfidenceService | None = None
         self._chronology_service: ChronologyService | None = None
         self._patronymic_service: PatronymicInferenceService | None = None
 
@@ -50,10 +50,10 @@ class PatronymicSuggestionGramplet(Gramplet):
             self._write_repo = GrampsWriteRepository(self.dbstate.db)
 
             # Recreate domain services
-            self._confidence_engine = ConfidenceEngine(self._read_repo)
+            self._confidence_service = ConfidenceService(self._read_repo)
             self._chronology_service = ChronologyService(self._read_repo)
             self._patronymic_service = PatronymicInferenceService(
-                self._read_repo, self._confidence_engine, self._chronology_service
+                self._read_repo, self._confidence_service, self._chronology_service
             )
 
             # Recreate the controller and link it to the existing view

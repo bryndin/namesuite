@@ -25,7 +25,7 @@ def has_cyrillic(text: str) -> bool:
     return bool(re.search(r"[\u0400-\u04FF]", text))
 
 
-class ConfidenceEngine:
+class ConfidenceService:
     """Calculates confidence scores (0.0 to 1.0) for patronymic inferences."""
 
     def __init__(self, repository: GrampsReadRepository) -> None:

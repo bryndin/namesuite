@@ -6,7 +6,7 @@ from name_processor.views.tool import ToolWindow
 
 # Domain Services
 from name_processor.services.chronology import ChronologyService
-from name_processor.services.confidence_engine import ConfidenceEngine
+from name_processor.services.confidence import ConfidenceService
 from name_processor.services.patronymic import PatronymicInferenceService
 from name_processor.services.renamer import RenamerService
 from name_processor.services.alt_names import AltNamesService
@@ -27,10 +27,10 @@ class NamesTool(tool.Tool):
 
         # 2. Domain Services
         self._chronology_service = ChronologyService(self._read_repo)
-        self._confidence_engine = ConfidenceEngine(self._read_repo)
+        self._confidence_service = ConfidenceService(self._read_repo)
 
         self._patronymic_service = PatronymicInferenceService(
-            self._read_repo, self._confidence_engine, self._chronology_service
+            self._read_repo, self._confidence_service, self._chronology_service
         )
 
         self._alt_names_service = AltNamesService()
