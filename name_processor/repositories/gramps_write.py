@@ -58,7 +58,7 @@ class GrampsWriteRepository:
 
     # --- ATOMIC COMMANDS ---
     def apply_first_name_correction(self, trans, person, new_first_name: str) -> None:
-        """Standardized command for updating primary given names."""
+        """Renaming command for updating primary given names."""
         primary_name = person.get_primary_name()
         if primary_name:
             primary_name.set_first_name(new_first_name)

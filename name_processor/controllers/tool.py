@@ -48,7 +48,7 @@ class ToolController:
 
         # State Caches
         self._given_names_cache: set[str] = set()
-        self._standardize_candidates: dict[str, ProposedRename] = {}
+        self._rename_candidates: dict[str, ProposedRename] = {}
         self._audit_candidates: dict[str, "AuditIssue"] = {}
 
     def cleanup(self) -> None:
@@ -93,7 +93,7 @@ class ToolController:
         return self._given_names_cache
 
     # ==========================================
-    # Tab 1: Standardize Names
+    # Tab 1: Rename Names
     # ==========================================
     def run_rename_scan(self, source: str, target: str, match_type_idx: int) -> bool:
         mode_map = {0: "exact", 1: "substring", 2: "regex"}
@@ -104,7 +104,7 @@ class ToolController:
             return False
 
         self._view.given_store.clear()
-        self._standardize_candidates.clear()
+        self._rename_candidates.clear()
         preserve_alt = self._view.preserve_alt_check.get_active()
 
         def scan_generator():
@@ -120,7 +120,7 @@ class ToolController:
                             if preserve_alt
                             else AltAction.OVERWRITE.value
                         )
-                        self._standardize_candidates[person_proxy.handle] = proposal
+                        self._rename_candidates[person_proxy.handle] = proposal
                         self._view._append_rename_proposal_to_store(proposal)
                         found_any = True
                 yield None
@@ -143,7 +143,7 @@ class ToolController:
         new_action = (
             AltAction.PRESERVE.value if preserve_alt else AltAction.OVERWRITE.value
         )
-        for proposal in self._standardize_candidates.values():
+        for proposal in self._rename_candidates.values():
             proposal.alt_action = new_action
 
         self._view.update_given_store_actions(new_action)
@@ -155,12 +155,10 @@ class ToolController:
 
         preserve_alt = self._view.preserve_alt_check.get_active()
         approved_changes = [
-            self._standardize_candidates[h]
-            for h in handles
-            if h in self._standardize_candidates
+            self._rename_candidates[h] for h in handles if h in self._rename_candidates
         ]
 
-        with self._write_repo.transaction("Batch Given Name Standardization") as t:
+        with self._write_repo.transaction("Batch Given Name Renaming") as t:
             for change in approved_changes:
                 person = self._read_repo.get_raw_person(change.handle)
                 if not person:

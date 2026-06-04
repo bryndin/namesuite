@@ -48,7 +48,7 @@ def test_update_preserve_alt() -> None:
         proposed_given_name="Ioann",
         alt_action="Overwrite",
     )
-    controller._standardize_candidates["handle1"] = proposal1
+    controller._rename_candidates["handle1"] = proposal1
 
     # Toggle preserve on (active=True)
     controller.update_preserve_alt(True)
