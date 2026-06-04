@@ -114,6 +114,17 @@ class GrampsPersonProxy:
         return primary_name.get_first_name() if primary_name else None
 
     @property
+    def surnames(self) -> list[str]:
+        primary_name = self._person.get_primary_name()
+        if not primary_name:
+            return []
+        return [
+            surname.get_surname()
+            for surname in primary_name.get_surname_list()
+            if surname.get_surname()
+        ]
+
+    @property
     def display_name(self) -> str:
         primary_name = self._person.get_primary_name()
         return displayer.display_name(primary_name) if primary_name else ""

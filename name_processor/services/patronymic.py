@@ -59,9 +59,7 @@ class PatronymicInferenceService:
         )
 
         if patronymic:
-            confidence = self._confidence_service.calculate(
-                person.handle, person.display_name
-            )
+            confidence = self._confidence_service.calculate(person, father, ref_year)
 
             return ProposedPatronymic(
                 status=PatronymicInferenceStatus.SUCCESS,

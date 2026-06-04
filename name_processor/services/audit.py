@@ -64,6 +64,7 @@ class AuditService:
         current_patronymic = person.patronymic or ""
 
         # Build Context
+        father_proxy = None
         father_given_name = None
         if person.father_handle:
             father_proxy = self._read_repo.get_person_proxy(person.father_handle)
@@ -107,7 +108,7 @@ class AuditService:
             if change:
                 ref_year_str = str(ctx.reference_year) if ctx.reference_year else "N/A"
                 confidence = self._confidence_service.calculate(
-                    ctx.person_handle, ctx.display_name
+                    person, father_proxy, ctx.reference_year
                 )
                 issues.append(
                     AuditIssue(
