@@ -1,9 +1,8 @@
 from typing import TYPE_CHECKING
 
-from name_processor.models.result import (
+from name_processor.models.infer import (
     PatronymicInferenceStatus,
-    Result,
-    Context,
+    ProposedPatronymic,
 )
 from name_processor.models.person import Gender
 from name_processor.protocols.patronymic import PatronymicSubject
@@ -28,25 +27,27 @@ class PatronymicInferenceService:
 
     def infer_patronymic(
         self, person: PatronymicSubject, father: PatronymicSubject | None
-    ) -> Result:
+    ) -> ProposedPatronymic:
         """
         Generate a patronymic candidate for a single person.
         Handles DB lookups, validation, and morphology generation.
         """
         if not person:
-            return Result(status=PatronymicInferenceStatus.NO_ACTIVE_PERSON)
+            return ProposedPatronymic(status=PatronymicInferenceStatus.NO_ACTIVE_PERSON)
 
         if person.gender not in (Gender.MALE, Gender.FEMALE):
-            return Result(status=PatronymicInferenceStatus.NON_BINARY)
+            return ProposedPatronymic(status=PatronymicInferenceStatus.NON_BINARY)
 
         if person.has_patronymic:
-            return Result(status=PatronymicInferenceStatus.ALREADY_HAS_PATRONYMIC)
+            return ProposedPatronymic(
+                status=PatronymicInferenceStatus.ALREADY_HAS_PATRONYMIC
+            )
 
         if not father:
-            return Result(status=PatronymicInferenceStatus.NO_FATHER)
+            return ProposedPatronymic(status=PatronymicInferenceStatus.NO_FATHER)
 
         if not father.given_name:
-            return Result(status=PatronymicInferenceStatus.FATHER_NO_NAME)
+            return ProposedPatronymic(status=PatronymicInferenceStatus.FATHER_NO_NAME)
 
         ref_year = self._chronology_service.estimate_reference_year(person.handle)
         # confidence = self._confidence_engine.calculate(
@@ -61,17 +62,10 @@ class PatronymicInferenceService:
         )
 
         if patronymic:
-            ctx = Context(
+            return ProposedPatronymic(
+                patronymic=patronymic,
                 father_name=father.given_name,
-            )
-            return Result(
-                value=patronymic,
-                context=ctx,
                 status=PatronymicInferenceStatus.SUCCESS,
             )
         else:
-            return Result(
-                value="",
-                context=None,
-                status=PatronymicInferenceStatus.MORPHOLOGY_FAIL,
-            )
+            return ProposedPatronymic(status=PatronymicInferenceStatus.MORPHOLOGY_FAIL)

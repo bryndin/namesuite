@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from name_processor.models.result import PatronymicInferenceStatus
+from name_processor.models.infer import PatronymicInferenceStatus
 
 if TYPE_CHECKING:
     from name_processor.repositories.gramps_read import GrampsReadRepository
@@ -49,20 +49,10 @@ class GrampletController:
         res = self._patronymic_service.infer_patronymic(person, father)
 
         if res.status == PatronymicInferenceStatus.SUCCESS:
-            self._suggested_patronymic = res.value
-            if res.context and res.context.father_name:
-                if res.value:
-                    self._view.show_suggestion(
-                        res.value,
-                        res.context.father_name,
-                    )
-            else:
-                self._view.show_status_message(
-                    PatronymicInferenceStatus.NO_FATHER, apply_sensitive=False
-                )
+            self._suggested_patronymic = res.patronymic
+            self._view.show_suggestion(res.patronymic, res.father_name)
         else:
-            if res.status:
-                self._view.show_status_message(res.status, apply_sensitive=False)
+            self._view.show_status_message(res.status, apply_sensitive=False)
 
     def on_apply_clicked(self) -> None:
         if not self.current_handle or not self._suggested_patronymic:

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gui.dialog import ErrorDialog
 
-from name_processor.models.result import PatronymicInferenceStatus
+from name_processor.models.infer import PatronymicInferenceStatus
 
 
 if TYPE_CHECKING:

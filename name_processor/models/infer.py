@@ -12,23 +12,13 @@ class PatronymicInferenceStatus(Enum):
     NON_BINARY = "NON_BINARY"
     ALREADY_HAS_PATRONYMIC = "ALREADY_HAS_PATRONYMIC"
     MORPHOLOGY_FAIL = "MORPHOLOGY_FAIL"
-
-
-@dataclass(frozen=True)
-class Context:
-    gramps_id: str | None = None
-    display_name: str | None = None
-    father_name: str | None = None
-    reference_year: int | None = None
-    inferred_patronymic: str | None = None
-    confidence: float | None = None
-    rule_source: str | None = None
+    UNKNOWN_ERROR = "UNKNOWN_ERROR"
 
 
 @dataclass
-class Result:
+class ProposedPatronymic:
     """Result of inferring a patronymic for a single person."""
 
-    value: str | None = None
-    context: Context | None = None
-    status: PatronymicInferenceStatus | None = None
+    status: PatronymicInferenceStatus = PatronymicInferenceStatus.UNKNOWN_ERROR
+    patronymic: str | None = None
+    father_name: str | None = None

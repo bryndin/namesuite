@@ -2,7 +2,7 @@ from unittest.mock import Mock, MagicMock
 import pytest
 
 from name_processor.controllers.gramplet import GrampletController
-from name_processor.models.result import PatronymicInferenceStatus
+from name_processor.models.infer import PatronymicInferenceStatus
 
 
 @pytest.fixture
@@ -61,8 +61,8 @@ def test_on_active_changed_success(controller, mocks):
 
     mock_result = MagicMock()
     mock_result.status = PatronymicInferenceStatus.SUCCESS
-    mock_result.value = "Ivanovich"
-    mock_result.context.father_name = "Ivan"
+    mock_result.patronymic = "Ivanovich"
+    mock_result.father_name = "Ivan"
 
     # Setup read_repo to return the person, then the father
     mocks["read_repo"].get_person_proxy.side_effect = [mock_person, mock_father]
