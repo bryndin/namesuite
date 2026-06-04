@@ -1,0 +1,21 @@
+name: Test GRAMPS_PAT
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check GitHub CLI authentication
+        env:
+          GH_TOKEN: ${{ secrets.GRAMPS_PAT }}
+        run: |
+          gh auth status
+
+      - name: Verify access to addons-source fork
+        env:
+          GH_TOKEN: ${{ secrets.GRAMPS_PAT }}
+        run: |
+          gh repo view bryndin/addons-source
