@@ -6,6 +6,7 @@ Contains all GTK widgets, layout structures, and column definitions.
 
 import logging
 import re
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Callable
 
 from gi.repository import Gtk
@@ -15,6 +16,7 @@ from gramps.gui.editors import EditPerson
 from gramps.gen.errors import WindowActiveError
 
 from name_processor.models.audit import AuditScope
+from name_processor.models.renamer import MatchMode
 
 if TYPE_CHECKING:
     from name_processor.controllers.tool import ToolController
@@ -24,6 +26,22 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _ = glocale.translation.gettext
+
+
+class MatchModeIndex(Enum):
+    """Combo box index positions for match mode options."""
+
+    EXACT = 0
+    SUBSTRING = 1
+    REGEX = 2
+
+
+class MatchModeLabel(Enum):
+    """UI labels for match mode combo box."""
+
+    EXACT = "Exact Match"
+    SUBSTRING = "Substring"
+    REGEX = "Regular Expression"
 
 
 def pango_escape(text: str) -> str:
@@ -173,10 +191,10 @@ class ToolWindow:
 
         given_config_grid.attach(Gtk.Label(label=_("Match Mode:")), 2, 0, 1, 1)
         self.given_match_type_combo = Gtk.ComboBoxText()
-        self.given_match_type_combo.append_text(_("Exact Match"))
-        self.given_match_type_combo.append_text(_("Substring"))
-        self.given_match_type_combo.append_text(_("Regular Expression"))
-        self.given_match_type_combo.set_active(0)
+        self.given_match_type_combo.append_text(_(MatchModeLabel.EXACT.value))
+        self.given_match_type_combo.append_text(_(MatchModeLabel.SUBSTRING.value))
+        self.given_match_type_combo.append_text(_(MatchModeLabel.REGEX.value))
+        self.given_match_type_combo.set_active(MatchModeIndex.EXACT.value)
         given_config_grid.attach(self.given_match_type_combo, 3, 0, 1, 1)
 
         self.given_scan_btn = Gtk.Button(label=_("Scan for Names"))
@@ -295,13 +313,20 @@ class ToolWindow:
         target = self.given_target_entry.get_text().strip()
         match_type = self.given_match_type_combo.get_active()
 
+        mode_map = {
+            MatchModeIndex.EXACT.value: MatchMode.EXACT,
+            MatchModeIndex.SUBSTRING.value: MatchMode.SUBSTRING,
+            MatchModeIndex.REGEX.value: MatchMode.REGEX,
+        }
+        match_mode = mode_map.get(match_type, None)
+
         # Validate source input
         if not source:
             self.show_ok_dialog(_("Invalid Input"), _("Source name cannot be empty."))
             return
 
         # Validate regex pattern when Regular Expression match mode is selected
-        if match_type == 2:  # Regular Expression
+        if match_mode == MatchMode.REGEX:
             try:
                 re.compile(source)
             except re.error:
@@ -318,7 +343,7 @@ class ToolWindow:
             )
             return
 
-        has_results = self.controller.run_rename_scan(source, target, match_type)
+        has_results = self.controller.run_rename_scan(source, target, match_mode)
         self.update_given_apply_button()
         if not has_results:
             self.show_ok_dialog(_("No Results"), _("No matching given names found."))
@@ -384,11 +409,11 @@ class ToolWindow:
         )
 
     def _append_rename_proposal_to_store(
-        self, prop: "ProposedRename", match_mode: str
+        self, prop: "ProposedRename", match_mode: MatchMode
     ) -> None:
         """Append a given name rename proposal to the given store."""
         # For substring and regex modes, highlight only the matched portion
-        if match_mode in ("substring", "regex") and prop.matched_text:
+        if match_mode in (MatchMode.SUBSTRING, MatchMode.REGEX) and prop.matched_text:
             proposed_esc = pango_escape(prop.proposed_given_name)
             matched_esc = pango_escape(prop.matched_text)
             # Replace the matched portion with highlighted version

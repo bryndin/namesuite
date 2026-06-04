@@ -1,20 +1,21 @@
 from typing import TYPE_CHECKING, Any
 
 from name_processor.models.audit import AuditScope
-from name_processor.models.renamer import ProposedRename, AltAction
+from name_processor.models.renamer import MatchMode, ProposedRename, AltAction
 from name_processor.utils.gtk_runner import run_in_idle_loop
 
 if TYPE_CHECKING:
+    from names_tool import NamesTool
+    from name_processor.models.audit import AuditIssue
+    from name_processor.models.renamer import MatchMode
+    from name_processor.repositories.gramps_read import GrampsReadRepository
+    from name_processor.repositories.gramps_write import GrampsWriteRepository
     from name_processor.services.alt_names import AltNamesService
     from name_processor.services.audit import AuditService
     from name_processor.services.chronology import ChronologyService
     from name_processor.services.patronymic import PatronymicInferenceService
     from name_processor.services.renamer import RenamerService
-    from name_processor.models.audit import AuditIssue
-    from name_processor.repositories.gramps_read import GrampsReadRepository
-    from name_processor.repositories.gramps_write import GrampsWriteRepository
     from name_processor.views.tool import ToolWindow
-    from names_tool import NamesTool
 
 
 class ToolController:
@@ -95,9 +96,7 @@ class ToolController:
     # ==========================================
     # Tab 1: Rename Names
     # ==========================================
-    def run_rename_scan(self, source: str, target: str, match_type_idx: int) -> bool:
-        mode_map = {0: "exact", 1: "substring", 2: "regex"}
-        match_mode = mode_map.get(match_type_idx, "exact")
+    def run_rename_scan(self, source: str, target: str, match_mode: MatchMode) -> bool:
         rule = self._renamer_service.create_config(match_mode, source, target)
         if not rule.is_valid:
             return False

@@ -9,26 +9,15 @@ if TYPE_CHECKING:
 
 class RenamerService:
     def create_config(
-        self, match_type: str, source_str: str, target_str: str
+        self, match_type: MatchMode, source_str: str, target_str: str
     ) -> RenameConfig:
         """
         Validates the user configuration before the batch scan begins.
         Catches invalid Regular Expressions immediately.
         """
-        try:
-            mode = MatchMode(match_type.lower())
-        except ValueError:
-            return RenameConfig(
-                mode=MatchMode.EXACT,
-                source=source_str,
-                target=target_str,
-                is_valid=False,
-                error_msg=f"Unsupported match type: {match_type}",
-            )
+        config = RenameConfig(mode=match_type, source=source_str, target=target_str)
 
-        config = RenameConfig(mode=mode, source=source_str, target=target_str)
-
-        if mode == MatchMode.REGEX:
+        if match_type == MatchMode.REGEX:
             try:
                 # Compile regex early to validate syntax and catch re.error
                 config.pattern = re.compile(source_str)

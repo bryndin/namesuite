@@ -6,6 +6,7 @@ and the domain entities defined in name_processor.entities.
 """
 
 from gramps.gen.lib import Person as GrampsPerson
+
 from name_processor.models.person import Gender
 
 
