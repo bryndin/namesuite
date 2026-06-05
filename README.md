@@ -8,19 +8,20 @@ The suite is located in your Gramps menu under `Tools -> Family Tree Processing 
 
 ### 1. Bulk Given Name Renamer
 
-![Screenshot of the Tool Renamer page placeholder](docs/renamer_screenshot.png)
+![Autocompletion Screenshot](docs/renamer_autocomplete.png)
+![Renamer Tab Screenshot](docs/renamer_screenshot.png)
 
 This tool lets you easily fix typos or update historical given names across your entire database all at once. You can search for exact names, parts of names, or use advanced text patterns to find exactly what you want to change.
 
 ### 2. Patronymic Auditor
 
-![Screenshot of the Tool Audit page placeholder](docs/audit_screenshot.png)
+![Audit Tab Screenshot](docs/audit_screenshot.png)
 
 This tab acts as a proofreader for your existing family tree. It checks for mistakes in patronymics (like wrong gender endings or timeline issues) and can even suggest missing patronymics based on who a person's father is.
 
 ### 3. Quick-Add Gramplet
 
-![Screenshot of the Gramplet placeholder](docs/gramplet_screenshot.png)
+![Gramplet Screenshot](docs/gramplet_screenshot.png)
 
 For when you aren't doing bulk updates, we've included a handy side panel (Gramplet) available in both the People and Relationships views. As you browse your tree, it will automatically suggest missing patronymics and let you apply them with a single click.
 
