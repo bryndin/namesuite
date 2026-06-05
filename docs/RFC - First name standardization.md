@@ -2,25 +2,26 @@
 
 **Authors:** Senior Software Architect, Lead Genealogist, Gramps Addon Specialist, Localization Expert, Data Modeling Specialist
 **Status:** Approved for Integration
-**Target Release:** Addon Pack for Gramps 5.2 / 6.0+
+**Target Release:** Addon Pack for Gramps 6.0+
 
 ## 1. Abstract
 
-This Request for Comments (RFC) details the architecture for a First Name Standardization module. Rather than introducing a new standalone addon, this framework will be integrated directly into the existing East Slavic Patronymic Inference project as a dedicated tab. It provides users with a conservative, user-controlled interface to efficiently execute bulk given-name renaming operations, standardize historical Church Slavonic variants to modern civil forms, and correct widespread transcription misspellings without compromising archival fidelity.
+This Request for Comments (RFC) details the architecture for a general First Name Standardization module. Rather than introducing a new standalone addon, this framework will be integrated directly into the existing Patronymic Inference project as a dedicated tab. It provides users with a conservative, user-controlled interface to efficiently execute bulk given-name renaming operations. While highly effective for standardizing historical East Slavic Church Slavonic variants to modern civil forms, the framework is generalized to handle typographical corrections and canonicalizations for any language or naming convention without compromising archival fidelity.
 
 ## 2. Motivation
 
-Historical East Slavic genealogical records frequently mix church naming conventions, regional orthography, and informal civil variants. In large databases, these inconsistencies fragment lineage matching and degrade automated record searching. Furthermore, the existing patronymic inference and auditing tools rely heavily on normalized root names; inconsistent given names can trigger false-positive morphology errors or propagate incorrect data during patronymic audits. A dedicated cleaning module is required to standardize the foundational given-name dataset before advanced inference algorithms are applied.
+Genealogical datasets often contain inconsistencies in given names due to evolving orthography, varied transcription standards, and simple data-entry errors. These variations fragment lineage matching and hinder automated tools like the patronymic engine. A dedicated, bulk-cleaning module is needed to standardize primary names before executing advanced data analysis.
 
 ## 3. Problem Statement
 
-Genealogical datasets typically suffer from three categories of naming inconsistency:
+Genealogical datasets across various cultures typically suffer from these categories of naming inconsistency:
 
-1. **Church vs. Civil Forms:** Users often transcribe names exactly as written in parish registers (e.g., *Иоанн*, *Иаков*), which clash with modern civil forms (*Иван*, *Яков*).
-2. **Orthographic Variations:** Pre-reform spellings, regional dialects, and interchangeable characters (e.g., *Федор* vs. *Фёдор*) create duplicate linguistic spaces.
-3. **Transcription Errors:** Rapid digitization introduces typos (e.g., *Иоаннн*, *Иоан*).
+1. **Church vs. Civil Forms / Formal vs. Informal:** Transcriptions often mix canonical register names (e.g., *Иоанн*, *Johannes*) with civil or common forms (*Иван*, *Johann*).
+2. **Anglicization and Assimilation:** Immigrant names frequently shift across borders and census records (e.g., *Giuseppe* to *Joseph*, *Heinrich* to *Henry*).
+3. **Orthographic Variations:** Pre-reform spellings, regional dialects, and interchangeable characters (e.g., *Федор* vs. *Фёдор*, *Olof* vs *Olav*) create duplicate linguistic spaces.
+4. **Transcription Errors:** Rapid digitization introduces typos (e.g., *Иоаннн*, *Иоан*).
 
-When an automated patronymic auditor encounters these discrepancies, it may incorrectly flag valid names or generate linguistically inaccurate patronymic suggestions. Normalizing these names one-by-one using the native Gramps editing workflow is too slow for databases containing thousands of individuals.
+When automated auditors or matching algorithms encounter these discrepancies, they may incorrectly flag valid names. Normalizing these names one-by-one using the native Gramps editing workflow is too slow for databases containing thousands of individuals.
 
 ## 4. Design Goals
 
@@ -50,92 +51,78 @@ To maintain focus and data integrity, this system is explicitly **NOT**:
 
 The feature will be integrated into the existing **Batch Tool Addon** (`TOOL` plugin type). It will run alongside the existing inference and linter engines, sharing the same session cache.
 
-The architecture consists of three primary modules:
+The architecture consists of two primary modules:
 
-1. **The Dictionary Engine:** A deterministic, read-only mapping of canonical relationships (e.g., Church $\rightarrow$ Civil) and known typographical errors.
-2. **The Query Controller:** Processes user-defined search parameters (Exact, Substring, RegEx) and evaluates the database against the Dictionary Engine to generate structured `ProposedChange` objects.
-3. **The Shared Mutator:** Receives user-approved modifications and updates the Gramps database directly.
+1. **The Query Controller:** Processes user-defined search parameters (Exact, Substring, RegEx) and evaluates the database to generate structured `ProposedChange` objects.
+2. **The Shared Mutator:** Receives user-approved modifications and updates the Gramps database directly.
 
-## 8. Data Flow
+## 8. Canonicalization Strategy
 
-1. **Scope Selection:** The user defines the target population via standard Gramps filters.
-2. **Rule Definition:** The user inputs a source/target rule and selects the match type.
-3. **Scan & Propose:** The Query Controller scans primary names, matching against user rules and the Dictionary Engine.
-4. **UI Population:** The `Gtk.TreeView` grid is populated with current names, proposed standardizations, and contextual warnings (e.g., pre-existing alternate names).
-5. **User Arbitration:** The user reviews suggestions and selectively confirms rows.
-6. **Commit Phase:** The Shared Mutator locks the database and executes the approved primary name changes.
+The default strategy prioritizes modern common or civil names as the canonical target, bounded by a strict adherence to archival fidelity and regional conventions.
 
-## 9. Canonicalization Strategy
-
-The default strategy prioritizes **modern common civil names** as the canonical target, bounded by a strict adherence to archival fidelity and regional conventions.
-
-* **Church-to-Civil Standardization:** Canonical mappings will strongly suggest civil forms for searchability (e.g., *Иаков* $\rightarrow$ *Яков*).
+* **Church-to-Civil / Formal-to-Informal Standardization:** Canonical mappings will strongly suggest standardized forms for searchability (e.g., *Иаков* $\rightarrow$ *Яков*, *Johannes* $\rightarrow$ *Johann*).
 * **Regional Preservation:** Historical names with valid regional or dialectical roots will **not** be universally modernized. For example, *Михайло* (a standard Ukrainian/Southern form) will not be blindly converted to the Russian *Михаил* unless explicitly requested by the user.
 
-## 10. Suggestion Engine Design
+## 9. Suggestion Engine Design
 
-The engine avoids probabilistic or speculative NLP models, relying instead on deterministic lookups and user-defined rules.
+The engine avoids probabilistic or speculative NLP models, relying instead on direct user-defined rules.
 
 | Detection Type | Mechanism | Example (Source $\rightarrow$ Target) |
 | --- | --- | --- |
-| **Direct Church Mapping** | Exact Dictionary Match | *Иоанн* $\rightarrow$ *Иван* |
-| **Orthographic Correction** | Exact Dictionary Match | *Федор* $\rightarrow$ *Фёдор* |
-| **Deterministic Typo** | Built-in RegEx | *Иоаннн* $\rightarrow$ *Иоанн* |
-| **User Rule (Substring)** | User Input | *Иоан* $\rightarrow$ *Иван* (within *Анна-Иоанновна*) |
+| **User Rule (Exact)** | Exact Match | *Иоанн* $\rightarrow$ *Иван* |
+| **User Rule (Substring)** | Substring Match | *Иоан* $\rightarrow$ *Иван* (within *Анна-Иоанновна*) |
+| **User Rule (RegEx)** | Built-in RegEx | `^Иоаннн+$` $\rightarrow$ *Иоанн* |
 
-## 11. Batch Rename Workflow
+## 10. Batch Rename Workflow
 
 The workflow relies on a rigid "Review Before Commit" methodology that guarantees existing metadata is never overwritten.
 
 1. **Rule Configuration:** The user enters a `Source Name` and `Target Name`.
 2. **Match Type Selection:** The user selects from a dropdown:
-    * `Exact Match`: Replaces only if the given name string matches entirely.
-    * `Substring`: Replaces occurrences within compound names.
-    * `Regular Expression`: For advanced pattern matching.
+   * `Exact Match`: Replaces only if the given name string matches entirely.
+   * `Substring`: Replaces occurrences within compound names.
+   * `Regular Expression`: For advanced pattern matching.
 
 3. **Grid Population:** Clicking "Scan Database" populates the results grid. No database modifications occur at this stage.
 4. **Alternate Name Preservation (Optional):** Upon commit, if the user has checked "Preserve original Primary Names as Alternate Names":
-    * The system checks if the *Original Primary Name* already exists in the individual's Alternate Names list.
-    * **If Yes:** The preservation step is skipped (preventing duplicates).
-    * **If No:** The system deep-copies the Primary Name (preserving surnames/citations), changes its type to "Also Known As," and appends it to the Alternate Names list.
+   * The system checks if the *Original Primary Name* already exists in the individual's Alternate Names list.
+   * **If Yes:** The preservation step is skipped (preventing duplicates).
+   * **If No:** The system deep-copies the Primary Name (preserving surnames/citations), changes its type to "Also Known As," and appends it to the Alternate Names list.
 
-5. **Commit:** The user clicks "Apply Selected Corrections." The Primary Name strings are updated in place.
+5. **Commit Phase:** The user clicks "Apply Selected Corrections." The Primary Name strings are updated in place via a Gramps transaction (that supports native Gramps undo).
 
-## 12. UI/UX Design Principles
+## 11. UI/UX Design Principles
 
-The tool integrates into the existing `Gtk.Notebook` layout. A new tab will be inserted, resulting in a 3-tab interface using target-explicit naming: `Given Names` | `Infer Patronymics` | `Audit Patronymics`.
+The tool integrates into the existing `Gtk.Notebook` layout. A new tab will be inserted, resulting in a 2-tab interface using target-explicit naming: `Given Names` | `Audit Patronymics`.
 
 **Given Names Tab Layout:**
 
 * **Top Bar:** Match Type Dropdown, Source Input, Target Input, "Scan Database" button.
 * **Global Options:** Checkbox for "Preserve original Primary Names as Alternate Names" (Default: True).
 * **Main Grid (`Gtk.TreeView`):**
-  * `Use` (Checkbox)
-  * `ID`
-  * `Individual`
-  * `Current Name`
-  * `Proposed Name` (Uses Pango markup for diff highlights)
+* `Use` (Checkbox)
+* `ID`
+* `Individual`
+* `Current Name`
+* `Proposed Name` (Uses Pango markup for diff highlights)
 
 * **Footer:** Global "Select All" checkbox and an `[Apply Selected Corrections]` button.
 
-## 13. Safety Constraints
+## 12. Safety Constraints
 
 * **No Auto-Commit:** The system will never write to the database automatically.
-* **Strict Target Scope:** The tool modifies the Gramps Primary Name field exclusively.
-* **Graceful Failures:** Unrecognized or malformed strings are silently bypassed during the initial scan rather than triggering exceptions.
+* **Strict Target Scope:** The tool modifies the Gramps Primary Name field, and may also store the original name as an alternative name.
+* **Graceful Failures:** The system validates user inputs (like regular expressions) before execution to prevent UI freezes or crashes. Valid but unrecognized strings are silently bypassed during the initial scan rather than triggering exceptions.
 
-## 14. Extensibility Model
+## 13. Future Work
 
-The Dictionary Engine utilizes a pluggable, JSON-based registry. This allows community contributors to submit new regional baselines (e.g., Ukrainian or Belarusian mappings) without modifying Python logic.
-
-## 15. Future Work
-
+* **The Dictionary Engine (P2):** Implementing a deterministic, read-only mapping of canonical relationships (e.g., Church $\rightarrow$ Civil) and known typographical errors utilizing a pluggable, JSON-based registry. This will allow community contributors to submit new regional baselines without modifying Python logic.
 * **Contextual Inference (P3):** Utilizing sibling consistency or patronymic evidence to resolve ambiguous names.
 * **Dialect Mapping (P4):** Providing cautious, opt-in baseline support for cross-border dialect normalization.
 
-## 16. Expert Review Commentary
+## 14. Expert Review Commentary
 
 * **Lead Software Architect (S.A.):** "For dataset-wide substring and RegEx searches, we must ensure the query engine yields cleanly to the GTK main loop. Scanning 15,000 records with a poorly written user regex could freeze the UI if not batched correctly."
 * **Senior Genealogist (S.G.):** "Giving users the choice of exact vs. substring is excellent. It prevents compound names from being accidentally mangled, but allows advanced users to fix widespread hyphenated errors. Highlighting existing alternate names in the grid perfectly handles the duplication risk."
-* **Localization Expert (L.E.):** "The exact match dictionary is vital for Church-to-Civil conversions. RegEx is too blunt for historical morphology. The dual approach (Dictionary + User Rules) covers all bases."
-* **Gramps Addon Specialist (G.S.):** "Adding this as a 3rd tab (`Standardize`) to the existing `Gtk.Notebook` is the right call. It prevents tool proliferation in the Gramps menu.
+* **Localization Expert (L.E.):** "Moving the exact match dictionary to P2 keeps the initial release agile, while the User Rules still cover all bases for manual data cleaning."
+* **Gramps Addon Specialist (G.S.):** "Adding this as a 2nd tab (`Rename Given Names`) to the existing `Gtk.Notebook` is the right call. It prevents tool proliferation in the Gramps menu."
