@@ -17,6 +17,7 @@ register(
     authors_email=["1129396+bryndin@users.noreply.github.com"],
     toolclass="NamesTool",
     optionclass="NamesToolOptions",
+    help_url="Addon:NameSuite",
 )
 
 register(
@@ -35,4 +36,5 @@ register(
     gramplet="PatronymicSuggestionGramplet",
     navtypes=["Person", "Relationship"],
     gramplet_title=_("Patronymic Suggestion"),
+    help_url="Addon:NameSuite",
 )
