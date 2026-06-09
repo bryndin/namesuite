@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch
 import pytest
 
-from name_processor.repositories.gramps_read import GrampsReadRepository
+from NameSuite.name_processor.repositories.gramps_read import GrampsReadRepository
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def test_get_person_proxy_returns_none(read_repo, mock_db):
     assert read_repo.get_person_proxy("bad_handle") is None
 
 
-@patch("name_processor.repositories.gramps_read.GrampsPersonProxy")
+@patch("NameSuite.name_processor.repositories.gramps_read.GrampsPersonProxy")
 def test_get_person_proxy_success(mock_proxy_class, read_repo, mock_db):
     mock_person = Mock()
     mock_db.get_person_from_handle.return_value = mock_person
@@ -30,7 +30,7 @@ def test_get_person_proxy_success(mock_proxy_class, read_repo, mock_db):
     assert result == mock_proxy_class.return_value
 
 
-@patch("name_processor.repositories.gramps_read.GrampsPersonProxy")
+@patch("NameSuite.name_processor.repositories.gramps_read.GrampsPersonProxy")
 def test_get_chronology_subject_success(mock_proxy_class, read_repo, mock_db):
     mock_person = Mock()
     mock_db.get_person_from_handle.return_value = mock_person

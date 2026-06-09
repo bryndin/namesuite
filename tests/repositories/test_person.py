@@ -1,8 +1,8 @@
 from unittest.mock import Mock
 import pytest
 
-from name_processor.repositories.person import GrampsPersonProxy
-from name_processor.models.person import Gender
+from NameSuite.name_processor.repositories.person import GrampsPersonProxy
+from NameSuite.name_processor.models.person import Gender
 
 
 # Mocking Gramps constants used in the proxy
@@ -31,7 +31,7 @@ def mock_gramps_person():
 @pytest.fixture
 def proxy(mock_gramps_person, mock_db):
     # Patch the GrampsPerson reference in the module to use our mock constants
-    import name_processor.repositories.person as repo_module
+    import NameSuite.name_processor.repositories.person as repo_module
 
     repo_module.GrampsPerson = MockGrampsPerson
     repo_module.NameOriginType = MockNameOriginType

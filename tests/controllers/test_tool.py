@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock
-from name_processor.controllers.tool import ToolController
+from NameSuite.name_processor.controllers.tool import ToolController
 
 
 def test_controller_initialization():
@@ -38,7 +38,7 @@ def test_update_preserve_alt() -> None:
         chronology_service=MagicMock(),
     )
 
-    from name_processor.models.renamer import ProposedRename
+    from NameSuite.name_processor.models.renamer import ProposedRename
 
     proposal1 = ProposedRename(
         handle="handle1",
