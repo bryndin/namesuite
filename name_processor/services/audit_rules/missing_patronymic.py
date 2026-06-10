@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Rule: InfoMissingPatronymic
 Flags if a person is missing a patronymic but one can be inferred from the father's name.

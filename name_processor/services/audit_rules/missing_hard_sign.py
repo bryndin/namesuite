@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Rule: WarnMissingHardSign
 Flags pre-1918 Russian names missing a terminal orthographic hard sign 'ъ'.

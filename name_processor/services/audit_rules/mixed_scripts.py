@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Rule: ErrMixedScripts
 Detects and corrects mixed Cyrillic and Latin homoglyphs in patronymic strings.

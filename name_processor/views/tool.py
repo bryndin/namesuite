@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 GTK Window layout for the Names Tool batch processing interface.
 Contains all GTK widgets, layout structures, and column definitions.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Mappers and translation utilities for Gramps-specific objects.
 This module handles the conversion between Gramps internal types

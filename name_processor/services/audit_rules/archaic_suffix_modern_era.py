@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Rule: WarnArchaicSuffixModernEra
 Flags post-1918 records using archaic/informal possessive endings.

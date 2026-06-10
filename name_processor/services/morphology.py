@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Provides morphological generation of East Slavic patronymics (Russian, Ukrainian,
 Belarusian) based on the father's given name, gender, reference year, and

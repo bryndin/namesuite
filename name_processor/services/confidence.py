@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Confidence scoring engine for patronymic candidates.
 Encapsulates heuristics used to determine reliability of inference results.

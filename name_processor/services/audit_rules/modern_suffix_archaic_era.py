@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Rule: WarnModernSuffixArchaicEra
 Flags pre-1918 records using modern formal endings and suggests possessive genitives.

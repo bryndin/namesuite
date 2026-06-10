@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Rule: ErrLineageMismatch
 Flags if the patronymic base/root does not match the linked biological father's name.

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Rule: WarnMorphologicalTypo
 Detects invalid consecutive duplicate characters at joint boundaries (e.g. Андрееевич).
