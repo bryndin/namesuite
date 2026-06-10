@@ -146,6 +146,7 @@ def mock_gramps():
     sys.modules["gramps"] = gramps_mock
     sys.modules["gramps.gen"] = gramps_gen_mock
     sys.modules["gramps.gen.lib"] = gramps_gen_lib_mock
+    sys.modules["gramps.gen.lib.nameorigintype"] = gramps_gen_lib_mock
     sys.modules["gramps.gen.db"] = gramps_gen_db_mock
     sys.modules["gramps.gen.const"] = gramps_gen_const_mock
     sys.modules["gramps.gen.errors"] = gramps_gen_errors_mock
