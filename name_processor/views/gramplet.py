@@ -11,11 +11,11 @@ from typing import TYPE_CHECKING
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gui.dialog import ErrorDialog
 
-from NameSuite.name_processor.models.infer import PatronymicInferenceStatus
+from name_processor.models.infer import PatronymicInferenceStatus
 
 
 if TYPE_CHECKING:
-    from NameSuite.name_processor.controllers.gramplet import GrampletController
+    from name_processor.controllers.gramplet import GrampletController
 
 _ = glocale.translation.gettext
 

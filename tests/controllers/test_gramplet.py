@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock, MagicMock
 
-from NameSuite.name_processor.controllers.gramplet import GrampletController
-from NameSuite.name_processor.models.infer import PatronymicInferenceStatus
+from name_processor.controllers.gramplet import GrampletController
+from name_processor.models.infer import PatronymicInferenceStatus
 
 
 class TestGrampletController(unittest.TestCase):

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from NameSuite.name_processor.controllers.tool import ToolController
+from name_processor.controllers.tool import ToolController
 
 
 class TestToolController(unittest.TestCase):
@@ -40,7 +40,7 @@ class TestToolController(unittest.TestCase):
             chronology_service=MagicMock(),
         )
 
-        from NameSuite.name_processor.models.renamer import ProposedRename
+        from name_processor.models.renamer import ProposedRename
 
         proposal1 = ProposedRename(
             handle="handle1",

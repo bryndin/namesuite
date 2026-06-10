@@ -1,13 +1,13 @@
 import unittest
 
-from NameSuite.name_processor.services.audit_rules.gender_mismatch import (
+from name_processor.services.audit_rules.gender_mismatch import (
     ErrGenderMismatch,
 )
-from NameSuite.name_processor.services.audit_rules.missing_patronymic import (
+from name_processor.services.audit_rules.missing_patronymic import (
     InfoMissingPatronymic,
 )
-from NameSuite.name_processor.models.audit import RuleContext
-from NameSuite.name_processor.models.person import Gender
+from name_processor.models.audit import RuleContext
+from name_processor.models.person import Gender
 
 
 class TestGenderMismatchRule(unittest.TestCase):

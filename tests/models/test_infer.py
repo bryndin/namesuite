@@ -1,6 +1,6 @@
 import unittest
 
-from NameSuite.name_processor.models.infer import (
+from name_processor.models.infer import (
     PatronymicInferenceStatus,
     ProposedPatronymic,
 )

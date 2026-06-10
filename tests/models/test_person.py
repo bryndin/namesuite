@@ -1,6 +1,6 @@
 import unittest
 
-from NameSuite.name_processor.models.person import Person, Gender
+from name_processor.models.person import Person, Gender
 
 
 class TestGenderEnum(unittest.TestCase):

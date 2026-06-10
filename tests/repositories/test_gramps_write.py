@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 
-from NameSuite.name_processor.repositories.gramps_write import (
+from name_processor.repositories.gramps_write import (
     is_patronymic_origin,
     update_or_add_patronymic,
     GrampsWriteRepository,
@@ -18,7 +18,7 @@ class TestIsPatronymicOrigin(unittest.TestCase):
     def setUp(self):
         # autouse equivalent: patch NameOriginType for every test in this class
         patcher = patch(
-            "NameSuite.name_processor.repositories.gramps_write.NameOriginType",
+            "name_processor.repositories.gramps_write.NameOriginType",
             MockNameOriginType,
         )
         self.addCleanup(patcher.stop)
@@ -35,7 +35,7 @@ class TestIsPatronymicOrigin(unittest.TestCase):
 class TestUpdateOrAddPatronymic(unittest.TestCase):
     def setUp(self):
         patcher = patch(
-            "NameSuite.name_processor.repositories.gramps_write.NameOriginType",
+            "name_processor.repositories.gramps_write.NameOriginType",
             MockNameOriginType,
         )
         self.addCleanup(patcher.stop)
@@ -59,7 +59,7 @@ class TestUpdateOrAddPatronymic(unittest.TestCase):
         mock_surname2.set_surname.assert_called_once_with("NewPatronymic")
         mock_primary.add_surname.assert_not_called()
 
-    @patch("NameSuite.name_processor.repositories.gramps_write.Surname")
+    @patch("name_processor.repositories.gramps_write.Surname")
     def test_update_or_add_patronymic_adds_new(self, mock_surname_class):
         mock_primary = Mock()
         mock_surname_existing = Mock()
@@ -83,7 +83,7 @@ class TestUpdateOrAddPatronymic(unittest.TestCase):
 class TestGrampsWriteRepository(unittest.TestCase):
     def setUp(self):
         patcher = patch(
-            "NameSuite.name_processor.repositories.gramps_write.NameOriginType",
+            "name_processor.repositories.gramps_write.NameOriginType",
             MockNameOriginType,
         )
         self.addCleanup(patcher.stop)
@@ -93,9 +93,9 @@ class TestGrampsWriteRepository(unittest.TestCase):
         self.write_repo = GrampsWriteRepository(self.mock_db)
 
     @patch(
-        "NameSuite.name_processor.repositories.gramps_write.update_or_add_patronymic"
+        "name_processor.repositories.gramps_write.update_or_add_patronymic"
     )
-    @patch("NameSuite.name_processor.repositories.gramps_write.DbTxn")
+    @patch("name_processor.repositories.gramps_write.DbTxn")
     def test_update_patronymic_names(self, mock_dbtxn, mock_update_func):
         mock_txn_instance = MagicMock()
         mock_dbtxn.return_value.__enter__.return_value = mock_txn_instance
