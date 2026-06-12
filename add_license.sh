@@ -45,9 +45,7 @@ LICENSE_TEXT=$(cat << 'EOF'
 EOF
 )
 
-# FIXED FIND LOGIC:
-# We check if the basename of the path matches the pattern, but ensure we 
-# don't prune the literal starting target directory itself.
+# Find arguments to safely prune excluded paths
 if [ -n "$EXCLUDE_PATTERN" ]; then
     FIND_ARGS=( "$TARGET_DIR" \( -type d -name "$EXCLUDE_PATTERN" -not -path "$TARGET_DIR" \) -prune -o -type f -name "*.py" -print )
 else
@@ -57,11 +55,18 @@ fi
 # Initialize counters for verification
 files_modified=0
 files_skipped=0
+files_empty=0
 
 # Find files using the built arguments array
 while read -r file; do
-    # Skip empty lines if any
     [ -z "$file" ] && continue
+
+    # 1. Skip empty files (size is 0 bytes)
+    if [ ! -s "$file" ]; then
+        echo "Skipping (empty file): $file"
+        ((files_empty++))
+        continue
+    fi
 
     # Check if the file already contains the license header to avoid duplicates
     if ! grep -q "Copyright (C) 2026  Dmitry Bryndin" "$file"; then
@@ -90,10 +95,10 @@ while read -r file; do
     fi
 done < <(find "${FIND_ARGS[@]}")
 
-# Total files processed by the loop logic
-total_processed=$((files_modified + files_skipped))
+# Total files processed by the loop logic (including empty ones)
+total_processed=$((files_modified + files_skipped + files_empty))
 
-# Independent system count using the exact same find layout for the final verification
+# Independent system count for verification
 actual_py_count=$(find "${FIND_ARGS[@]}" | wc -l)
 
 echo "-----------------------------------------------"
@@ -101,6 +106,7 @@ echo "Process Complete."
 echo "Excluding Dirs:  $EXCLUDE_PATTERN"
 echo "Files Modified:  $files_modified"
 echo "Files Skipped:   $files_skipped"
+echo "Files Empty:     $files_empty"
 echo "Total Tracked:   $total_processed"
 echo "Actual .py Files:$actual_py_count"
 echo "-----------------------------------------------"
