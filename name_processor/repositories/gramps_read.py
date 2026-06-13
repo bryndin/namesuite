@@ -5,10 +5,14 @@ import itertools
 
 from name_processor.repositories.person import GrampsPersonProxy
 from name_processor.protocols.chronology import ChronologySubject
+from name_processor.protocols.gramps import (
+    DateObject,
+    GrampsDatabase,
+)
 
 
 class GrampsReadRepository:
-    def __init__(self, db: object) -> None:
+    def __init__(self, db: GrampsDatabase) -> None:
         self._db = db
 
     # ==========================================
@@ -79,7 +83,7 @@ class GrampsReadRepository:
             for handle in chunk:
                 event = self._db.get_event_from_handle(handle)
                 if event:
-                    date_obj = event.get_date_object()
+                    date_obj: DateObject | None = event.get_date_object()
                     if date_obj and not date_obj.is_empty():
                         year = date_obj.get_year()
                         if year and year > 0:

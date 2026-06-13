@@ -4,6 +4,12 @@ import contextlib
 from gramps.gen.db import DbTxn
 from gramps.gen.lib import NameOriginType, Surname
 
+from name_processor.protocols.gramps import (
+    GrampsDatabase,
+    Person,
+    PrimaryName,
+)
+
 
 # NOTE: In a future refactor, is_patronymic_origin and update_or_add_patronymic
 # should be moved to a Domain Service (e.g., name_processor.services.mutator)
@@ -14,7 +20,9 @@ def is_patronymic_origin(orig: NameOriginType) -> bool:
         return False
 
 
-def update_or_add_patronymic(primary_name: object, new_patronymic_value: str) -> str:
+def update_or_add_patronymic(
+    primary_name: PrimaryName, new_patronymic_value: str
+) -> str:
     surnames = primary_name.get_surname_list()
     orig_pat = ""
     found = False
@@ -37,7 +45,7 @@ def update_or_add_patronymic(primary_name: object, new_patronymic_value: str) ->
 
 
 class GrampsWriteRepository:
-    def __init__(self, db: object) -> None:
+    def __init__(self, db: GrampsDatabase) -> None:
         self._db = db
 
     # ==========================================
@@ -52,7 +60,7 @@ class GrampsWriteRepository:
         with DbTxn(description, self._db) as trans:
             yield trans
 
-    def commit_person(self, trans: DbTxn, person: object) -> None:
+    def commit_person(self, trans: DbTxn, person: Person) -> None:
         """
         Commits a fully prepared/mutated Person object to the database.
         """

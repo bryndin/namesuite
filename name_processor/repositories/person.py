@@ -5,6 +5,7 @@ from gramps.gen.lib import Person as GrampsPerson
 from gramps.gen.lib.nameorigintype import NameOriginType
 
 from name_processor.models.person import Gender
+from name_processor.protocols.gramps import GrampsDatabase
 
 
 class GrampsPersonProxy:
@@ -14,7 +15,7 @@ class GrampsPersonProxy:
     Data is ONLY extracted if the Service actually asks for it.
     """
 
-    def __init__(self, gramps_person: GrampsPerson, db: object) -> None:
+    def __init__(self, gramps_person: GrampsPerson, db: GrampsDatabase) -> None:
         self._person = gramps_person
         self._db = db
 
