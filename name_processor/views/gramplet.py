@@ -1,4 +1,3 @@
-# name_processor/ui/gramplet_view.py
 """
 GTK View for the Patronymic Suggestion Gramplet.
 Contains all GTK components and i18n message handling.

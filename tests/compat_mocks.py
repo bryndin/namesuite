@@ -1,6 +1,4 @@
 """
-tests/compat_mocks.py
-
 Compatibility stubs for Gramps library imports used in tests.
 This module provides a unified mocking setup for headless testing.
 """
