@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from gramps.gen.display.name import displayer
 from gramps.gen.lib import Person as GrampsPerson
 from gramps.gen.lib.nameorigintype import NameOriginType

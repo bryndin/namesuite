@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 from gramps.gen.db import DbTxn
 from gramps.gen.lib import NameOriginType, Surname

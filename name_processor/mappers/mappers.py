@@ -4,6 +4,8 @@ This module handles the conversion between Gramps internal types
 and the domain entities defined in name_processor.entities.
 """
 
+from __future__ import annotations
+
 from gramps.gen.lib import Person as GrampsPerson
 
 from name_processor.models.person import Gender

@@ -2,6 +2,8 @@
 Constants for the services layer (business logic).
 """
 
+from __future__ import annotations
+
 # Severity level constants
 SEVERITY_ERROR = "ERROR"
 SEVERITY_WARNING = "WARNING"

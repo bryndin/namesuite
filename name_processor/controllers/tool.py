@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 from name_processor.models.audit import AuditScope
@@ -21,15 +23,15 @@ if TYPE_CHECKING:
 class ToolController:
     def __init__(
         self,
-        tool_instance: "NamesTool",
-        view: "ToolWindow",
-        read_repo: "GrampsReadRepository",
-        write_repo: "GrampsWriteRepository",
-        renamer_service: "RenamerService",
-        alt_names_service: "AltNamesService",
-        patronymic_service: "PatronymicInferenceService",
-        audit_service: "AuditService",
-        chronology_service: "ChronologyService",
+        tool_instance: NamesTool,
+        view: ToolWindow,
+        read_repo: GrampsReadRepository,
+        write_repo: GrampsWriteRepository,
+        renamer_service: RenamerService,
+        alt_names_service: AltNamesService,
+        patronymic_service: PatronymicInferenceService,
+        audit_service: AuditService,
+        chronology_service: ChronologyService,
     ) -> None:
         self.tool = tool_instance
         self.dbstate = tool_instance.dbstate
@@ -50,7 +52,7 @@ class ToolController:
         # State Caches
         self._given_names_cache: set[str] = set()
         self._rename_candidates: dict[str, ProposedRename] = {}
-        self._audit_candidates: dict[tuple[str, str], "AuditIssue"] = {}
+        self._audit_candidates: dict[tuple[str, str], AuditIssue] = {}
 
     def cleanup(self) -> None:
         pass

@@ -3,6 +3,8 @@ Rule: ErrMixedScripts
 Detects and corrects mixed Cyrillic and Latin homoglyphs in patronymic strings.
 """
 
+from __future__ import annotations
+
 import re
 
 from name_processor.services.audit_rules.base import BaseRule

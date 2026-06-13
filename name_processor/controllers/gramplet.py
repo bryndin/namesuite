@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from name_processor.models.infer import PatronymicInferenceStatus
@@ -12,10 +14,10 @@ if TYPE_CHECKING:
 class GrampletController:
     def __init__(
         self,
-        view: "GrampletView",
-        patronymic_service: "PatronymicInferenceService",
-        read_repo: "GrampsReadRepository",
-        write_repo: "GrampsWriteRepository",
+        view: GrampletView,
+        patronymic_service: PatronymicInferenceService,
+        read_repo: GrampsReadRepository,
+        write_repo: GrampsWriteRepository,
     ) -> None:
         self.current_handle: str | None = None
 

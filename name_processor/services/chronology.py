@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import deque
 from name_processor.protocols.chronology import ChronologySubject, ChronologyRepository
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 from gramps.gen.lib import Name, NameType
 
@@ -6,7 +8,7 @@ if TYPE_CHECKING:
 
 
 class AltNamesService:
-    def preserve_primary_name(self, gramps_person: "Person") -> None:
+    def preserve_primary_name(self, gramps_person: Person) -> None:
         """
         Creates a deep copy of the person's current primary name and appends it
         to their Alternative Names list. Retains all attached citations and dates.
@@ -23,7 +25,7 @@ class AltNamesService:
 
         gramps_person.add_alternate_name(preserved_name)
 
-    def is_protected_by_alias(self, gramps_person: "Person", search_str: str) -> bool:
+    def is_protected_by_alias(self, gramps_person: Person, search_str: str) -> bool:
         """
         Checks if a specific string exists within the alternative names.
         Used to skip renaming if the string is a known historical alias or maiden name.

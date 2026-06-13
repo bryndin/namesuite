@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from typing import TYPE_CHECKING
 
@@ -28,7 +30,7 @@ class RenamerService:
         return config
 
     def evaluate_person(
-        self, person: "GrampsPersonProxy", rule: RenameConfig
+        self, person: GrampsPersonProxy, rule: RenameConfig
     ) -> ProposedRename | None:
         """
         Evaluates a person's primary given name against the replacement rule.

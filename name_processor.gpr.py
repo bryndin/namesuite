@@ -1,6 +1,3 @@
-# patronymic_inference.gpr.py
-# ruff: noqa
-
 register(
     TOOL,
     id="name_standardization_tool",

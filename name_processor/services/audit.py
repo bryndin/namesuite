@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING
 
@@ -29,9 +31,9 @@ logger = logging.getLogger(__name__)
 class AuditService:
     def __init__(
         self,
-        read_repo: "GrampsReadRepository",
-        chronology_service: "ChronologyService",
-        confidence_service: "ConfidenceService",
+        read_repo: GrampsReadRepository,
+        chronology_service: ChronologyService,
+        confidence_service: ConfidenceService,
     ):
         self._read_repo = read_repo
         self._chronology_service = chronology_service
@@ -54,7 +56,7 @@ class AuditService:
         return [rule.rule_id for rule in self._rules]
 
     def audit_person(
-        self, person: "GrampsPersonProxy", enabled_rules: set[str], use_pre_reform: bool
+        self, person: GrampsPersonProxy, enabled_rules: set[str], use_pre_reform: bool
     ) -> list[AuditIssue]:
         """Evaluates a single person against enabled rules and yields formatted DTOs."""
         issues: list[AuditIssue] = []

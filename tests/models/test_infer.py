@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import unittest
 
 from name_processor.models.infer import (

@@ -1,5 +1,7 @@
 # Run mock setup at package-import time so all sys.modules are populated
 # before any test module imports project code.
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 

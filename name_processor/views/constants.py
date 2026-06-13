@@ -2,6 +2,8 @@
 Constants for the View layer.
 """
 
+from __future__ import annotations
+
 # Idle loop chunk sizes
 IDLE_CHUNK_AUDIT = 50
 

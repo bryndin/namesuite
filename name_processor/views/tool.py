@@ -3,6 +3,8 @@ GTK Window layout for the Names Tool batch processing interface.
 Contains all GTK widgets, layout structures, and column definitions.
 """
 
+from __future__ import annotations
+
 import logging
 import re
 from enum import Enum
@@ -101,16 +103,16 @@ class ToolWindow:
     def __init__(self, callback: Callable[[], None] | None = None) -> None:
         """Initializes the GTK Window."""
         self.callback = callback
-        self.controller: "ToolController" | None = None
+        self.controller: ToolController | None = None
 
         # Local view state (UI specific)
         self.enabled_rules: dict[str, bool] = {}
-        self.audit_issues: list["AuditIssue"] = []
+        self.audit_issues: list[AuditIssue] = []
 
         # Build GTK Window UI
         self.build_window()
 
-    def set_controller(self, controller: "ToolController") -> None:
+    def set_controller(self, controller: ToolController) -> None:
         """Sets the controller instance and runs initial loads."""
         self.controller = controller
         self.enabled_rules = {
@@ -408,7 +410,7 @@ class ToolWindow:
         )
 
     def _append_rename_proposal_to_store(
-        self, prop: "ProposedRename", match_mode: MatchMode
+        self, prop: ProposedRename, match_mode: MatchMode
     ) -> None:
         """Append a given name rename proposal to the given store."""
         # For substring and regex modes, highlight only the matched portion

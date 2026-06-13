@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 
@@ -92,9 +94,7 @@ class TestGrampsWriteRepository(unittest.TestCase):
         self.mock_db = MagicMock()
         self.write_repo = GrampsWriteRepository(self.mock_db)
 
-    @patch(
-        "name_processor.repositories.gramps_write.update_or_add_patronymic"
-    )
+    @patch("name_processor.repositories.gramps_write.update_or_add_patronymic")
     @patch("name_processor.repositories.gramps_write.DbTxn")
     def test_update_patronymic_names(self, mock_dbtxn, mock_update_func):
         mock_txn_instance = MagicMock()

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Generator, Callable
 
 from gi.repository import GLib

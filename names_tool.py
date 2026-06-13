@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from gramps.gui.plug import tool
+
 from name_processor.controllers.tool import ToolController
 from name_processor.repositories.gramps_read import GrampsReadRepository
 from name_processor.repositories.gramps_write import GrampsWriteRepository

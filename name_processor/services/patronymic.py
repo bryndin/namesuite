@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from name_processor.models.infer import (
@@ -17,9 +19,9 @@ if TYPE_CHECKING:
 class PatronymicInferenceService:
     def __init__(
         self,
-        read_repo: "GrampsReadRepository",
-        confidence: "ConfidenceService",
-        chronology_service: "ChronologyService",
+        read_repo: GrampsReadRepository,
+        confidence: ConfidenceService,
+        chronology_service: ChronologyService,
     ):
         self._read_repo = read_repo
         self._confidence_service = confidence

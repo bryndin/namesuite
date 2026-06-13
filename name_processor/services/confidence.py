@@ -3,6 +3,8 @@ Confidence scoring engine for patronymic candidates.
 Encapsulates heuristics used to determine reliability of inference results.
 """
 
+from __future__ import annotations
+
 import re
 from typing import TYPE_CHECKING
 
@@ -32,13 +34,13 @@ def has_cyrillic(text: str) -> bool:
 class ConfidenceService:
     """Calculates confidence scores (0.0 to 1.0) for patronymic inferences."""
 
-    def __init__(self, repository: "GrampsReadRepository") -> None:
+    def __init__(self, repository: GrampsReadRepository) -> None:
         self._repository = repository
 
     def calculate(
         self,
-        person: "ConfidenceSubject",
-        father: "ConfidenceSubject | None",
+        person: ConfidenceSubject,
+        father: ConfidenceSubject | None,
         ref_year: int | None,
     ) -> float:
         """

@@ -4,6 +4,8 @@ GTK View for the Patronymic Suggestion Gramplet.
 Contains all GTK components and i18n message handling.
 """
 
+from __future__ import annotations
+
 from gi.repository import Gtk
 from typing import TYPE_CHECKING
 
