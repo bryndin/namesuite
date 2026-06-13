@@ -20,9 +20,9 @@ from name_processor.services.audit_rules.missing_patronymic import InfoMissingPa
 from name_processor.services.audit_rules.base import BaseRule
 
 if TYPE_CHECKING:
+    from name_processor.protocols.audit import AuditSubject
     from name_processor.repositories.gramps_read import GrampsReadRepository
     from name_processor.services.chronology import ChronologyService
-    from name_processor.repositories.person import GrampsPersonProxy
     from name_processor.services.confidence import ConfidenceService
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class AuditService:
         return [rule.rule_id for rule in self._rules]
 
     def audit_person(
-        self, person: GrampsPersonProxy, enabled_rules: set[str], use_pre_reform: bool
+        self, person: AuditSubject, enabled_rules: set[str], use_pre_reform: bool
     ) -> list[AuditIssue]:
         """Evaluates a single person against enabled rules and yields formatted DTOs."""
         issues: list[AuditIssue] = []
@@ -66,12 +66,8 @@ class AuditService:
         current_patronymic = person.patronymic or ""
 
         # Build Context
-        father_proxy = None
-        father_given_name = None
-        if person.father_handle:
-            father_proxy = self._read_repo.get_person_proxy(person.father_handle)
-            if father_proxy:
-                father_given_name = father_proxy.given_name
+        father = person.father
+        father_given_name = father.given_name if father else None
 
         ref_year = self._chronology_service.estimate_reference_year(person.handle)
 
@@ -110,7 +106,7 @@ class AuditService:
             if change:
                 ref_year_str = str(ctx.reference_year) if ctx.reference_year else "N/A"
                 confidence = self._confidence_service.calculate(
-                    person, father_proxy, ctx.reference_year
+                    person, father, ctx.reference_year
                 )
                 issues.append(
                     AuditIssue(

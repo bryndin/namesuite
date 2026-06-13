@@ -64,6 +64,17 @@ class GrampsPersonProxy:
         return family.get_father_handle() if family else None
 
     @property
+    def father(self) -> GrampsPersonProxy | None:
+        # Returns the father as a proxy, or None if not found
+        father_handle = self.father_handle
+        if not father_handle:
+            return None
+        father_person = self._db.get_person_from_handle(father_handle)
+        if not father_person:
+            return None
+        return GrampsPersonProxy(father_person, self._db)
+
+    @property
     def mother_handle(self) -> str | None:
         # Traverses parent families where the subject is a child
         families = self._person.get_parent_family_handle_list()
