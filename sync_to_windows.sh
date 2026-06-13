@@ -18,6 +18,8 @@ WINDOWS_PLUGINS_PATH="/mnt/c/Users/${USER}/AppData/Roaming/gramps/${GRAMPS_VER}/
 echo "Syncing plugin files to Windows AppData..."
 mkdir -p "$WINDOWS_PLUGINS_PATH"
 rsync -av --delete \
+  --exclude='__pycache__/' \
+  --exclude='*.pyc' \
   --include='name_processor/' \
   --include='name_processor/***' \
   --include='name_processor.gpr.py' \
@@ -25,4 +27,5 @@ rsync -av --delete \
   --include='patronymics_gramplet.py' \
   --exclude='*' \
   ./ "$WINDOWS_PLUGINS_PATH/"
+
 echo "Sync complete."
