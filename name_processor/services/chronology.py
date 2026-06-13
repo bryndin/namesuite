@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from collections import deque
+
 from name_processor.protocols.chronology import ChronologySubject, ChronologyRepository
 
 
 class ChronologyService:
+    """Service for estimating historical reference years using graph traversal."""
+
+    # Chronology graph traversal BFS depth limit
+    BFS_MAX_DEPTH = 4
+
     def __init__(self, read_repo: ChronologyRepository):
         self._repo: ChronologyRepository = read_repo
         # Lazy load the database median year only if a fallback is required
@@ -18,7 +24,7 @@ class ChronologyService:
         Calculates the historical reference year (Y_ref) for a person.
         Falls back through three tiers:
         1. Direct birth/marriage/death events.
-        2. Generational BFS graph traversal (up to depth 4).
+        2. Generational BFS graph traversal (up to depth BFS_MAX_DEPTH).
         3. Database-wide median fallback.
         """
         person = self._repo.get_chronology_subject(person_handle)
@@ -47,7 +53,7 @@ class ChronologyService:
 
     def _bfs_estimate_year(self, start_handle: str) -> int | None:
         """
-        Performs BFS graph search up to depth 4 to estimate birth year based on relatives.
+        Performs BFS graph search up to depth BFS_MAX_DEPTH to estimate birth year based on relatives.
         g = generational offset relative to the target person:
           - Sibling / Spouse: g = 0
           - Parent: g = 1 (Relative Birth + 25)
@@ -64,7 +70,7 @@ class ChronologyService:
 
         while queue:
             handle, gen_offset, depth = queue.popleft()
-            if depth > 4:
+            if depth > self.BFS_MAX_DEPTH:
                 continue
 
             # Fetch subject from cache or DB
