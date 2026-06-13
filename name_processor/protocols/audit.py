@@ -37,3 +37,9 @@ class AuditSubject(Protocol):
 
     @property
     def siblings_handles(self) -> list[str]: ...
+
+
+class AuditRepository(Protocol):
+    """The repository interface required by AuditService."""
+
+    def get_audit_subject(self, handle: str) -> AuditSubject | None: ...
