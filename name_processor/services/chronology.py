@@ -60,8 +60,8 @@ class ChronologyService:
           - Child: g = -1 (Relative Birth - 25)
         """
         visited: set[str] = {start_handle}
-        # Cache fetched subjects to avoid redundant DB calls
-        subject_cache: dict[str, ChronologySubject | None] = {}
+        # Cache fetched persons to avoid redundant DB calls
+        person_cache: dict[str, ChronologySubject | None] = {}
         # Using deque for O(1) pops in BFS
         queue: deque[tuple[str, int, int]] = deque(
             [(start_handle, 0, 0)]
@@ -73,39 +73,39 @@ class ChronologyService:
             if depth > self.BFS_MAX_DEPTH:
                 continue
 
-            # Fetch subject from cache or DB
-            if handle not in subject_cache:
-                subject_cache[handle] = self._repo.get_chronology_subject(handle)
-            subject = subject_cache[handle]
-            if not subject:
+            # Fetch person from cache or DB
+            if handle not in person_cache:
+                person_cache[handle] = self._repo.get_chronology_subject(handle)
+            person = person_cache[handle]
+            if not person:
                 continue
 
-            # Evaluate relatives (excluding the starting subject itself)
+            # Evaluate relatives (excluding the starting person itself)
             if handle != start_handle:
-                rel_year = self._get_person_event_year(subject)
+                rel_year = self._get_person_event_year(person)
                 if rel_year is not None:
                     estimated_year = rel_year + (gen_offset * 25)
                     candidates.append(estimated_year)
 
             # Queue Parents (gen_offset + 1)
-            father_handle = subject.father_handle
+            father_handle = person.father_handle
             if father_handle and father_handle not in visited:
                 visited.add(father_handle)
                 queue.append((father_handle, gen_offset + 1, depth + 1))
 
-            mother_handle = subject.mother_handle
+            mother_handle = person.mother_handle
             if mother_handle and mother_handle not in visited:
                 visited.add(mother_handle)
                 queue.append((mother_handle, gen_offset + 1, depth + 1))
 
             # Queue Children (gen_offset - 1)
-            for child_handle in subject.children_handles:
+            for child_handle in person.children_handles:
                 if child_handle not in visited:
                     visited.add(child_handle)
                     queue.append((child_handle, gen_offset - 1, depth + 1))
 
             # Queue Siblings (gen_offset)
-            for sibling_handle in subject.siblings_handles:
+            for sibling_handle in person.siblings_handles:
                 if sibling_handle not in visited:
                     visited.add(sibling_handle)
                     queue.append((sibling_handle, gen_offset, depth + 1))
