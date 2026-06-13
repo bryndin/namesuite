@@ -22,3 +22,9 @@ class PatronymicSubject(Protocol):
 
     @property
     def given_name(self) -> str | None: ...
+
+
+class PatronymicRepository(Protocol):
+    """The repository interface required by PatronymicInferenceService."""
+
+    def get_patronymic_subject(self, handle: str) -> PatronymicSubject | None: ...

@@ -3,14 +3,12 @@ from __future__ import annotations
 import itertools
 from typing import Generator
 
-from name_processor.repositories.person import GrampsPersonProxy
 from name_processor.protocols.audit import AuditSubject
 from name_processor.protocols.chronology import ChronologySubject
 from name_processor.protocols.confidence import ConfidenceSubject
-from name_processor.protocols.gramps import (
-    DateObject,
-    GrampsDatabase,
-)
+from name_processor.protocols.gramps import DateObject, GrampsDatabase
+from name_processor.protocols.patronymic import PatronymicSubject
+from name_processor.repositories.person import GrampsPersonProxy
 
 
 class GrampsReadRepository:
@@ -47,6 +45,9 @@ class GrampsReadRepository:
         return self.get_person_proxy(handle)
 
     def get_audit_subject(self, handle: str) -> AuditSubject | None:
+        return self.get_person_proxy(handle)
+
+    def get_patronymic_subject(self, handle: str) -> PatronymicSubject | None:
         return self.get_person_proxy(handle)
 
     def get_person_proxies_chunked(

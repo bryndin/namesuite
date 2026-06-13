@@ -7,19 +7,20 @@ from name_processor.models.infer import (
     ProposedPatronymic,
 )
 from name_processor.models.person import Gender
-from name_processor.protocols.patronymic import PatronymicSubject
 from name_processor.services.morphology import MorphologyService
 
 if TYPE_CHECKING:
-    from name_processor.repositories.gramps_read import GrampsReadRepository
+    from name_processor.protocols.patronymic import (
+        PatronymicRepository,
+        PatronymicSubject,
+    )
     from name_processor.services.confidence import ConfidenceService
     from name_processor.services.chronology import ChronologyService
-
 
 class PatronymicInferenceService:
     def __init__(
         self,
-        read_repo: GrampsReadRepository,
+        read_repo: PatronymicRepository,
         confidence: ConfidenceService,
         chronology_service: ChronologyService,
     ):
