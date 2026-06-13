@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from name_processor.models.audit import AuditScope
+from name_processor.models.person import Gender
 from name_processor.models.renamer import MatchMode, ProposedRename, AltAction
 from name_processor.utils.gtk_runner import run_in_idle_loop
 
@@ -200,10 +201,10 @@ class ToolController:
 
                     # Apply scope filter
                     if audit_scope == AuditScope.MALES_ONLY:
-                        if person_proxy.gender.name != "MALE":
+                        if person_proxy.gender != Gender.MALE:
                             continue
                     elif audit_scope == AuditScope.FEMALES_ONLY:
-                        if person_proxy.gender.name != "FEMALE":
+                        if person_proxy.gender != Gender.FEMALE:
                             continue
 
                     issues = self._audit_service.audit_person(
