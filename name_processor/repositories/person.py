@@ -109,6 +109,13 @@ class GrampsPersonProxy:
         return siblings
 
     @property
+    def siblings(self):
+        for handle in self.siblings_handles:
+            person = self._db.get_person_from_handle(handle)
+            if person:
+                yield GrampsPersonProxy(person, self._db)
+
+    @property
     def event_years(self) -> list[int]:
         # Moved date extraction logic from service to adapter layer
         years = []

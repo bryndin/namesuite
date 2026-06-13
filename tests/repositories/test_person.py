@@ -135,6 +135,87 @@ class TestGrampsPersonProxy(unittest.TestCase):
 
         self.assertEqual(self.proxy.given_name, "Ivan")
 
+    def test_siblings_returns_generator(self):
+        """Test that siblings property returns a generator (lazy evaluation)."""
+        self.mock_gramps_person.get_parent_family_handle_list.return_value = [
+            "parent_fam"
+        ]
+
+        mock_fam = Mock()
+        mock_self = Mock(ref="p123")
+        mock_sibling = Mock(ref="sib456")
+        mock_fam.get_child_ref_list.return_value = [mock_self, mock_sibling]
+
+        self.mock_db.get_family_from_handle.return_value = mock_fam
+
+        # siblings should return a generator, not a list
+        siblings_gen = self.proxy.siblings
+        self.assertNotIsInstance(siblings_gen, list)
+
+        # Converting to list should work
+        siblings_list = list(siblings_gen)
+        self.assertEqual(len(siblings_list), 1)
+
+    def test_siblings_yields_proxies(self):
+        """Test that siblings yields GrampsPersonProxy objects."""
+        self.mock_gramps_person.get_parent_family_handle_list.return_value = [
+            "parent_fam"
+        ]
+
+        mock_fam = Mock()
+        mock_self = Mock(ref="p123")
+        mock_sibling1 = Mock(ref="sib1")
+        mock_sibling2 = Mock(ref="sib2")
+        mock_fam.get_child_ref_list.return_value = [
+            mock_self,
+            mock_sibling1,
+            mock_sibling2,
+        ]
+
+        self.mock_db.get_family_from_handle.return_value = mock_fam
+
+        # Mock the sibling persons
+        mock_sibling_person1 = Mock()
+        mock_sibling_person1.get_handle.return_value = "sib1"
+        mock_sibling_person2 = Mock()
+        mock_sibling_person2.get_handle.return_value = "sib2"
+
+        self.mock_db.get_person_from_handle.side_effect = [
+            mock_sibling_person1,
+            mock_sibling_person2,
+        ]
+
+        siblings = list(self.proxy.siblings)
+        self.assertEqual(len(siblings), 2)
+        self.assertIsInstance(siblings[0], GrampsPersonProxy)
+        self.assertIsInstance(siblings[1], GrampsPersonProxy)
+        self.assertEqual(siblings[0].handle, "sib1")
+        self.assertEqual(siblings[1].handle, "sib2")
+
+    def test_siblings_handles_none_person(self):
+        """Test that siblings handles None from get_person_from_handle gracefully."""
+        self.mock_gramps_person.get_parent_family_handle_list.return_value = [
+            "parent_fam"
+        ]
+
+        mock_fam = Mock()
+        mock_self = Mock(ref="p123")
+        mock_sibling = Mock(ref="sib456")
+        mock_fam.get_child_ref_list.return_value = [mock_self, mock_sibling]
+
+        self.mock_db.get_family_from_handle.return_value = mock_fam
+        self.mock_db.get_person_from_handle.return_value = None  # Person not found
+
+        siblings = list(self.proxy.siblings)
+        self.assertEqual(len(siblings), 0)  # Should skip None values
+
+    def test_siblings_empty(self):
+        """Test that siblings returns empty generator when no siblings."""
+        self.mock_gramps_person.get_parent_family_handle_list.return_value = []
+
+        siblings = list(self.proxy.siblings)
+        self.assertEqual(len(siblings), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

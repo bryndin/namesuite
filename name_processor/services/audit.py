@@ -106,7 +106,9 @@ class AuditService:
             if change:
                 ref_year_str = str(ctx.reference_year) if ctx.reference_year else "N/A"
                 confidence = self._confidence_service.calculate(
-                    person, father, ctx.reference_year
+                    person.handle,
+                    father.handle if father else None,
+                    ctx.reference_year,
                 )
                 issues.append(
                     AuditIssue(
