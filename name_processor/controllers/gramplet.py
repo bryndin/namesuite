@@ -37,18 +37,7 @@ class GrampletController:
             )
             return
 
-        person = self._read_repo.get_person_proxy(handle)
-        if not person:
-            self._view.show_status_message(
-                PatronymicInferenceStatus.NO_ACTIVE_PERSON, apply_sensitive=False
-            )
-            return
-
-        father = None
-        if person.father_handle:
-            father = self._read_repo.get_person_proxy(person.father_handle)
-
-        res = self._patronymic_service.infer_patronymic(person, father)
+        res = self._patronymic_service.infer_patronymic(handle)
 
         if res.status == PatronymicInferenceStatus.SUCCESS:
             self._suggested_patronymic = res.patronymic

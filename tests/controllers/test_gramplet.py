@@ -36,34 +36,30 @@ class TestGrampletController(unittest.TestCase):
 
     def test_on_active_changed_person_not_found(self):
         # Arrange
-        self.mocks["read_repo"].get_person_proxy.return_value = None
+        mock_result = MagicMock()
+        mock_result.status = PatronymicInferenceStatus.NO_ACTIVE_PERSON
+
+        self.mocks["patronymic_service"].infer_patronymic.return_value = mock_result
 
         # Act
         self.controller.on_active_changed("h123")
 
         # Assert
         self.assertEqual(self.controller.current_handle, "h123")
-        self.mocks["read_repo"].get_person_proxy.assert_called_once_with("h123")
+        self.mocks["patronymic_service"].infer_patronymic.assert_called_once_with(
+            "h123"
+        )
         self.mocks["view"].show_status_message.assert_called_once_with(
             PatronymicInferenceStatus.NO_ACTIVE_PERSON, apply_sensitive=False
         )
 
     def test_on_active_changed_success(self):
         # Arrange
-        mock_person = Mock()
-        mock_person.father_handle = "f456"
-        mock_father = Mock()
-
         mock_result = MagicMock()
         mock_result.status = PatronymicInferenceStatus.SUCCESS
         mock_result.patronymic = "Ivanovich"
         mock_result.father_name = "Ivan"
 
-        # Setup read_repo to return the person, then the father
-        self.mocks["read_repo"].get_person_proxy.side_effect = [
-            mock_person,
-            mock_father,
-        ]
         self.mocks["patronymic_service"].infer_patronymic.return_value = mock_result
 
         # Act
@@ -71,7 +67,7 @@ class TestGrampletController(unittest.TestCase):
 
         # Assert
         self.mocks["patronymic_service"].infer_patronymic.assert_called_once_with(
-            mock_person, mock_father
+            "h123"
         )
         self.assertEqual(self.controller._suggested_patronymic, "Ivanovich")
         self.mocks["view"].show_suggestion.assert_called_once_with("Ivanovich", "Ivan")

@@ -10,12 +10,10 @@ from name_processor.models.person import Gender
 from name_processor.services.morphology import MorphologyService
 
 if TYPE_CHECKING:
-    from name_processor.protocols.patronymic import (
-        PatronymicRepository,
-        PatronymicSubject,
-    )
+    from name_processor.protocols.patronymic import PatronymicRepository
     from name_processor.services.confidence import ConfidenceService
     from name_processor.services.chronology import ChronologyService
+
 
 class PatronymicInferenceService:
     def __init__(
@@ -28,13 +26,12 @@ class PatronymicInferenceService:
         self._confidence_service = confidence
         self._chronology_service = chronology_service
 
-    def infer_patronymic(
-        self, person: PatronymicSubject, father: PatronymicSubject | None
-    ) -> ProposedPatronymic:
+    def infer_patronymic(self, handle: str) -> ProposedPatronymic:
         """
         Generate a patronymic candidate for a single person.
         Handles DB lookups, validation, and morphology generation.
         """
+        person = self._read_repo.get_patronymic_subject(handle)
         if not person:
             return ProposedPatronymic(status=PatronymicInferenceStatus.NO_ACTIVE_PERSON)
 
@@ -46,6 +43,11 @@ class PatronymicInferenceService:
                 status=PatronymicInferenceStatus.ALREADY_HAS_PATRONYMIC
             )
 
+        father = (
+            self._read_repo.get_patronymic_subject(person.father_handle)
+            if person.father_handle
+            else None
+        )
         if not father:
             return ProposedPatronymic(status=PatronymicInferenceStatus.NO_FATHER)
 
