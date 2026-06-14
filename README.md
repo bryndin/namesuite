@@ -22,6 +22,8 @@ The suite is located in your Gramps menu under `Tools -> Family Tree Processing 
 
 This tool lets you easily fix typos or update historical given names across your entire database all at once. You can search using **exact matches**, **substrings** (parts of names), or **regular expressions** (advanced text patterns) to find exactly what you want to change. To speed up your data entry, the tool features built-in autocompletion based on the people already existing in your database.
 
+**Note:** Regular expressions use Python's `re` module syntax. For capture groups in replacement patterns, use `\1`, `\2`, etc. (not `$1`, `$2`).
+
 When updating primary names, you have the option to turn on a setting that preserves the original spelling as an "Alternative Name" (Also Known As). As mentioned above, this allows you to safely standardize records without losing any attached notes or citations from the original document.
 
 ### 2. Patronymic Auditor

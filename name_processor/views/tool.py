@@ -17,7 +17,7 @@ from gramps.gui.editors import EditPerson
 from gramps.gen.errors import WindowActiveError
 
 from name_processor.models.audit import AuditScope
-from name_processor.models.renamer import MatchMode
+from name_processor.models.renamer import MatchMode, AltAction
 
 if TYPE_CHECKING:
     from name_processor.controllers.tool import ToolController
@@ -578,11 +578,13 @@ class ToolWindow:
     def on_preserve_alt_toggled(self, widget: Gtk.CheckButton) -> None:
         """Handler for toggling the preserve alternative names option."""
         if self.controller:
-            self.controller.update_preserve_alt(widget.get_active())
+            self.controller.update_preserve_alt(
+                AltAction.PRESERVE if widget.get_active() else AltAction.OVERWRITE
+            )
 
-    def update_given_store_actions(self, new_action: str) -> None:
+    def update_given_store_actions(self, new_action: AltAction) -> None:
         """Update the Action column in given_store to match the new action."""
-        translated_action = _(new_action)
+        translated_action = _(new_action.value)
         for row in self.given_store:
             row[self.GIVEN_COL_ALT_ACTION] = translated_action
 

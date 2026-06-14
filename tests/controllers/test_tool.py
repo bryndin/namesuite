@@ -42,7 +42,7 @@ class TestToolController(unittest.TestCase):
             chronology_service=MagicMock(),
         )
 
-        from name_processor.models.renamer import ProposedRename
+        from name_processor.models.renamer import ProposedRename, AltAction
 
         proposal1 = ProposedRename(
             handle="handle1",
@@ -50,22 +50,24 @@ class TestToolController(unittest.TestCase):
             display_name="Ivan Ivanov",
             original_given_name="Ivan",
             proposed_given_name="Ioann",
-            alt_action="Overwrite",
+            alt_action=AltAction.OVERWRITE,
         )
         controller._rename_candidates["handle1"] = proposal1
 
         # Toggle preserve on (active=True)
-        controller.update_preserve_alt(True)
+        controller.update_preserve_alt(AltAction.PRESERVE)
 
-        self.assertEqual(proposal1.alt_action, "Preserve")
-        mock_view.update_given_store_actions.assert_called_once_with("Preserve")
+        self.assertEqual(proposal1.alt_action, AltAction.PRESERVE)
+        mock_view.update_given_store_actions.assert_called_once_with(AltAction.PRESERVE)
 
         # Toggle preserve off (active=False)
         mock_view.reset_mock()
-        controller.update_preserve_alt(False)
+        controller.update_preserve_alt(AltAction.OVERWRITE)
 
-        self.assertEqual(proposal1.alt_action, "Overwrite")
-        mock_view.update_given_store_actions.assert_called_once_with("Overwrite")
+        self.assertEqual(proposal1.alt_action, AltAction.OVERWRITE)
+        mock_view.update_given_store_actions.assert_called_once_with(
+            AltAction.OVERWRITE
+        )
 
 
 if __name__ == "__main__":

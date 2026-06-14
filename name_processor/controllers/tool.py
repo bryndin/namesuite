@@ -100,8 +100,8 @@ class ToolController:
     # Tab 1: Rename Names
     # ==========================================
     def run_rename_scan(self, source: str, target: str, match_mode: MatchMode) -> bool:
-        rule = self._renamer_service.create_config(match_mode, source, target)
-        if not rule.is_valid:
+        cfg = self._renamer_service.create_config(match_mode, source, target)
+        if not cfg.is_valid:
             return False
 
         self._view.given_store.clear()
@@ -114,17 +114,13 @@ class ToolController:
                 chunk_size=250
             ):
                 for person_proxy in proxy_chunk:
-                    proposal = self._renamer_service.evaluate_person(person_proxy, rule)
+                    proposal = self._renamer_service.evaluate_person(person_proxy, cfg)
                     if proposal:
                         proposal.alt_action = (
-                            AltAction.PRESERVE.value
-                            if preserve_alt
-                            else AltAction.OVERWRITE.value
+                            AltAction.PRESERVE if preserve_alt else AltAction.OVERWRITE
                         )
                         self._rename_candidates[person_proxy.handle] = proposal
-                        self._view._append_rename_proposal_to_store(
-                            proposal, match_mode
-                        )
+                        self._view._append_rename_proposal_to_store(proposal)
                         found_any = True
                 yield None
             return found_any
@@ -139,17 +135,14 @@ class ToolController:
         run_in_idle_loop(scan_generator(), on_complete)
         return True
 
-    def update_preserve_alt(self, preserve_alt: bool) -> None:
+    def update_preserve_alt(self, action: AltAction) -> None:
         """Dynamically updates the proposed rename action on all stored objects
         and refreshes the view.
         """
-        new_action = (
-            AltAction.PRESERVE.value if preserve_alt else AltAction.OVERWRITE.value
-        )
         for proposal in self._rename_candidates.values():
-            proposal.alt_action = new_action
+            proposal.alt_action = action
 
-        self._view.update_given_store_actions(new_action)
+        self._view.update_given_store_actions(action)
 
     def apply_checked_renamings(self) -> bool:
         handles = self._view.get_checked_renaming_handles()

@@ -3,7 +3,12 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from name_processor.models.renamer import MatchMode, RenameConfig, ProposedRename
+from name_processor.models.renamer import (
+    AltAction,
+    MatchMode,
+    ProposedRename,
+    RenameConfig,
+)
 
 if TYPE_CHECKING:
     from name_processor.protocols.renamer import RenameSubject
@@ -13,59 +18,36 @@ class RenamerService:
     def create_config(
         self, match_type: MatchMode, source_str: str, target_str: str
     ) -> RenameConfig:
-        """
-        Validates the user configuration before the batch scan begins.
-        Catches invalid Regular Expressions immediately.
-        """
         config = RenameConfig(mode=match_type, source=source_str, target=target_str)
-
         if match_type == MatchMode.REGEX:
             try:
-                # Compile regex early to validate syntax and catch re.error
                 config.pattern = re.compile(source_str)
             except re.error as e:
                 config.is_valid = False
                 config.error_msg = f"Invalid Regular Expression: {e.msg}"
-
         return config
 
     def evaluate_person(
-        self, person: RenameSubject, rule: RenameConfig
+        self, person: RenameSubject, cfg: RenameConfig
     ) -> ProposedRename | None:
-        """
-        Evaluates a person's primary given name against the replacement rule.
-
-        :returns: ProposedRename DTO if a valid change is found, otherwise None.
-        """
-        if not rule.is_valid:
-            return None
-
-        # Edge Case 1: Missing object or missing Primary Name field
-        if not person or not person.given_name:
+        if not cfg.is_valid or not person:
             return None
 
         original_name = person.given_name
+        if not original_name:
+            return None
+
         proposed_name = None
-        matched_text = ""
 
-        # Execution based on user strategy
-        if rule.mode == MatchMode.EXACT:
-            if original_name == rule.source:
-                proposed_name = rule.target
-                matched_text = rule.target  # Entire name is the match
+        if cfg.mode == MatchMode.EXACT:
+            proposed_name = cfg.target
 
-        elif rule.mode == MatchMode.SUBSTRING:
-            if rule.source in original_name:
-                proposed_name = original_name.replace(rule.source, rule.target)
-                matched_text = rule.target  # The replacement text
+        elif cfg.mode == MatchMode.SUBSTRING:
+            proposed_name = original_name.replace(cfg.source, cfg.target)
 
-        elif rule.mode == MatchMode.REGEX and rule.pattern:
-            match = rule.pattern.search(original_name)
-            if match:
-                proposed_name = rule.pattern.sub(rule.target, original_name)
-                matched_text = rule.target  # The replacement text
+        elif cfg.mode == MatchMode.REGEX and cfg.pattern:
+            proposed_name = cfg.pattern.sub(cfg.target, original_name)
 
-        # Edge Case 2: No match found, or replacement resulted in the exact same string
         if not proposed_name or proposed_name == original_name:
             return None
 
@@ -75,5 +57,5 @@ class RenamerService:
             display_name=person.display_name,
             original_given_name=original_name,
             proposed_given_name=proposed_name,
-            matched_text=matched_text,
+            alt_action=AltAction.PRESERVE,
         )

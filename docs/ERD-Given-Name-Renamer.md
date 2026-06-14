@@ -52,7 +52,7 @@ The `RenamerService` supports three distinct modes of operation, selected by the
 
 * **Exact Match:** The safest and most common operation. The replacement only occurs if the entire Given Name string matches the source rule exactly. *(Prevents "John" from being mutated inside "Johnathan".)*
 * **Substring Match:** Performs a standard string replacement. Useful for correcting widespread typographical errors or standardizing hyphenated compound names.
-* **Regular Expression (RegEx):** Exposes Python's `re` module for advanced pattern matching.
+* **Regular Expression (RegEx):** Exposes Python's `re` module for advanced pattern matching. **Note:** Python regex syntax uses `\1`, `\2`, etc. for capture group backreferences in replacement patterns (not `$1`, `$2`).
 
 ## 4. Execution Workflow
 

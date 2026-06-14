@@ -12,8 +12,8 @@ class MatchMode(Enum):
 
 
 class AltAction(Enum):
-    PRESERVE = "Preserve"
-    OVERWRITE = "Overwrite"
+    PRESERVE = "preserve"
+    OVERWRITE = "overwrite"
 
 
 @dataclass
@@ -30,12 +30,11 @@ class RenameConfig:
 
 @dataclass
 class ProposedRename:
-    """DTO representing a single proposed name change for the UI grid."""
+    """Represents a single proposed name change for the UI grid."""
 
     handle: str
     gramps_id: str
     display_name: str
     original_given_name: str
     proposed_given_name: str
-    alt_action: str = AltAction.OVERWRITE.value
-    matched_text: str = ""  # Text that was matched and replaced (for highlighting)
+    alt_action: AltAction
