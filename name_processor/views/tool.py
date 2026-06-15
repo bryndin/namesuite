@@ -19,7 +19,7 @@ from gramps.gui.editors import EditPerson
 
 from name_processor.models.audit import AuditScope
 from name_processor.models.renamer import MatchMode, AltAction
-from name_processor.models.view import GivenRowData
+from name_processor.models.view import GivenRowData, AuditRowData
 
 if TYPE_CHECKING:
     from name_processor.controllers.tool import ToolController
@@ -77,24 +77,6 @@ class ToolWindow:
     GTK Batch Processing Window. Acts as a Passive View in the MVP/MVCS pattern.
     All business logic and long-running tasks are delegated to the controller.
     """
-
-    # Audit store column indices (Tab 2 - Audit Patronymics)
-    AUDIT_COL_CHECKBOX = 0
-    AUDIT_COL_DISPLAY_NAME = 1
-    AUDIT_COL_GRAMPS_ID = 2
-    AUDIT_COL_FATHER_NAME = 3
-    AUDIT_COL_CURRENT_PAT = 4
-    AUDIT_COL_DIFF_MARKUP = 5
-    AUDIT_COL_CONFIDENCE = 6
-    AUDIT_COL_REF_YEAR = 7
-    AUDIT_COL_RULE_ID = 8
-    AUDIT_COL_HANDLE = 9
-    AUDIT_COL_RULE_ID_DUP = 10
-    AUDIT_COL_SUGGESTED_STRING = 11
-    AUDIT_COL_EXPLANATION = 12
-
-    # Track total count to safely initialize the list size
-    _AUDIT_COL__COUNT = 13
 
     def __init__(self, callback: Callable[[], None] | None = None) -> None:
         """Initializes the GTK Window."""
@@ -272,8 +254,9 @@ class ToolWindow:
         audit_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         audit_tab_box.pack_start(audit_scroll, True, True, 0)
 
+        # See AuditRowData model for column order
         self.audit_store = Gtk.ListStore(
-            bool, str, str, str, str, str, str, str, str, str, str, str, str
+            bool, str, str, str, str, str, str, str, str, str, str, str
         )
         self.audit_tree = Gtk.TreeView(model=self.audit_store)
         audit_scroll.add(self.audit_tree)
@@ -387,27 +370,22 @@ class ToolWindow:
 
         confidence_str = f"{int(getattr(issue, 'confidence', 0) * 100)}%"
 
-        # Map values directly to their respective column index constants
-        row_map = {
-            self.AUDIT_COL_CHECKBOX: True,
-            self.AUDIT_COL_DISPLAY_NAME: issue.display_name,
-            self.AUDIT_COL_GRAMPS_ID: issue.gramps_id,
-            self.AUDIT_COL_FATHER_NAME: issue.father_name,
-            self.AUDIT_COL_CURRENT_PAT: issue.current_value,
-            self.AUDIT_COL_DIFF_MARKUP: diff_markup,
-            self.AUDIT_COL_CONFIDENCE: confidence_str,
-            self.AUDIT_COL_REF_YEAR: issue.reference_year,
-            self.AUDIT_COL_RULE_ID: issue.rule_id,
-            self.AUDIT_COL_HANDLE: issue.person_handle,
-            self.AUDIT_COL_RULE_ID_DUP: issue.rule_id,
-            self.AUDIT_COL_SUGGESTED_STRING: issue.suggested_fix,
-            self.AUDIT_COL_EXPLANATION: issue.explanation,
-        }
+        row = AuditRowData(
+            checkbox=True,
+            display_name=issue.display_name,
+            gramps_id=issue.gramps_id,
+            father_name=issue.father_name,
+            current_patronymic=issue.current_value,
+            diff_markup=diff_markup,
+            confidence=confidence_str,
+            ref_year=issue.reference_year,
+            rule_id=issue.rule_id,
+            handle=issue.person_handle,
+            suggested_string=issue.suggested_fix,
+            explanation=issue.explanation,
+        )
 
-        # Construct the positional list safely using the map
-        row_data = [row_map[i] for i in range(self._AUDIT_COL__COUNT)]
-
-        self.audit_store.append(row_data)
+        self.audit_store.append(list(row))
 
     def _append_rename_proposal_to_store(self, prop: ProposedRename) -> None:
         """Append a given name rename proposal to the GTK store safely."""
@@ -447,7 +425,9 @@ class ToolWindow:
         self.given_apply_btn.set_sensitive(has_checked)
 
     def update_audit_apply_button(self) -> None:
-        has_checked = any(row[self.AUDIT_COL_CHECKBOX] for row in self.audit_store)
+        has_checked = any(
+            row[AuditRowData._fields.index("checkbox")] for row in self.audit_store
+        )
         self.audit_apply_btn.set_sensitive(has_checked)
 
     # --- Column Setup Methods ---
@@ -508,69 +488,89 @@ class ToolWindow:
         renderer_toggle.connect("toggled", self.on_audit_row_toggled)
         self.audit_tree.append_column(
             Gtk.TreeViewColumn(
-                _("Use"), renderer_toggle, active=self.AUDIT_COL_CHECKBOX
+                _("Use"), renderer_toggle, active=AuditRowData._fields.index("checkbox")
             )
         )
         col = Gtk.TreeViewColumn(
-            _("ID"), Gtk.CellRendererText(), text=self.AUDIT_COL_GRAMPS_ID
+            _("ID"),
+            Gtk.CellRendererText(),
+            text=AuditRowData._fields.index("gramps_id"),
         )
-        col.set_sort_column_id(self.AUDIT_COL_GRAMPS_ID)
+        col.set_sort_column_id(AuditRowData._fields.index("gramps_id"))
         self.audit_tree.append_column(col)
 
         individual_col = Gtk.TreeViewColumn(
-            _("Individual"), Gtk.CellRendererText(), text=self.AUDIT_COL_DISPLAY_NAME
+            _("Individual"),
+            Gtk.CellRendererText(),
+            text=AuditRowData._fields.index("display_name"),
         )
         individual_col.set_expand(True)
-        individual_col.set_sort_column_id(self.AUDIT_COL_DISPLAY_NAME)
+        individual_col.set_sort_column_id(AuditRowData._fields.index("display_name"))
         self.audit_tree.append_column(individual_col)
 
         # ADDED FATHER COLUMN
         father_col = Gtk.TreeViewColumn(
-            _("Father"), Gtk.CellRendererText(), text=self.AUDIT_COL_FATHER_NAME
+            _("Father"),
+            Gtk.CellRendererText(),
+            text=AuditRowData._fields.index("father_name"),
         )
         father_col.set_expand(True)
-        father_col.set_sort_column_id(self.AUDIT_COL_FATHER_NAME)
+        father_col.set_sort_column_id(AuditRowData._fields.index("father_name"))
         self.audit_tree.append_column(father_col)
 
         current_col = Gtk.TreeViewColumn(
-            _("Current"), Gtk.CellRendererText(), text=self.AUDIT_COL_CURRENT_PAT
+            _("Current"),
+            Gtk.CellRendererText(),
+            text=AuditRowData._fields.index("current_patronymic"),
         )
         current_col.set_expand(True)
-        current_col.set_sort_column_id(self.AUDIT_COL_CURRENT_PAT)
+        current_col.set_sort_column_id(AuditRowData._fields.index("current_patronymic"))
         self.audit_tree.append_column(current_col)
 
         correction_col = Gtk.TreeViewColumn(
-            _("Correction"), Gtk.CellRendererText(), markup=self.AUDIT_COL_DIFF_MARKUP
+            _("Correction"),
+            Gtk.CellRendererText(),
+            markup=AuditRowData._fields.index("diff_markup"),
         )
         correction_col.set_expand(True)
-        correction_col.set_sort_column_id(self.AUDIT_COL_SUGGESTED_STRING)
+        correction_col.set_sort_column_id(
+            AuditRowData._fields.index("suggested_string")
+        )
         self.audit_tree.append_column(correction_col)
 
         # ADDED CONFIDENCE COLUMN
         conf_col = Gtk.TreeViewColumn(
-            _("Conf"), Gtk.CellRendererText(), text=self.AUDIT_COL_CONFIDENCE
+            _("Conf"),
+            Gtk.CellRendererText(),
+            text=AuditRowData._fields.index("confidence"),
         )
-        conf_col.set_sort_column_id(self.AUDIT_COL_CONFIDENCE)
+        conf_col.set_sort_column_id(AuditRowData._fields.index("confidence"))
         self.audit_tree.append_column(conf_col)
 
         # RENAMED YEAR TO REF YEAR
         year_col = Gtk.TreeViewColumn(
-            _("Ref Year"), Gtk.CellRendererText(), text=self.AUDIT_COL_REF_YEAR
+            _("Ref Year"),
+            Gtk.CellRendererText(),
+            text=AuditRowData._fields.index("ref_year"),
         )
-        year_col.set_sort_column_id(self.AUDIT_COL_REF_YEAR)
+        year_col.set_sort_column_id(AuditRowData._fields.index("ref_year"))
         self.audit_tree.append_column(year_col)
 
         rule_col = Gtk.TreeViewColumn(
-            _("Rule"), Gtk.CellRendererText(), text=self.AUDIT_COL_RULE_ID
+            _("Rule"),
+            Gtk.CellRendererText(),
+            text=AuditRowData._fields.index("rule_id"),
         )
-        rule_col.set_sort_column_id(self.AUDIT_COL_RULE_ID)
+        rule_col.set_sort_column_id(AuditRowData._fields.index("rule_id"))
         self.audit_tree.append_column(rule_col)
 
         explanation_col = Gtk.TreeViewColumn(
-            _("Explanation"), Gtk.CellRendererText(), text=self.AUDIT_COL_EXPLANATION
+            _("Explanation"),
+            Gtk.CellRendererText(),
+            text=AuditRowData._fields.index("explanation"),
         )
         explanation_col.set_expand(True)
-        explanation_col.set_sort_column_id(self.AUDIT_COL_EXPLANATION)
+        explanation_col.set_sort_column_id(AuditRowData._fields.index("explanation"))
         self.audit_tree.append_column(explanation_col)
 
     def on_preserve_alt_toggled(self, widget: Gtk.CheckButton) -> None:
@@ -595,12 +595,14 @@ class ToolWindow:
         self.update_given_apply_button()
 
     def on_audit_row_toggled(self, widget: Any, path: str) -> None:
-        self.audit_store[path][self.AUDIT_COL_CHECKBOX] = not self.audit_store[path][
-            self.AUDIT_COL_CHECKBOX
-        ]
+        self.audit_store[path][
+            AuditRowData._fields.index("checkbox")
+        ] = not self.audit_store[path][AuditRowData._fields.index("checkbox")]
         self.update_audit_apply_button()
 
-        all_selected = all(row[self.AUDIT_COL_CHECKBOX] for row in self.audit_store)
+        all_selected = all(
+            row[AuditRowData._fields.index("checkbox")] for row in self.audit_store
+        )
         self.audit_select_all.handler_block_by_func(self.on_audit_select_all_toggled)
         self.audit_select_all.set_active(all_selected)
         self.audit_select_all.handler_unblock_by_func(self.on_audit_select_all_toggled)
@@ -614,7 +616,7 @@ class ToolWindow:
 
     def on_audit_select_all_toggled(self, widget: Any) -> None:
         for row in self.audit_store:
-            row[self.AUDIT_COL_CHECKBOX] = widget.get_active()
+            row[AuditRowData._fields.index("checkbox")] = widget.get_active()
         self.update_audit_apply_button()
 
     # --- Configure Rules Dialog ---
@@ -658,7 +660,7 @@ class ToolWindow:
     def on_audit_row_activated(
         self, tv: Gtk.TreeView, path: str, col: Gtk.TreeViewColumn
     ) -> None:
-        self._open_person_edit_dialog(tv, path, self.AUDIT_COL_HANDLE)
+        self._open_person_edit_dialog(tv, path, AuditRowData._fields.index("handle"))
 
     def on_given_row_activated(
         self, tv: Gtk.TreeView, path: str, col: Gtk.TreeViewColumn
@@ -676,9 +678,12 @@ class ToolWindow:
     def get_checked_audit_keys(self) -> set[tuple[str, str]]:
         """Returns the set of (person_handle, rule_id) for checked audit rows."""
         return {
-            (row[self.AUDIT_COL_HANDLE], row[self.AUDIT_COL_RULE_ID])
+            (
+                row[AuditRowData._fields.index("handle")],
+                row[AuditRowData._fields.index("rule_id")],
+            )
             for row in self.audit_store
-            if row[self.AUDIT_COL_CHECKBOX]
+            if row[AuditRowData._fields.index("checkbox")]
         }
 
     def show_ok_dialog(self, title: str, message: str) -> None:
