@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Generator
 
 from name_processor.models.audit import AuditScope
 from name_processor.models.person import Gender
@@ -68,16 +68,19 @@ class ToolController:
     # Initialization & Caching
     # ==========================================
     def initialize_median_year_async(self) -> None:
-        generator = self._read_repo.get_database_median_year_chunked()
+        def generator() -> Generator[None, None, list[int]]:
+            years = []
+            for year in self._read_repo.iter_event_years():
+                years.append(year)
+                # TODO: Factor out the chunk size into a constant or config
+                if len(years) % 100 == 0:
+                    yield None
+            return years
 
-        def on_complete(median_year: int | None) -> None:
-            if median_year is not None:
-                self._chronology_service.set_db_median_year(median_year)
-
-        run_in_idle_loop(generator, on_complete)
+        run_in_idle_loop(generator(), self._chronology_service.update_median_year)
 
     def initialize_given_names_async(self) -> None:
-        def generator():
+        def generator() -> Generator[None, None, set[str]]:
             names = set()
             for proxy_chunk in self._read_repo.get_person_proxies_chunked(
                 chunk_size=500
@@ -106,7 +109,7 @@ class ToolController:
         self._rename_candidates.clear()
         preserve_alt = self._view.preserve_alt_check.get_active()
 
-        def scan_generator():
+        def scan_generator() -> Generator[None, None, tuple[bool, str | None]]:
             try:
                 cfg = self._renamer_service.create_config(match_mode, source, target)
             except re.error as e:

@@ -3,6 +3,11 @@ from __future__ import annotations
 import unittest
 from unittest.mock import MagicMock, patch
 
+# Mock GTK and Gramps modules before importing
+from tests.compat_mocks import mock_gramps
+
+mock_gramps()
+
 from name_processor.controllers.tool import ToolController
 from name_processor.models.renamer import AltAction, MatchMode
 from name_processor.models.view import GivenRowData
@@ -184,6 +189,98 @@ class TestToolController(unittest.TestCase):
         mock_view.show_ok_dialog.assert_called_with(
             "No Results", "No matching given names found."
         )
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_initialize_median_year_async(self, mock_run_in_idle_loop):
+        mock_tool = MagicMock()
+        mock_view = MagicMock()
+        mock_read_repo = MagicMock()
+        mock_chronology_service = MagicMock()
+
+        # Mock iter_event_years to yield years
+        mock_read_repo.iter_event_years.return_value = iter(
+            [1800, 1850, 1900, 1950, 2000]
+        )
+
+        # Mock update_median_year to return median
+        mock_chronology_service.update_median_year.return_value = 1900
+
+        controller = ToolController(
+            tool_instance=mock_tool,
+            view=mock_view,
+            read_repo=mock_read_repo,
+            write_repo=MagicMock(),
+            patronymic_service=MagicMock(),
+            renamer_service=MagicMock(),
+            alt_names_service=MagicMock(),
+            audit_service=MagicMock(),
+            chronology_service=mock_chronology_service,
+        )
+
+        # Define how to handle the mocked run_in_idle_loop
+        def side_effect(generator, on_complete):
+            result = None
+            try:
+                while True:
+                    next(generator)
+            except StopIteration as e:
+                result = e.value
+            if on_complete:
+                on_complete(result)
+
+        mock_run_in_idle_loop.side_effect = side_effect
+
+        # Initialize median year
+        controller.initialize_median_year_async()
+
+        # Verify iter_event_years was called
+        mock_read_repo.iter_event_years.assert_called_once()
+
+        # Verify update_median_year was called with collected years
+        mock_chronology_service.update_median_year.assert_called_once()
+        call_args = mock_chronology_service.update_median_year.call_args[0][0]
+        self.assertEqual(call_args, [1800, 1850, 1900, 1950, 2000])
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_initialize_median_year_async_with_empty_years(self, mock_run_in_idle_loop):
+        mock_tool = MagicMock()
+        mock_view = MagicMock()
+        mock_read_repo = MagicMock()
+        mock_chronology_service = MagicMock()
+
+        # Mock iter_event_years to yield no years
+        mock_read_repo.iter_event_years.return_value = iter([])
+
+        controller = ToolController(
+            tool_instance=mock_tool,
+            view=mock_view,
+            read_repo=mock_read_repo,
+            write_repo=MagicMock(),
+            patronymic_service=MagicMock(),
+            renamer_service=MagicMock(),
+            alt_names_service=MagicMock(),
+            audit_service=MagicMock(),
+            chronology_service=mock_chronology_service,
+        )
+
+        # Define how to handle the mocked run_in_idle_loop
+        def side_effect(generator, on_complete):
+            result = None
+            try:
+                while True:
+                    next(generator)
+            except StopIteration as e:
+                result = e.value
+            if on_complete:
+                on_complete(result)
+
+        mock_run_in_idle_loop.side_effect = side_effect
+
+        # Initialize median year
+        controller.initialize_median_year_async()
+
+        # Verify update_median_year was called with empty list
+        mock_chronology_service.update_median_year.assert_called_once_with([])
 
 
 if __name__ == "__main__":

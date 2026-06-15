@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Generator
+from typing import TYPE_CHECKING, Generator
 
 from name_processor.protocols.audit import AuditSubject
 from name_processor.protocols.chronology import ChronologySubject
@@ -72,6 +72,17 @@ class GrampsReadRepository:
             proxy = self.get_person_proxy(handle)
             if proxy:
                 yield proxy
+
+    def iter_event_years(self) -> Generator[int, None, None]:
+        """Yields raw years sequentially. No business logic (medians) allowed here."""
+        for handle in self._db.get_event_handles():
+            event = self._db.get_event_from_handle(handle)
+            if event:
+                date_obj = event.get_date_object()
+                if date_obj and not date_obj.is_empty():
+                    year = date_obj.get_year()
+                    if year and year > 0:
+                        yield year
 
     # ==========================================
     # Aggregations

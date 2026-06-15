@@ -19,6 +19,16 @@ class ChronologyService:
     def set_db_median_year(self, median_year: int) -> None:
         self._db_median_year = median_year
 
+    def update_median_year(self, years: list[int] | None = None) -> int | None:
+        self._db_median_year = None
+
+        if not years:
+            return None
+
+        years = sorted(years)
+        self._db_median_year = years[len(years) // 2]
+        return self._db_median_year
+
     def estimate_reference_year(self, person_handle: str) -> int | None:
         """
         Calculates the historical reference year (Y_ref) for a person.
