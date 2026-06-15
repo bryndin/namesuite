@@ -10,10 +10,10 @@ source ~/projects/gramps/gramps-patronymic-inference/.venv/bin/activate
 
 ## Running Tests
 
-All tests are run using `pytest`:
+All tests are run using Python's built-in `unittest`:
 
 ```bash
-source ~/projects/gramps/gramps-patronymic-inference/.venv/bin/activate && pytest
+source ~/projects/gramps/gramps-patronymic-inference/.venv/bin/activate && python3 -m unittest discover
 ```
 
 **Note:** The `gramps` package is not available in this environment. Tests depend on modules that would normally be provided by the Gramps installation; therefore, any code importing from `gramps.*` must be thoroughly mocked within the test file's setup.
