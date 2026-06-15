@@ -22,7 +22,7 @@ class RenamerService:
         original_name = name
         proposed_name = None
 
-        if cfg.mode == MatchMode.EXACT:
+        if cfg.mode == MatchMode.EXACT and original_name == cfg.source:
             proposed_name = cfg.target
 
         elif cfg.mode == MatchMode.SUBSTRING:

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from name_processor.controllers.tool import ToolController
+from name_processor.models.renamer import AltAction, MatchMode
+from name_processor.models.view import GivenRowData
 
 
 class TestToolController(unittest.TestCase):
@@ -42,9 +44,6 @@ class TestToolController(unittest.TestCase):
             chronology_service=MagicMock(),
         )
 
-        from name_processor.models.renamer import AltAction
-        from name_processor.models.view import GivenRowData
-
         row_data1 = GivenRowData(
             checkbox=True,
             gramps_id="I0001",
@@ -75,6 +74,115 @@ class TestToolController(unittest.TestCase):
         )
         mock_view.update_given_store_actions.assert_called_once_with(
             AltAction.OVERWRITE
+        )
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_run_rename_scan_exact_mode_filtering(self, mock_run_in_idle_loop):
+        mock_tool = MagicMock()
+        mock_view = MagicMock()
+        mock_read_repo = MagicMock()
+        from name_processor.services.renamer import RenamerService
+
+        renamer_service = RenamerService()
+
+        # Mock two proxies: one matches the given_name, one doesn't
+        mock_proxy_match = MagicMock()
+        mock_proxy_match.given_name = "Ivan"
+        mock_proxy_match.gramps_id = "I0001"
+        mock_proxy_match.display_name = "Ivan Ivanov"
+        mock_proxy_match.handle = "handle1"
+
+        mock_proxy_no_match = MagicMock()
+        mock_proxy_no_match.given_name = "Petr"
+        mock_proxy_no_match.gramps_id = "I0002"
+        mock_proxy_no_match.display_name = "Petr Petrov"
+        mock_proxy_no_match.handle = "handle2"
+
+        # Configure repository to return both proxies
+        mock_read_repo.get_person_proxies_chunked.return_value = [
+            [mock_proxy_match, mock_proxy_no_match]
+        ]
+
+        controller = ToolController(
+            tool_instance=mock_tool,
+            view=mock_view,
+            read_repo=mock_read_repo,
+            write_repo=MagicMock(),
+            patronymic_service=MagicMock(),
+            renamer_service=renamer_service,
+            alt_names_service=MagicMock(),
+            audit_service=MagicMock(),
+            chronology_service=MagicMock(),
+        )
+
+        # Define how to handle the mocked run_in_idle_loop
+        def side_effect(generator, on_complete):
+            result = None
+            try:
+                while True:
+                    next(generator)
+            except StopIteration as e:
+                result = e.value
+            if on_complete:
+                on_complete(result)
+
+        mock_run_in_idle_loop.side_effect = side_effect
+
+        # Run scan: Source is 'Ivan', Target is 'Ioann'
+        # With buggy RenamerService, both 'Ivan' and 'Petr' will get proposed names
+        controller.run_rename_scan("Ivan", "Ioann", MatchMode.EXACT)
+
+        # Verify that _append_rename_proposal_to_store was called ONLY for 'Ivan'
+        # With the bug, it will be called twice (for Ivan AND Petr)
+        self.assertEqual(
+            mock_view._append_rename_proposal_to_store.call_count,
+            1,
+            f"Expected 1 call, but got {mock_view._append_rename_proposal_to_store.call_count}",
+        )
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_run_rename_scan_no_results(self, mock_run_in_idle_loop):
+        mock_tool = MagicMock()
+        mock_view = MagicMock()
+        mock_read_repo = MagicMock()
+        mock_renamer_service = MagicMock()
+
+        # No results
+        mock_read_repo.get_person_proxies_chunked.return_value = []
+
+        mock_renamer_service.create_config.return_value = {}
+
+        controller = ToolController(
+            tool_instance=mock_tool,
+            view=mock_view,
+            read_repo=mock_read_repo,
+            write_repo=MagicMock(),
+            patronymic_service=MagicMock(),
+            renamer_service=mock_renamer_service,
+            alt_names_service=MagicMock(),
+            audit_service=MagicMock(),
+            chronology_service=MagicMock(),
+        )
+
+        # Define how to handle the mocked run_in_idle_loop
+        def side_effect(generator, on_complete):
+            result = None
+            try:
+                while True:
+                    next(generator)
+            except StopIteration as e:
+                result = e.value
+            if on_complete:
+                on_complete(result)
+
+        mock_run_in_idle_loop.side_effect = side_effect
+
+        # Run scan
+        controller.run_rename_scan("Ivan", "Ioann", MatchMode.EXACT)
+
+        # Verify that "No Results" dialog WAS shown
+        mock_view.show_ok_dialog.assert_called_with(
+            "No Results", "No matching given names found."
         )
 
 
