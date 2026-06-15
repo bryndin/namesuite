@@ -57,6 +57,7 @@ class ToolController:
 
         # Guard to prevent overlapping async scan operations
         self._is_rename_scanning = False
+        self._is_audit_scanning = False
 
         # State Caches
         self._given_names_cache: set[str] = set()
@@ -222,7 +223,11 @@ class ToolController:
 
     def run_audit_scan(
         self, audit_scope: AuditScope, enabled_rules_set: set[str], use_pre_reform: bool
-    ) -> None:
+    ) -> bool:
+        if self._is_audit_scanning:
+            return False
+
+        self._is_audit_scanning = True
         self._view.clear_audit_results()
         self._audit_candidates.clear()
 
@@ -231,46 +236,45 @@ class ToolController:
 
         def scan_generator():
             processed_count = 0
-            for proxy_chunk in self._read_repo.get_person_proxies_chunked(
-                chunk_size=50
-            ):
-                for person_proxy in proxy_chunk:
-                    processed_count += 1
+            for person_proxy in self._read_repo.iter_all_persons():
+                processed_count += 1
 
-                    # Apply scope filter
-                    if audit_scope == AuditScope.MALES_ONLY:
-                        if person_proxy.gender != Gender.MALE:
-                            continue
-                    elif audit_scope == AuditScope.FEMALES_ONLY:
-                        if person_proxy.gender != Gender.FEMALE:
-                            continue
+                # Apply scope filter
+                if audit_scope == AuditScope.MALES_ONLY:
+                    if person_proxy.gender != Gender.MALE:
+                        continue
+                elif audit_scope == AuditScope.FEMALES_ONLY:
+                    if person_proxy.gender != Gender.FEMALE:
+                        continue
 
-                    issues = self._audit_service.audit_person(
-                        person_proxy, enabled_rules_set, use_pre_reform
+                issues = self._audit_service.audit_person(
+                    person_proxy, enabled_rules_set, use_pre_reform
+                )
+                for issue in issues:
+                    self._audit_candidates[(person_proxy.handle, issue.rule_id)] = issue
+                    self._view.append_issue(issue)
+
+                # TODO: Factor out the chunk size into a constant or config
+                if processed_count % 50 == 0:
+                    fraction = (
+                        min(processed_count / total_people, 1.0)
+                        if total_people > 0
+                        else 1.0
                     )
-                    for issue in issues:
-                        self._audit_candidates[(person_proxy.handle, issue.rule_id)] = (
-                            issue
-                        )
-                        self._view._append_issue_to_store(issue)
-                        self._view.audit_issues.append(issue)
-
-                fraction = (
-                    min(processed_count / total_people, 1.0)
-                    if total_people > 0
-                    else 1.0
-                )
-                self._view.update_audit_progress(
-                    fraction, f"{min(processed_count, total_people)} / {total_people}"
-                )
-                yield None
+                    self._view.update_audit_progress(
+                        fraction,
+                        f"{min(processed_count, total_people)} / {total_people}",
+                    )
+                    yield None
 
             return processed_count
 
         def on_complete(total_processed: int | None) -> None:
+            self._is_audit_scanning = False
             self._view.on_audit_complete(len(self._view.audit_issues))
 
         run_in_idle_loop(scan_generator(), on_complete)
+        return True
 
     def apply_checked_audit_fixes(self, use_pre_reform: bool) -> bool:
         keys = self._view.get_checked_audit_keys()

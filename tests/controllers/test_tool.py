@@ -9,6 +9,7 @@ from tests.compat_mocks import mock_gramps
 mock_gramps()
 
 from name_processor.controllers.tool import ToolController
+from name_processor.models.audit import AuditScope
 from name_processor.models.renamer import AltAction, MatchMode
 from name_processor.models.view import GivenRowData
 
@@ -31,6 +32,8 @@ class TestToolController(unittest.TestCase):
             chronology_service=MagicMock(),
         )
         self.assertEqual(controller.dbstate, mock_dbstate)
+        self.assertFalse(controller._is_rename_scanning)
+        self.assertFalse(controller._is_audit_scanning)
 
     def test_update_preserve_alt(self) -> None:
         mock_dbstate = MagicMock()
@@ -287,6 +290,137 @@ class TestToolController(unittest.TestCase):
 
         # Verify update_median_year was called with empty list
         mock_chronology_service.update_median_year.assert_called_once_with([])
+
+    def test_run_audit_scan_guard_prevents_overlap(self) -> None:
+        mock_tool = MagicMock()
+        mock_view = MagicMock()
+        mock_read_repo = MagicMock()
+        mock_audit_service = MagicMock()
+
+        controller = ToolController(
+            tool_instance=mock_tool,
+            view=mock_view,
+            read_repo=mock_read_repo,
+            write_repo=MagicMock(),
+            patronymic_service=MagicMock(),
+            renamer_service=MagicMock(),
+            alt_names_service=MagicMock(),
+            audit_service=mock_audit_service,
+            chronology_service=MagicMock(),
+        )
+
+        # Set scanning flag to True
+        controller._is_audit_scanning = True
+
+        # Try to run scan while already scanning
+        result = controller.run_audit_scan(AuditScope.ALL, set(["test_rule"]), False)
+
+        # Should return False indicating scan was not started
+        self.assertFalse(result)
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_run_audit_scan_with_results(self, mock_run_in_idle_loop):
+        mock_tool = MagicMock()
+        mock_view = MagicMock()
+        mock_read_repo = MagicMock()
+        mock_audit_service = MagicMock()
+
+        # Mock person proxy
+        mock_proxy = MagicMock()
+        mock_proxy.handle = "handle1"
+        mock_proxy.gender = 1  # Male
+
+        # Configure repository to return proxy
+        mock_read_repo.iter_all_persons.return_value = iter([mock_proxy])
+        mock_read_repo.get_person_count.return_value = 1
+
+        # Mock audit service to return an issue
+        mock_issue = MagicMock()
+        mock_issue.rule_id = "test_rule"
+        mock_audit_service.audit_person.return_value = [mock_issue]
+
+        controller = ToolController(
+            tool_instance=mock_tool,
+            view=mock_view,
+            read_repo=mock_read_repo,
+            write_repo=MagicMock(),
+            patronymic_service=MagicMock(),
+            renamer_service=MagicMock(),
+            alt_names_service=MagicMock(),
+            audit_service=mock_audit_service,
+            chronology_service=MagicMock(),
+        )
+
+        # Define how to handle the mocked run_in_idle_loop
+        def side_effect(generator, on_complete):
+            result = None
+            try:
+                while True:
+                    next(generator)
+            except StopIteration as e:
+                result = e.value
+            if on_complete:
+                on_complete(result)
+
+        mock_run_in_idle_loop.side_effect = side_effect
+
+        # Run scan
+        result = controller.run_audit_scan(AuditScope.ALL, set(["test_rule"]), False)
+
+        # Should return True indicating scan was started
+        self.assertTrue(result)
+
+        # Verify audit_person was called
+        mock_audit_service.audit_person.assert_called_once()
+
+        # Verify scanning flag was reset
+        self.assertFalse(controller._is_audit_scanning)
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_run_audit_scan_no_results(self, mock_run_in_idle_loop):
+        mock_tool = MagicMock()
+        mock_view = MagicMock()
+        mock_read_repo = MagicMock()
+        mock_audit_service = MagicMock()
+
+        # No results
+        mock_read_repo.iter_all_persons.return_value = iter([])
+        mock_read_repo.get_person_count.return_value = 0
+        mock_audit_service.audit_person.return_value = []
+
+        controller = ToolController(
+            tool_instance=mock_tool,
+            view=mock_view,
+            read_repo=mock_read_repo,
+            write_repo=MagicMock(),
+            patronymic_service=MagicMock(),
+            renamer_service=MagicMock(),
+            alt_names_service=MagicMock(),
+            audit_service=mock_audit_service,
+            chronology_service=MagicMock(),
+        )
+
+        # Define how to handle the mocked run_in_idle_loop
+        def side_effect(generator, on_complete):
+            result = None
+            try:
+                while True:
+                    next(generator)
+            except StopIteration as e:
+                result = e.value
+            if on_complete:
+                on_complete(result)
+
+        mock_run_in_idle_loop.side_effect = side_effect
+
+        # Run scan
+        result = controller.run_audit_scan(AuditScope.ALL, set(["test_rule"]), False)
+
+        # Should return True indicating scan was started
+        self.assertTrue(result)
+
+        # Verify scanning flag was reset
+        self.assertFalse(controller._is_audit_scanning)
 
 
 if __name__ == "__main__":

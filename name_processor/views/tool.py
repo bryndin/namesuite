@@ -368,7 +368,7 @@ class ToolWindow:
         self.audit_store.clear()
         self.audit_issues = []
 
-    def _append_issue_to_store(self, issue: Any) -> None:
+    def append_issue(self, issue: AuditIssue) -> None:
         """Append an audit issue to the treeview store with Pango markup formatting."""
         diff_markup = generate_pango_diff(issue.current_value, issue.suggested_fix)
 
@@ -390,6 +390,7 @@ class ToolWindow:
         )
 
         self.audit_store.append(list(row))
+        self.audit_issues.append(issue)
 
     def append_rename_proposal(self, row_data: GivenRowData) -> None:
         """Append a given name rename proposal to the GTK store safely."""
