@@ -75,18 +75,13 @@ class ToolController:
     # Initialization & Caching
     # ==========================================
     def initialize_median_year_async(self) -> None:
-        def generator() -> Generator[None, None, list[int]]:
-            years = []
-            for year in self._read_repo.iter_event_years():
-                years.append(year)
-                # TODO: Factor out the chunk size into a constant or config
-                if len(years) % 100 == 0:
-                    yield None
-            return years
-
-        run_in_idle_loop(generator(), self._chronology_service.update_median_year)
+        run_in_idle_loop(
+            self._chronology_service.generate_years(),
+            self._chronology_service.update_median_year,
+        )
 
     def initialize_given_names_async(self) -> None:
+        # TODO: Refactor similar to the above
         def generator() -> Generator[None, None, set[str]]:
             names = set()
             for proxy_chunk in self._read_repo.get_person_proxies_chunked(

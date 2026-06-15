@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Generator
+
 from gramps.gen.plug import Gramplet
 from gramps.gen.types import PersonHandle
 
@@ -77,7 +79,7 @@ class PatronymicSuggestionGramplet(Gramplet):
             ]
 
             # Start the non-blocking database scan
-            self._start_background_median_calc()
+            self._init_gramplet_median_year_async()
         else:
             # DB has closed - cleanly tear down backend dependencies
             self._controller = None
@@ -115,21 +117,29 @@ class PatronymicSuggestionGramplet(Gramplet):
             # Simply re-triggering the controller is the safest approach.
             self._controller.on_active_changed(self._controller.current_handle)
 
-    def _start_background_median_calc(self) -> None:
+    def _init_gramplet_median_year_async(self) -> None:
         if not self._read_repo:
             return
 
-        # 1. Get the generator from the repository
-        median_generator = self._read_repo.get_database_median_year_chunked()
+        def generator() -> Generator[None, None, list[int]]:
+            years = []
+            count = 0
+            # TODO: Factor out the chunk size into a constant or config
+            for year in self._read_repo.iter_event_years():
+                years.append(year)
+                count += 1
+                # TODO: Factor out the chunk size into a constant or config
+                if count % 500 == 0:
+                    yield None
+            return years
 
-        # 2. Define what happens when it finishes
-        def on_median_calculated(median_year: int | None) -> None:
-            if median_year is not None and self._chronology_service:
-                self._chronology_service.set_db_median_year(median_year)
+        def on_median_calculated(years: list[int]) -> None:
+            if years and self._chronology_service:
+                self._chronology_service.update_median_year(years)
 
                 # Update UI if needed
                 if self._controller and self._controller.current_handle:
                     self._controller.on_active_changed(self._controller.current_handle)
 
         # 3. Hand it to the generic runner
-        run_in_idle_loop(median_generator, on_complete=on_median_calculated)
+        run_in_idle_loop(generator(), on_complete=on_median_calculated)

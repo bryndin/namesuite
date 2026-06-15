@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
+from typing import Generator
 
 from name_processor.protocols.chronology import ChronologySubject, ChronologyRepository
 
@@ -18,6 +19,24 @@ class ChronologyService:
 
     def set_db_median_year(self, median_year: int) -> None:
         self._db_median_year = median_year
+
+    def generate_years(self, chunk_size: int = 100) -> Generator[None, None, list[int]]:
+        """Creates a generator that collects event years from the repository.
+
+        Yields periodically to allow UI updates during iteration.
+
+        Args:
+            chunk_size: Number of years to collect before yielding.
+
+        Returns:
+            A generator that yields None periodically and returns the list of years.
+        """
+        years = []
+        for year in self._repo.iter_event_years():
+            years.append(year)
+            if len(years) % chunk_size == 0:
+                yield None
+        return years
 
     def update_median_year(self, years: list[int] | None = None) -> int | None:
         self._db_median_year = None

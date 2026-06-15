@@ -206,10 +206,12 @@ class TestToolController(unittest.TestCase):
         mock_read_repo = MagicMock()
         mock_chronology_service = MagicMock()
 
-        # Mock iter_event_years to yield years
-        mock_read_repo.iter_event_years.return_value = iter(
-            [1800, 1850, 1900, 1950, 2000]
-        )
+        # Mock generate_years to return a generator that yields years
+        def year_generator():
+            yield None
+            return [1800, 1850, 1900, 1950, 2000]
+
+        mock_chronology_service.generate_years.return_value = year_generator()
 
         # Mock update_median_year to return median
         mock_chronology_service.update_median_year.return_value = 1900
@@ -242,8 +244,8 @@ class TestToolController(unittest.TestCase):
         # Initialize median year
         controller.initialize_median_year_async()
 
-        # Verify iter_event_years was called
-        mock_read_repo.iter_event_years.assert_called_once()
+        # Verify generate_years was called
+        mock_chronology_service.generate_years.assert_called_once()
 
         # Verify update_median_year was called with collected years
         mock_chronology_service.update_median_year.assert_called_once()
@@ -257,8 +259,12 @@ class TestToolController(unittest.TestCase):
         mock_read_repo = MagicMock()
         mock_chronology_service = MagicMock()
 
-        # Mock iter_event_years to yield no years
-        mock_read_repo.iter_event_years.return_value = iter([])
+        # Mock generate_years to return a generator that yields empty list
+        def empty_generator():
+            return []
+            yield  # Make it a generator
+
+        mock_chronology_service.generate_years.return_value = empty_generator()
 
         controller = ToolController(
             tool_instance=mock_tool,
@@ -287,6 +293,9 @@ class TestToolController(unittest.TestCase):
 
         # Initialize median year
         controller.initialize_median_year_async()
+
+        # Verify generate_years was called
+        mock_chronology_service.generate_years.assert_called_once()
 
         # Verify update_median_year was called with empty list
         mock_chronology_service.update_median_year.assert_called_once_with([])

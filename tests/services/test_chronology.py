@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from typing import Generator
 from unittest.mock import MagicMock
 
 from name_processor.services.chronology import ChronologyService
@@ -103,6 +104,67 @@ class TestChronologyService(unittest.TestCase):
         result = self.service.estimate_reference_year("person1")
 
         self.assertEqual(result, 1900)
+
+    def test_generate_years_with_default_chunk_size(self):
+        """Test generate_years collects years and yields periodically."""
+        # Mock iter_event_years to return years
+        self.mock_repo.iter_event_years.return_value = iter(
+            [1800, 1850, 1900, 1950, 2000]
+        )
+
+        generator = self.service.generate_years()
+
+        # Consume generator
+        yields = []
+        result = None
+        try:
+            while True:
+                next(generator)
+                yields.append(None)
+        except StopIteration as e:
+            result = e.value
+
+        # With 5 years and default chunk_size=100, should not yield
+        self.assertEqual(len(yields), 0)
+        self.assertEqual(result, [1800, 1850, 1900, 1950, 2000])
+
+    def test_generate_years_with_custom_chunk_size(self):
+        """Test generate_years respects custom chunk_size."""
+        # Mock iter_event_years to return 250 years
+        years = list(range(1800, 2050))
+        self.mock_repo.iter_event_years.return_value = iter(years)
+
+        generator = self.service.generate_years(chunk_size=100)
+
+        # Consume generator
+        yields = []
+        result = None
+        try:
+            while True:
+                next(generator)
+                yields.append(None)
+        except StopIteration as e:
+            result = e.value
+
+        # With 250 years and chunk_size=100, should yield twice (at 100 and 200)
+        self.assertEqual(len(yields), 2)
+        self.assertEqual(result, years)
+
+    def test_generate_years_with_empty_repository(self):
+        """Test generate_years returns empty list when no years available."""
+        self.mock_repo.iter_event_years.return_value = iter([])
+
+        generator = self.service.generate_years()
+
+        # Consume generator
+        result = None
+        try:
+            while True:
+                next(generator)
+        except StopIteration as e:
+            result = e.value
+
+        self.assertEqual(result, [])
 
 
 if __name__ == "__main__":
