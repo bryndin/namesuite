@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 from name_processor.controllers.gramplet import GrampletController
 from name_processor.models.infer import PatronymicInferenceStatus
@@ -13,12 +13,14 @@ class TestGrampletController(unittest.TestCase):
         self.mocks = {
             "view": Mock(),
             "patronymic_service": Mock(),
+            "chronology_service": Mock(),  # Added missing mock
             "read_repo": Mock(),
             "write_repo": Mock(),
         }
         self.controller = GrampletController(
             view=self.mocks["view"],
             patronymic_service=self.mocks["patronymic_service"],
+            chronology_service=self.mocks["chronology_service"],  # Injected here
             read_repo=self.mocks["read_repo"],
             write_repo=self.mocks["write_repo"],
         )
@@ -28,7 +30,7 @@ class TestGrampletController(unittest.TestCase):
         self.controller.on_active_changed(None)
 
         # Assert
-        self.assertIsNone(self.controller.current_handle)
+        self.assertIsNone(self.controller._current_handle)
         self.mocks["view"].show_status_message.assert_called_once_with(
             PatronymicInferenceStatus.NO_ACTIVE_PERSON, apply_sensitive=False
         )
@@ -45,7 +47,7 @@ class TestGrampletController(unittest.TestCase):
         self.controller.on_active_changed("h123")
 
         # Assert
-        self.assertEqual(self.controller.current_handle, "h123")
+        self.assertEqual(self.controller._current_handle, "h123")
         self.mocks["patronymic_service"].infer_patronymic.assert_called_once_with(
             "h123"
         )
@@ -74,7 +76,7 @@ class TestGrampletController(unittest.TestCase):
 
     def test_on_apply_clicked_does_nothing_if_no_suggestion(self):
         # Arrange
-        self.controller.current_handle = "h123"
+        self.controller._current_handle = "h123"
         self.controller._suggested_patronymic = None
 
         # Act
@@ -85,7 +87,7 @@ class TestGrampletController(unittest.TestCase):
 
     def test_on_apply_clicked_success(self):
         # Arrange
-        self.controller.current_handle = "h123"
+        self.controller._current_handle = "h123"
         self.controller._suggested_patronymic = "Ivanovich"
 
         # Act
@@ -97,6 +99,28 @@ class TestGrampletController(unittest.TestCase):
         )
         self.mocks["view"].show_status_message.assert_called_once_with(
             PatronymicInferenceStatus.SUCCESS, apply_sensitive=False
+        )
+
+    @patch("name_processor.controllers.gramplet.run_in_idle_loop")
+    def test_initialize_background_tasks_calls_update_median_year(
+        self, mock_run_in_idle_loop
+    ):
+        # Arrange
+        years = [1900, 1910, 1920]
+
+        # Act
+        self.controller.initialize_background_tasks()
+
+        # Capture the callback
+        args, kwargs = mock_run_in_idle_loop.call_args
+        on_complete_callback = kwargs["on_complete"]
+
+        # Call the callback
+        on_complete_callback(years)
+
+        # Assert
+        self.mocks["chronology_service"].update_median_year.assert_called_once_with(
+            years
         )
 
 
