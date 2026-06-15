@@ -96,17 +96,23 @@ class TestToolController(unittest.TestCase):
         mock_proxy_match.gramps_id = "I0001"
         mock_proxy_match.display_name = "Ivan Ivanov"
         mock_proxy_match.handle = "handle1"
+        mock_primary_name_match = MagicMock()
+        mock_primary_name_match.get_first_name.return_value = "Ivan"
+        mock_proxy_match.get_primary_name.return_value = mock_primary_name_match
 
         mock_proxy_no_match = MagicMock()
         mock_proxy_no_match.given_name = "Petr"
         mock_proxy_no_match.gramps_id = "I0002"
         mock_proxy_no_match.display_name = "Petr Petrov"
         mock_proxy_no_match.handle = "handle2"
+        mock_primary_name_no_match = MagicMock()
+        mock_primary_name_no_match.get_first_name.return_value = "Petr"
+        mock_proxy_no_match.get_primary_name.return_value = mock_primary_name_no_match
 
         # Configure repository to return both proxies
-        mock_read_repo.get_person_proxies_chunked.return_value = [
+        mock_read_repo.iter_all_persons.return_value = iter(
             [mock_proxy_match, mock_proxy_no_match]
-        ]
+        )
 
         controller = ToolController(
             tool_instance=mock_tool,
@@ -137,12 +143,12 @@ class TestToolController(unittest.TestCase):
         # With buggy RenamerService, both 'Ivan' and 'Petr' will get proposed names
         controller.run_rename_scan("Ivan", "Ioann", MatchMode.EXACT)
 
-        # Verify that _append_rename_proposal_to_store was called ONLY for 'Ivan'
+        # Verify that append_rename_proposal was called ONLY for 'Ivan'
         # With the bug, it will be called twice (for Ivan AND Petr)
         self.assertEqual(
-            mock_view._append_rename_proposal_to_store.call_count,
+            mock_view.append_rename_proposal.call_count,
             1,
-            f"Expected 1 call, but got {mock_view._append_rename_proposal_to_store.call_count}",
+            f"Expected 1 call, but got {mock_view.append_rename_proposal.call_count}",
         )
 
     @patch("name_processor.controllers.tool.run_in_idle_loop")
@@ -153,7 +159,7 @@ class TestToolController(unittest.TestCase):
         mock_renamer_service = MagicMock()
 
         # No results
-        mock_read_repo.get_person_proxies_chunked.return_value = []
+        mock_read_repo.iter_all_persons.return_value = iter([])
 
         mock_renamer_service.create_config.return_value = {}
 

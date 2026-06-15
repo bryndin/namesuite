@@ -13,13 +13,16 @@ if TYPE_CHECKING:
     from names_tool import NamesTool
     from name_processor.models.audit import AuditIssue
     from name_processor.models.renamer import MatchMode
-    from name_processor.repositories.gramps_read import GrampsReadRepository
+    from name_processor.repositories.gramps_read import (
+        GrampsPersonProxy,
+        GrampsReadRepository,
+    )
     from name_processor.repositories.gramps_write import GrampsWriteRepository
     from name_processor.services.alt_names import AltNamesService
     from name_processor.services.audit import AuditService
     from name_processor.services.chronology import ChronologyService
     from name_processor.services.patronymic import PatronymicInferenceService
-    from name_processor.services.renamer import RenamerService
+    from name_processor.services.renamer import RenamerService, RenameConfig
     from name_processor.views.tool import ToolWindow
 
 
@@ -51,6 +54,9 @@ class ToolController:
         self._alt_names_service = alt_names_service
         self._audit_service = audit_service
         self._chronology_service = chronology_service
+
+        # Guard to prevent overlapping async scan operations
+        self._is_rename_scanning = False
 
         # State Caches
         self._given_names_cache: set[str] = set()
@@ -104,7 +110,35 @@ class ToolController:
     # ==========================================
     # Tab 1: Rename Names
     # ==========================================
+    def _propose_rename(
+        self, person: GrampsPersonProxy, cfg: RenameConfig, preserve_alt: bool
+    ) -> GivenRowData | None:
+        """Evaluates a single person and returns UI row data if a match occurs."""
+        proposed_name = self._renamer_service.evaluate_person(
+            person.get_primary_name().get_first_name(), cfg
+        )
+        if not proposed_name:
+            return None
+
+        return GivenRowData(
+            checkbox=True,
+            gramps_id=person.gramps_id,
+            display_name=person.display_name,
+            current=person.given_name,
+            proposed=proposed_name,
+            alt_action=(
+                AltAction.PRESERVE.value if preserve_alt else AltAction.OVERWRITE.value
+            ),
+            handle=person.handle,
+        )
+
     def run_rename_scan(self, source: str, target: str, match_mode: MatchMode) -> bool:
+        if self._is_rename_scanning:
+            return False
+
+        self._is_rename_scanning = True
+        self._view.clear_rename_proposals()
+
         self._view.given_store.clear()
         self._rename_candidates.clear()
         preserve_alt = self._view.preserve_alt_check.get_active()
@@ -113,37 +147,25 @@ class ToolController:
             try:
                 cfg = self._renamer_service.create_config(match_mode, source, target)
             except re.error as e:
-                return None, f"Invalid regex pattern: {e.msg}"
+                return False, f"Invalid regex pattern: {e.msg}"
 
             found_any = False
-            for proxy_chunk in self._read_repo.get_person_proxies_chunked(
-                chunk_size=250
-            ):
-                for person_proxy in proxy_chunk:
-                    proposed_name = self._renamer_service.evaluate_person(
-                        person_proxy.given_name, cfg
-                    )
-                    if proposed_name:
-                        row_data = GivenRowData(
-                            checkbox=True,
-                            gramps_id=person_proxy.gramps_id,
-                            display_name=person_proxy.display_name,
-                            current=person_proxy.given_name,
-                            proposed=proposed_name,
-                            alt_action=(
-                                AltAction.PRESERVE.value
-                                if preserve_alt
-                                else AltAction.OVERWRITE.value
-                            ),
-                            handle=person_proxy.handle,
-                        )
-                        self._rename_candidates[person_proxy.handle] = row_data
-                        self._view._append_rename_proposal_to_store(row_data)
-                        found_any = True
-                yield None
+            count = 0
+            # TODO: Factor out the chunk size into a constant or config
+            for person_proxy in self._read_repo.iter_all_persons():
+                row_data = self._propose_rename(person_proxy, cfg, preserve_alt)
+                if row_data:
+                    self._rename_candidates[person_proxy.handle] = row_data
+                    self._view.append_rename_proposal(row_data)
+                    found_any = True
+                count += 1
+                # TODO: Factor out the chunk size into a constant or config
+                if count % 250 == 0:
+                    yield None
             return found_any, None
 
         def on_complete(result: tuple[bool | None, str | None]) -> None:
+            self._is_rename_scanning = False
             found_any, error_msg = result
             if error_msg:
                 self._view.show_ok_dialog("Invalid Regular Expression", error_msg)

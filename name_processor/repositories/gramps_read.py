@@ -160,7 +160,7 @@ class GrampsReadRepository:
                     chunk.append(proxy)
             yield chunk
 
-    def iter_all_person_proxies(self) -> Generator[GrampsPersonProxy, None, None]:
+    def iter_all_persons(self) -> Generator[GrampsPersonProxy, None, None]:
         """Yields person proxies one by one for direct iteration."""
         for handle in self.get_all_person_handles():
             proxy = self.get_person_proxy(handle)

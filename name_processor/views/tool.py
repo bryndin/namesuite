@@ -132,6 +132,10 @@ class ToolWindow:
         # Attach completion to the entry
         self.given_source_entry.set_completion(completion)
 
+    def clear_rename_proposals(self) -> None:
+        """Clears the given names proposals list."""
+        self.given_store.clear()
+
     def build_window(self) -> None:
         self.window = Gtk.Window(title=_("Infer East Slavic Patronymics"))
         self.window.set_default_size(900, 600)
@@ -387,7 +391,7 @@ class ToolWindow:
 
         self.audit_store.append(list(row))
 
-    def _append_rename_proposal_to_store(self, row_data: GivenRowData) -> None:
+    def append_rename_proposal(self, row_data: GivenRowData) -> None:
         """Append a given name rename proposal to the GTK store safely."""
         # Convert directly to a sequence for GTK. No indices required.
         self.given_store.append(list(row_data))
