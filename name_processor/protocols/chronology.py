@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Generator, Protocol
 
 
 class ChronologySubject(Protocol):
@@ -9,25 +9,20 @@ class ChronologySubject(Protocol):
     @property
     def handle(self) -> str: ...
 
-    @property
-    def event_years(self) -> list[int]:
-        """A list of years extracted from the subject's birth, death, or marriage events."""
-        ...
-
-    @property
-    def father_handle(self) -> str | None: ...
-
-    @property
-    def mother_handle(self) -> str | None: ...
-
-    @property
-    def children_handles(self) -> list[str]: ...
-
-    @property
-    def siblings_handles(self) -> list[str]: ...
-
 
 class ChronologyRepository(Protocol):
     """The repository interface required by ChronologyService."""
 
     def get_chronology_subject(self, handle: str) -> ChronologySubject | None: ...
+
+    def get_event_years(self, person_handle: str) -> list[int]: ...
+
+    def iter_event_years(self) -> Generator[int, None, None]: ...
+
+    def get_father_handle(self, person_handle: str) -> str | None: ...
+
+    def get_mother_handle(self, person_handle: str) -> str | None: ...
+
+    def get_children_handles(self, person_handle: str) -> list[str]: ...
+
+    def get_siblings_handles(self, person_handle: str) -> list[str]: ...

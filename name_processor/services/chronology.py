@@ -42,7 +42,7 @@ class ChronologyService:
             return None
 
         # Tier 1: Direct Person Events
-        person_year = self._get_person_event_year(person)
+        person_year = self._get_person_event_year(person_handle)
         if person_year is not None:
             return person_year
 
@@ -54,9 +54,9 @@ class ChronologyService:
         # Tier 3: Database Fallback (Lazy loaded)
         return self._db_median_year
 
-    def _get_person_event_year(self, person: ChronologySubject) -> int | None:
+    def _get_person_event_year(self, person_handle: str) -> int | None:
         """Returns the latest event year from the person's events."""
-        years = person.event_years
+        years = self._repo.get_event_years(person_handle)
         if years:
             return max(years)
         return None
@@ -92,30 +92,30 @@ class ChronologyService:
 
             # Evaluate relatives (excluding the starting person itself)
             if handle != start_handle:
-                rel_year = self._get_person_event_year(person)
+                rel_year = self._get_person_event_year(handle)
                 if rel_year is not None:
                     estimated_year = rel_year + (gen_offset * 25)
                     candidates.append(estimated_year)
 
             # Queue Parents (gen_offset + 1)
-            father_handle = person.father_handle
+            father_handle = self._repo.get_father_handle(handle)
             if father_handle and father_handle not in visited:
                 visited.add(father_handle)
                 queue.append((father_handle, gen_offset + 1, depth + 1))
 
-            mother_handle = person.mother_handle
+            mother_handle = self._repo.get_mother_handle(handle)
             if mother_handle and mother_handle not in visited:
                 visited.add(mother_handle)
                 queue.append((mother_handle, gen_offset + 1, depth + 1))
 
             # Queue Children (gen_offset - 1)
-            for child_handle in person.children_handles:
+            for child_handle in self._repo.get_children_handles(handle):
                 if child_handle not in visited:
                     visited.add(child_handle)
                     queue.append((child_handle, gen_offset - 1, depth + 1))
 
             # Queue Siblings (gen_offset)
-            for sibling_handle in person.siblings_handles:
+            for sibling_handle in self._repo.get_siblings_handles(handle):
                 if sibling_handle not in visited:
                     visited.add(sibling_handle)
                     queue.append((sibling_handle, gen_offset, depth + 1))

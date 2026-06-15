@@ -59,8 +59,9 @@ class ConfidenceService:
 
         # Positive Signals
         # 1. Sibling has matching patronymic (+0.40)
-        for sib in person.siblings:
-            if sib.has_patronymic:
+        for sibling_handle in self._repository.get_siblings_handles(person_handle):
+            sibling = self._repository.get_confidence_subject(sibling_handle)
+            if sibling and sibling.has_patronymic:
                 score += self.CONFIDENCE_SCORE_SIBLING
                 break
 

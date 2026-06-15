@@ -15,14 +15,12 @@ class MockConfidenceSubject:
         self,
         handle: str = "p123",
         display_name: str = "Ivan Ivanov",
-        siblings: list | None = None,
         surnames: list[str] | None = None,
         given_name: str | None = None,
         has_patronymic: bool = False,
     ) -> None:
         self._handle = handle
         self._display_name = display_name
-        self._siblings = siblings or []
         self._surnames = surnames or []
         self._given_name = given_name
         self._has_patronymic = has_patronymic
@@ -34,10 +32,6 @@ class MockConfidenceSubject:
     @property
     def display_name(self) -> str:
         return self._display_name
-
-    @property
-    def siblings(self):
-        return iter(self._siblings)
 
     @property
     def surnames(self) -> list[str]:
@@ -56,12 +50,18 @@ class MockConfidenceRepository:
     """Mock implementation of ConfidenceRepository protocol for testing."""
 
     def __init__(
-        self, subjects: dict[str, MockConfidenceSubject] | None = None
+        self,
+        subjects: dict[str, MockConfidenceSubject] | None = None,
+        siblings_map: dict[str, list[str]] | None = None,
     ) -> None:
         self._subjects = subjects or {}
+        self._siblings_map = siblings_map or {}
 
     def get_confidence_subject(self, handle: str) -> MockConfidenceSubject | None:
         return self._subjects.get(handle)
+
+    def get_siblings_handles(self, person_handle: str) -> list[str]:
+        return self._siblings_map.get(person_handle, [])
 
 
 class TestConfidenceService(unittest.TestCase):
@@ -81,8 +81,10 @@ class TestConfidenceService(unittest.TestCase):
         sibling = MockConfidenceSubject(
             handle="sib1", has_patronymic=True, display_name="Петр Петров"
         )
-        person = MockConfidenceSubject(display_name="Иван Иванов", siblings=[sibling])
+        person = MockConfidenceSubject(display_name="Иван Иванов")
         self.mock_repository._subjects[person.handle] = person
+        self.mock_repository._subjects[sibling.handle] = sibling
+        self.mock_repository._siblings_map[person.handle] = [sibling.handle]
 
         result = self.service.calculate(person.handle, None, None)
         expected = (
@@ -96,8 +98,10 @@ class TestConfidenceService(unittest.TestCase):
         sibling = MockConfidenceSubject(
             handle="sib1", has_patronymic=False, display_name="Петр Петров"
         )
-        person = MockConfidenceSubject(display_name="Иван Иванов", siblings=[sibling])
+        person = MockConfidenceSubject(display_name="Иван Иванов")
         self.mock_repository._subjects[person.handle] = person
+        self.mock_repository._subjects[sibling.handle] = sibling
+        self.mock_repository._siblings_map[person.handle] = [sibling.handle]
 
         result = self.service.calculate(person.handle, None, None)
         self.assertEqual(result, ConfidenceService.CONFIDENCE_BASE_SCORE)
@@ -263,9 +267,11 @@ class TestConfidenceService(unittest.TestCase):
         father = MockConfidenceSubject(
             handle="father1", surnames=["Иванов"], given_name="Ivan"
         )
-        person = MockConfidenceSubject(display_name="Иван Иванов", siblings=[sibling])
+        person = MockConfidenceSubject(display_name="Иван Иванов")
         self.mock_repository._subjects[person.handle] = person
         self.mock_repository._subjects[father.handle] = father
+        self.mock_repository._subjects[sibling.handle] = sibling
+        self.mock_repository._siblings_map[person.handle] = [sibling.handle]
 
         result = self.service.calculate(person.handle, father.handle, 1800)
         expected = (
@@ -283,9 +289,11 @@ class TestConfidenceService(unittest.TestCase):
         father = MockConfidenceSubject(
             handle="father1", surnames=["Иванов"], given_name="Ivan"
         )
-        person = MockConfidenceSubject(display_name="Иван Иванов", siblings=[sibling])
+        person = MockConfidenceSubject(display_name="Иван Иванов")
         self.mock_repository._subjects[person.handle] = person
         self.mock_repository._subjects[father.handle] = father
+        self.mock_repository._subjects[sibling.handle] = sibling
+        self.mock_repository._siblings_map[person.handle] = [sibling.handle]
 
         result = self.service.calculate(person.handle, father.handle, 1800)
         self.assertEqual(result, 1.0)

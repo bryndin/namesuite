@@ -43,9 +43,10 @@ class PatronymicInferenceService:
                 status=PatronymicInferenceStatus.ALREADY_HAS_PATRONYMIC
             )
 
+        father_handle = self._read_repo.get_father_handle(person.handle)
         father = (
-            self._read_repo.get_patronymic_subject(person.father_handle)
-            if person.father_handle
+            self._read_repo.get_patronymic_subject(father_handle)
+            if father_handle
             else None
         )
         if not father:

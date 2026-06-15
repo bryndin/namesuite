@@ -69,6 +69,18 @@ class TestChronologyService(unittest.TestCase):
 
         self.assertEqual(self.service._db_median_year, 1950)
 
+    def test_estimate_reference_year_with_direct_events(self):
+        """Test estimate_reference_year returns direct event year when available."""
+        mock_person = MagicMock(spec=ChronologySubject)
+        mock_person.handle = "person1"
+
+        self.mock_repo.get_chronology_subject.return_value = mock_person
+        self.mock_repo.get_event_years.return_value = [1900, 1905, 1910]
+
+        result = self.service.estimate_reference_year("person1")
+
+        self.assertEqual(result, 1910)  # Latest event year
+
     def test_estimate_reference_year_with_no_person(self):
         """Test estimate_reference_year returns None when person not found."""
         self.mock_repo.get_chronology_subject.return_value = None
@@ -76,6 +88,21 @@ class TestChronologyService(unittest.TestCase):
         result = self.service.estimate_reference_year("person1")
 
         self.assertIsNone(result)
+
+    def test_estimate_reference_year_fallback_to_db_median(self):
+        """Test estimate_reference_year falls back to database median."""
+        mock_person = MagicMock(spec=ChronologySubject)
+        mock_person.handle = "person1"
+
+        self.mock_repo.get_chronology_subject.return_value = mock_person
+        self.mock_repo.get_event_years.return_value = []  # No direct events
+
+        # Set database median
+        self.service.set_db_median_year(1900)
+
+        result = self.service.estimate_reference_year("person1")
+
+        self.assertEqual(result, 1900)
 
 
 if __name__ == "__main__":

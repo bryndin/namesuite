@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterator, Protocol
+from typing import Protocol
 
 
 class ConfidenceSubject(Protocol):
@@ -8,9 +8,6 @@ class ConfidenceSubject(Protocol):
 
     @property
     def display_name(self) -> str: ...
-
-    @property
-    def siblings(self) -> Iterator[ConfidenceSubject]: ...
 
     @property
     def surnames(self) -> list[str]: ...
@@ -26,3 +23,5 @@ class ConfidenceRepository(Protocol):
     """The repository interface required by ConfidenceService."""
 
     def get_confidence_subject(self, handle: str) -> ConfidenceSubject | None: ...
+
+    def get_siblings_handles(self, person_handle: str) -> list[str]: ...
