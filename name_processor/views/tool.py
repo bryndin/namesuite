@@ -5,16 +5,17 @@ Contains all GTK widgets, layout structures, and column definitions.
 
 from __future__ import annotations
 
+from enum import Enum
 import logging
 import re
-from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable
+from typing import Any, Callable, TYPE_CHECKING
 
 from gi.repository import Gtk
+
 from gramps.gen.const import GRAMPS_LOCALE as glocale
+from gramps.gen.errors import WindowActiveError
 from gramps.gui.dialog import OkDialog
 from gramps.gui.editors import EditPerson
-from gramps.gen.errors import WindowActiveError
 
 from name_processor.models.audit import AuditScope
 from name_processor.models.renamer import MatchMode, AltAction
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
     from name_processor.controllers.tool import ToolController
     from name_processor.models.audit import AuditIssue
     from name_processor.models.renamer import ProposedRename
+
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +87,9 @@ class ToolWindow:
     GIVEN_COL_HANDLE = 6
     GIVEN_COL_PROPOSED_RAW = 7
 
+    # Track total count to safely initialize the list size
+    _GIVEN_COL__COUNT = 8
+
     # Audit store column indices (Tab 2 - Audit Patronymics)
     AUDIT_COL_CHECKBOX = 0
     AUDIT_COL_DISPLAY_NAME = 1
@@ -99,6 +104,9 @@ class ToolWindow:
     AUDIT_COL_RULE_ID_DUP = 10
     AUDIT_COL_SUGGESTED_STRING = 11
     AUDIT_COL_EXPLANATION = 12
+
+    # Track total count to safely initialize the list size
+    _AUDIT_COL__COUNT = 13
 
     def __init__(self, callback: Callable[[], None] | None = None) -> None:
         """Initializes the GTK Window."""
@@ -388,58 +396,49 @@ class ToolWindow:
         """Append an audit issue to the treeview store with Pango markup formatting."""
         diff_markup = generate_pango_diff(issue.current_value, issue.suggested_fix)
 
-        confidence_str = f"{int(getattr(issue, 'confidence', 0) * 100)}%"  # Placeholder
+        confidence_str = f"{int(getattr(issue, 'confidence', 0) * 100)}%"
 
-        # TODO: create a mapping from AuditIssue to treeview columns
-        self.audit_store.append(
-            [
-                True,  # AUDIT_COL_CHECKBOX
-                issue.display_name,  # AUDIT_COL_DISPLAY_NAME
-                issue.gramps_id,  # AUDIT_COL_GRAMPS_ID
-                issue.father_name,  # AUDIT_COL_FATHER_NAME
-                issue.current_value,  # AUDIT_COL_CURRENT_PAT
-                diff_markup,  # AUDIT_COL_DIFF_MARKUP
-                confidence_str,  # AUDIT_COL_CONFIDENCE
-                issue.reference_year,  # AUDIT_COL_REF_YEAR
-                issue.rule_id,  # AUDIT_COL_RULE_ID
-                issue.person_handle,  # AUDIT_COL_HANDLE
-                issue.rule_id,  # AUDIT_COL_RULE_ID_DUP
-                issue.suggested_fix,  # AUDIT_COL_SUGGESTED_STRING
-                issue.explanation,  # AUDIT_COL_EXPLANATION
-            ]
-        )
+        # Map values directly to their respective column index constants
+        row_map = {
+            self.AUDIT_COL_CHECKBOX: True,
+            self.AUDIT_COL_DISPLAY_NAME: issue.display_name,
+            self.AUDIT_COL_GRAMPS_ID: issue.gramps_id,
+            self.AUDIT_COL_FATHER_NAME: issue.father_name,
+            self.AUDIT_COL_CURRENT_PAT: issue.current_value,
+            self.AUDIT_COL_DIFF_MARKUP: diff_markup,
+            self.AUDIT_COL_CONFIDENCE: confidence_str,
+            self.AUDIT_COL_REF_YEAR: issue.reference_year,
+            self.AUDIT_COL_RULE_ID: issue.rule_id,
+            self.AUDIT_COL_HANDLE: issue.person_handle,
+            self.AUDIT_COL_RULE_ID_DUP: issue.rule_id,
+            self.AUDIT_COL_SUGGESTED_STRING: issue.suggested_fix,
+            self.AUDIT_COL_EXPLANATION: issue.explanation,
+        }
 
-    def _append_rename_proposal_to_store(
-        self, prop: ProposedRename, match_mode: MatchMode
-    ) -> None:
-        """Append a given name rename proposal to the given store."""
-        # For substring and regex modes, highlight only the matched portion
-        if match_mode in (MatchMode.SUBSTRING, MatchMode.REGEX) and prop.matched_text:
-            proposed_esc = pango_escape(prop.proposed_given_name)
-            matched_esc = pango_escape(prop.matched_text)
-            # Replace the matched portion with highlighted version
-            markup = proposed_esc.replace(
-                matched_esc,
-                f'<span weight="bold">{matched_esc}</span>',
-            )
-        else:
-            # For exact match, highlight the entire proposed name
-            markup = (
-                f'<span weight="bold">{pango_escape(prop.proposed_given_name)}</span>'
-            )
+        # Construct the positional list safely using the map
+        row_data = [row_map[i] for i in range(self._AUDIT_COL__COUNT)]
 
-        self.given_store.append(
-            [
-                True,  # GIVEN_COL_CHECKBOX
-                prop.gramps_id,  # GIVEN_COL_GRAMPS_ID
-                prop.display_name,  # GIVEN_COL_DISPLAY_NAME
-                prop.original_given_name,  # GIVEN_COL_CURRENT
-                markup,  # GIVEN_COL_PROPOSED
-                _(prop.alt_action),  # GIVEN_COL_ALT_ACTION
-                prop.handle,  # GIVEN_COL_HANDLE
-                prop.proposed_given_name,  # GIVEN_COL_PROPOSED_RAW
-            ]
-        )
+        self.audit_store.append(row_data)
+
+    def _append_rename_proposal_to_store(self, prop: ProposedRename) -> None:
+        """Append a given name rename proposal to the GTK store safely."""
+
+        # Map values directly to their respective column index constants
+        row_map = {
+            self.GIVEN_COL_CHECKBOX: True,
+            self.GIVEN_COL_GRAMPS_ID: prop.gramps_id,
+            self.GIVEN_COL_DISPLAY_NAME: prop.display_name,
+            self.GIVEN_COL_CURRENT: prop.original_given_name,
+            self.GIVEN_COL_PROPOSED: prop.proposed_given_name,
+            self.GIVEN_COL_ALT_ACTION: prop.alt_action.value,
+            self.GIVEN_COL_HANDLE: prop.handle,
+            self.GIVEN_COL_PROPOSED_RAW: prop.proposed_given_name,
+        }
+
+        # Construct the positional list safely using the map
+        row_data = [row_map[i] for i in range(self._GIVEN_COL__COUNT)]
+
+        self.given_store.append(row_data)
 
     def update_audit_progress(self, fraction: float, text: str) -> None:
         self.audit_progress.set_fraction(fraction)
