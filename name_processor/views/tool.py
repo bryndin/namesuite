@@ -24,7 +24,7 @@ from name_processor.models.view import GivenRowData, AuditRowData
 if TYPE_CHECKING:
     from name_processor.controllers.tool import ToolController
     from name_processor.models.audit import AuditIssue
-    from name_processor.models.renamer import ProposedRename
+    from name_processor.models.view import GivenRowData
 
 
 logger = logging.getLogger(__name__)
@@ -387,23 +387,10 @@ class ToolWindow:
 
         self.audit_store.append(list(row))
 
-    def _append_rename_proposal_to_store(self, prop: ProposedRename) -> None:
+    def _append_rename_proposal_to_store(self, row_data: GivenRowData) -> None:
         """Append a given name rename proposal to the GTK store safely."""
-
-        # 1. Mypy checks both the name and the type.
-        # Leaving out fields or passing an AltAction enum here triggers a clear compiler error.
-        row = GivenRowData(
-            checkbox=True,
-            gramps_id=prop.gramps_id,
-            display_name=prop.display_name,
-            current=prop.original_given_name,
-            proposed=prop.proposed_given_name,
-            alt_action=prop.alt_action.value,
-            handle=prop.handle,
-        )
-
-        # 2. Convert directly to a sequence for GTK. No indices required.
-        self.given_store.append(list(row))
+        # Convert directly to a sequence for GTK. No indices required.
+        self.given_store.append(list(row_data))
 
     def update_audit_progress(self, fraction: float, text: str) -> None:
         self.audit_progress.set_fraction(fraction)

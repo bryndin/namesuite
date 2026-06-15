@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
 from name_processor.models.audit import AuditScope
 from name_processor.models.person import Gender
-from name_processor.models.renamer import MatchMode, ProposedRename, AltAction
+from name_processor.models.renamer import AltAction, MatchMode
+from name_processor.models.view import GivenRowData
 from name_processor.utils.gtk_runner import run_in_idle_loop
 
 if TYPE_CHECKING:
@@ -52,7 +54,7 @@ class ToolController:
 
         # State Caches
         self._given_names_cache: set[str] = set()
-        self._rename_candidates: dict[str, ProposedRename] = {}
+        self._rename_candidates: dict[str, GivenRowData] = {}
         self._audit_candidates: dict[tuple[str, str], AuditIssue] = {}
 
     def cleanup(self) -> None:
@@ -100,32 +102,50 @@ class ToolController:
     # Tab 1: Rename Names
     # ==========================================
     def run_rename_scan(self, source: str, target: str, match_mode: MatchMode) -> bool:
-        cfg = self._renamer_service.create_config(match_mode, source, target)
-        if not cfg.is_valid:
-            return False
-
         self._view.given_store.clear()
         self._rename_candidates.clear()
         preserve_alt = self._view.preserve_alt_check.get_active()
 
         def scan_generator():
+            try:
+                cfg = self._renamer_service.create_config(match_mode, source, target)
+            except re.error as e:
+                return None, f"Invalid regex pattern: {e.msg}"
+
             found_any = False
             for proxy_chunk in self._read_repo.get_person_proxies_chunked(
                 chunk_size=250
             ):
                 for person_proxy in proxy_chunk:
-                    proposal = self._renamer_service.evaluate_person(person_proxy, cfg)
-                    if proposal:
-                        proposal.alt_action = (
-                            AltAction.PRESERVE if preserve_alt else AltAction.OVERWRITE
+                    proposed_name = self._renamer_service.evaluate_person(
+                        person_proxy.given_name, cfg
+                    )
+                    if proposed_name:
+                        row_data = GivenRowData(
+                            checkbox=True,
+                            gramps_id=person_proxy.gramps_id,
+                            display_name=person_proxy.display_name,
+                            current=person_proxy.given_name,
+                            proposed=proposed_name,
+                            alt_action=(
+                                AltAction.PRESERVE.value
+                                if preserve_alt
+                                else AltAction.OVERWRITE.value
+                            ),
+                            handle=person_proxy.handle,
                         )
-                        self._rename_candidates[person_proxy.handle] = proposal
-                        self._view._append_rename_proposal_to_store(proposal)
+                        self._rename_candidates[person_proxy.handle] = row_data
+                        self._view._append_rename_proposal_to_store(row_data)
                         found_any = True
                 yield None
-            return found_any
+            return found_any, None
 
-        def on_complete(found_any: bool) -> None:
+        def on_complete(result: tuple[bool | None, str | None]) -> None:
+            found_any, error_msg = result
+            if error_msg:
+                self._view.show_ok_dialog("Invalid Regular Expression", error_msg)
+                return
+
             self._view.update_given_apply_button()
             if not found_any:
                 self._view.show_ok_dialog(
@@ -139,8 +159,10 @@ class ToolController:
         """Dynamically updates the proposed rename action on all stored objects
         and refreshes the view.
         """
-        for proposal in self._rename_candidates.values():
-            proposal.alt_action = action
+        for row_data in self._rename_candidates.values():
+            self._rename_candidates[row_data.handle] = row_data._replace(
+                alt_action=action.value
+            )
 
         self._view.update_given_store_actions(action)
 
@@ -163,9 +185,7 @@ class ToolController:
                 if preserve_alt:
                     self._alt_names_service.preserve_primary_name(person)
 
-                self._write_repo.apply_first_name_correction(
-                    t, person, change.proposed_given_name
-                )
+                self._write_repo.apply_first_name_correction(t, person, change.proposed)
 
         return True
 

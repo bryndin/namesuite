@@ -1,42 +1,25 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
 
-from name_processor.models.renamer import (
-    AltAction,
-    MatchMode,
-    ProposedRename,
-    RenameConfig,
-)
-
-if TYPE_CHECKING:
-    from name_processor.protocols.renamer import RenameSubject
+from name_processor.models.renamer import MatchMode, RenameConfig
 
 
 class RenamerService:
     def create_config(
-        self, match_type: MatchMode, source_str: str, target_str: str
+        self, match_type: MatchMode, source: str, target: str
     ) -> RenameConfig:
-        config = RenameConfig(mode=match_type, source=source_str, target=target_str)
+        config = RenameConfig(mode=match_type, source=source, target=target)
         if match_type == MatchMode.REGEX:
-            try:
-                config.pattern = re.compile(source_str)
-            except re.error as e:
-                config.is_valid = False
-                config.error_msg = f"Invalid Regular Expression: {e.msg}"
+            config.pattern = re.compile(source)
         return config
 
-    def evaluate_person(
-        self, person: RenameSubject, cfg: RenameConfig
-    ) -> ProposedRename | None:
-        if not cfg.is_valid or not person:
+    def evaluate_person(self, name: str | None, cfg: RenameConfig) -> str | None:
+        """Returns the transformed given name, or None if no change."""
+        if not name:
             return None
 
-        original_name = person.given_name
-        if not original_name:
-            return None
-
+        original_name = name
         proposed_name = None
 
         if cfg.mode == MatchMode.EXACT:
@@ -51,11 +34,4 @@ class RenamerService:
         if not proposed_name or proposed_name == original_name:
             return None
 
-        return ProposedRename(
-            handle=person.handle,
-            gramps_id=person.gramps_id,
-            display_name=person.display_name,
-            original_given_name=original_name,
-            proposed_given_name=proposed_name,
-            alt_action=AltAction.PRESERVE,
-        )
+        return proposed_name

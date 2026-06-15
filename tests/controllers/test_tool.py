@@ -42,29 +42,37 @@ class TestToolController(unittest.TestCase):
             chronology_service=MagicMock(),
         )
 
-        from name_processor.models.renamer import ProposedRename, AltAction
+        from name_processor.models.renamer import AltAction
+        from name_processor.models.view import GivenRowData
 
-        proposal1 = ProposedRename(
-            handle="handle1",
+        row_data1 = GivenRowData(
+            checkbox=True,
             gramps_id="I0001",
             display_name="Ivan Ivanov",
-            original_given_name="Ivan",
-            proposed_given_name="Ioann",
-            alt_action=AltAction.OVERWRITE,
+            current="Ivan",
+            proposed="Ioann",
+            alt_action=AltAction.OVERWRITE.value,
+            handle="handle1",
         )
-        controller._rename_candidates["handle1"] = proposal1
+        controller._rename_candidates["handle1"] = row_data1
 
         # Toggle preserve on (active=True)
         controller.update_preserve_alt(AltAction.PRESERVE)
 
-        self.assertEqual(proposal1.alt_action, AltAction.PRESERVE)
+        self.assertEqual(
+            controller._rename_candidates["handle1"].alt_action,
+            AltAction.PRESERVE.value,
+        )
         mock_view.update_given_store_actions.assert_called_once_with(AltAction.PRESERVE)
 
         # Toggle preserve off (active=False)
         mock_view.reset_mock()
         controller.update_preserve_alt(AltAction.OVERWRITE)
 
-        self.assertEqual(proposal1.alt_action, AltAction.OVERWRITE)
+        self.assertEqual(
+            controller._rename_candidates["handle1"].alt_action,
+            AltAction.OVERWRITE.value,
+        )
         mock_view.update_given_store_actions.assert_called_once_with(
             AltAction.OVERWRITE
         )

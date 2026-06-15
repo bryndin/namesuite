@@ -18,23 +18,9 @@ class AltAction(Enum):
 
 @dataclass
 class RenameConfig:
-    """Stores and validates user-defined replacement rules."""
+    """Stores user-defined replacement rules."""
 
     mode: MatchMode
     source: str
     target: str
     pattern: re.Pattern | None = None
-    is_valid: bool = True
-    error_msg: str = ""
-
-
-@dataclass
-class ProposedRename:
-    """Represents a single proposed name change for the UI grid."""
-
-    handle: str
-    gramps_id: str
-    display_name: str
-    original_given_name: str
-    proposed_given_name: str
-    alt_action: AltAction
