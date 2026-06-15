@@ -19,6 +19,7 @@ from gramps.gui.editors import EditPerson
 
 from name_processor.models.audit import AuditScope
 from name_processor.models.renamer import MatchMode, AltAction
+from name_processor.models.view import GivenRowData
 
 if TYPE_CHECKING:
     from name_processor.controllers.tool import ToolController
@@ -76,19 +77,6 @@ class ToolWindow:
     GTK Batch Processing Window. Acts as a Passive View in the MVP/MVCS pattern.
     All business logic and long-running tasks are delegated to the controller.
     """
-
-    # Given Names store column indices (Tab 1 - Rename Given Names)
-    GIVEN_COL_CHECKBOX = 0
-    GIVEN_COL_GRAMPS_ID = 1
-    GIVEN_COL_DISPLAY_NAME = 2
-    GIVEN_COL_CURRENT = 3
-    GIVEN_COL_PROPOSED = 4
-    GIVEN_COL_ALT_ACTION = 5
-    GIVEN_COL_HANDLE = 6
-    GIVEN_COL_PROPOSED_RAW = 7
-
-    # Track total count to safely initialize the list size
-    _GIVEN_COL__COUNT = 8
 
     # Audit store column indices (Tab 2 - Audit Patronymics)
     AUDIT_COL_CHECKBOX = 0
@@ -221,7 +209,8 @@ class ToolWindow:
         given_scroll_win.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         given_box.pack_start(given_scroll_win, True, True, 0)
 
-        self.given_store = Gtk.ListStore(bool, str, str, str, str, str, str, str)
+        # See GivenRowData model for column order
+        self.given_store = Gtk.ListStore(bool, str, str, str, str, str, str)
         self.given_tree = Gtk.TreeView(model=self.given_store)
         given_scroll_win.add(self.given_tree)
         self.setup_given_names_rename_columns()
@@ -423,22 +412,20 @@ class ToolWindow:
     def _append_rename_proposal_to_store(self, prop: ProposedRename) -> None:
         """Append a given name rename proposal to the GTK store safely."""
 
-        # Map values directly to their respective column index constants
-        row_map = {
-            self.GIVEN_COL_CHECKBOX: True,
-            self.GIVEN_COL_GRAMPS_ID: prop.gramps_id,
-            self.GIVEN_COL_DISPLAY_NAME: prop.display_name,
-            self.GIVEN_COL_CURRENT: prop.original_given_name,
-            self.GIVEN_COL_PROPOSED: prop.proposed_given_name,
-            self.GIVEN_COL_ALT_ACTION: prop.alt_action.value,
-            self.GIVEN_COL_HANDLE: prop.handle,
-            self.GIVEN_COL_PROPOSED_RAW: prop.proposed_given_name,
-        }
+        # 1. Mypy checks both the name and the type.
+        # Leaving out fields or passing an AltAction enum here triggers a clear compiler error.
+        row = GivenRowData(
+            checkbox=True,
+            gramps_id=prop.gramps_id,
+            display_name=prop.display_name,
+            current=prop.original_given_name,
+            proposed=prop.proposed_given_name,
+            alt_action=prop.alt_action.value,
+            handle=prop.handle,
+        )
 
-        # Construct the positional list safely using the map
-        row_data = [row_map[i] for i in range(self._GIVEN_COL__COUNT)]
-
-        self.given_store.append(row_data)
+        # 2. Convert directly to a sequence for GTK. No indices required.
+        self.given_store.append(list(row))
 
     def update_audit_progress(self, fraction: float, text: str) -> None:
         self.audit_progress.set_fraction(fraction)
@@ -454,7 +441,9 @@ class ToolWindow:
             self.show_ok_dialog(_("No Results"), _("No issues found."))
 
     def update_given_apply_button(self) -> None:
-        has_checked = any(row[self.GIVEN_COL_CHECKBOX] for row in self.given_store)
+        has_checked = any(
+            row[GivenRowData._fields.index("checkbox")] for row in self.given_store
+        )
         self.given_apply_btn.set_sensitive(has_checked)
 
     def update_audit_apply_button(self) -> None:
@@ -468,40 +457,50 @@ class ToolWindow:
         renderer_toggle.connect("toggled", self.on_given_row_toggled)
         self.given_tree.append_column(
             Gtk.TreeViewColumn(
-                _("Use"), renderer_toggle, active=self.GIVEN_COL_CHECKBOX
+                _("Use"), renderer_toggle, active=GivenRowData._fields.index("checkbox")
             )
         )
         col = Gtk.TreeViewColumn(
-            _("ID"), Gtk.CellRendererText(), text=self.GIVEN_COL_GRAMPS_ID
+            _("ID"),
+            Gtk.CellRendererText(),
+            text=GivenRowData._fields.index("gramps_id"),
         )
-        col.set_sort_column_id(self.GIVEN_COL_GRAMPS_ID)
+        col.set_sort_column_id(GivenRowData._fields.index("gramps_id"))
         self.given_tree.append_column(col)
 
         individual_col = Gtk.TreeViewColumn(
-            _("Individual"), Gtk.CellRendererText(), text=self.GIVEN_COL_DISPLAY_NAME
+            _("Individual"),
+            Gtk.CellRendererText(),
+            text=GivenRowData._fields.index("display_name"),
         )
         individual_col.set_expand(True)
-        individual_col.set_sort_column_id(self.GIVEN_COL_DISPLAY_NAME)
+        individual_col.set_sort_column_id(GivenRowData._fields.index("display_name"))
         self.given_tree.append_column(individual_col)
 
         current_col = Gtk.TreeViewColumn(
-            _("Current"), Gtk.CellRendererText(), text=self.GIVEN_COL_CURRENT
+            _("Current"),
+            Gtk.CellRendererText(),
+            text=GivenRowData._fields.index("current"),
         )
         current_col.set_expand(True)
-        current_col.set_sort_column_id(self.GIVEN_COL_CURRENT)
+        current_col.set_sort_column_id(GivenRowData._fields.index("current"))
         self.given_tree.append_column(current_col)
 
         proposed_col = Gtk.TreeViewColumn(
-            _("Proposed"), Gtk.CellRendererText(), markup=self.GIVEN_COL_PROPOSED
+            _("Proposed"),
+            Gtk.CellRendererText(),
+            markup=GivenRowData._fields.index("proposed"),
         )
         proposed_col.set_expand(True)
-        proposed_col.set_sort_column_id(self.GIVEN_COL_PROPOSED_RAW)
+        proposed_col.set_sort_column_id(GivenRowData._fields.index("proposed"))
         self.given_tree.append_column(proposed_col)
 
         action_col = Gtk.TreeViewColumn(
-            _("Action"), Gtk.CellRendererText(), text=self.GIVEN_COL_ALT_ACTION
+            _("Action"),
+            Gtk.CellRendererText(),
+            text=GivenRowData._fields.index("alt_action"),
         )
-        action_col.set_sort_column_id(self.GIVEN_COL_ALT_ACTION)
+        action_col.set_sort_column_id(GivenRowData._fields.index("alt_action"))
         self.given_tree.append_column(action_col)
 
     def setup_audit_columns(self) -> None:
@@ -585,14 +584,14 @@ class ToolWindow:
         """Update the Action column in given_store to match the new action."""
         translated_action = _(new_action.value)
         for row in self.given_store:
-            row[self.GIVEN_COL_ALT_ACTION] = translated_action
+            row[GivenRowData._fields.index("alt_action")] = translated_action
 
     # --- Row Toggle Handlers ---
 
     def on_given_row_toggled(self, widget: Any, path: str) -> None:
-        self.given_store[path][self.GIVEN_COL_CHECKBOX] = not self.given_store[path][
-            self.GIVEN_COL_CHECKBOX
-        ]
+        self.given_store[path][
+            GivenRowData._fields.index("checkbox")
+        ] = not self.given_store[path][GivenRowData._fields.index("checkbox")]
         self.update_given_apply_button()
 
     def on_audit_row_toggled(self, widget: Any, path: str) -> None:
@@ -610,7 +609,7 @@ class ToolWindow:
 
     def on_given_select_all_toggled(self, widget: Any) -> None:
         for row in self.given_store:
-            row[self.GIVEN_COL_CHECKBOX] = widget.get_active()
+            row[GivenRowData._fields.index("checkbox")] = widget.get_active()
         self.update_given_apply_button()
 
     def on_audit_select_all_toggled(self, widget: Any) -> None:
@@ -664,14 +663,14 @@ class ToolWindow:
     def on_given_row_activated(
         self, tv: Gtk.TreeView, path: str, col: Gtk.TreeViewColumn
     ) -> None:
-        self._open_person_edit_dialog(tv, path, self.GIVEN_COL_HANDLE)
+        self._open_person_edit_dialog(tv, path, GivenRowData._fields.index("handle"))
 
     def get_checked_renaming_handles(self) -> set[str]:
         """Returns the set of person handles for checked renaming rows."""
         return {
-            row[self.GIVEN_COL_HANDLE]
+            row[GivenRowData._fields.index("handle")]
             for row in self.given_store
-            if row[self.GIVEN_COL_CHECKBOX]
+            if row[GivenRowData._fields.index("checkbox")]
         }
 
     def get_checked_audit_keys(self) -> set[tuple[str, str]]:
