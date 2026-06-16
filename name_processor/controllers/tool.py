@@ -135,9 +135,9 @@ class ToolController:
         self._is_rename_scanning = True
         self._view.clear_rename_proposals()
 
-        self._view.given_store.clear()
+        self._view.clear_given_store()
         self._rename_candidates.clear()
-        preserve_alt = self._view.preserve_alt_check.get_active()
+        preserve_alt = self._view.is_preserve_alt_enabled()
 
         def scan_generator() -> Generator[None, None, tuple[bool, str | None]]:
             try:
@@ -192,7 +192,7 @@ class ToolController:
         if not handles:
             return False
 
-        preserve_alt = self._view.preserve_alt_check.get_active()
+        preserve_alt = self._view.is_preserve_alt_enabled()
         approved_changes = [
             self._rename_candidates[h] for h in handles if h in self._rename_candidates
         ]
@@ -266,7 +266,7 @@ class ToolController:
 
         def on_complete(total_processed: int | None) -> None:
             self._is_audit_scanning = False
-            self._view.on_audit_complete(len(self._view.audit_issues))
+            self._view.on_audit_complete(len(self._audit_candidates))
 
         run_in_idle_loop(scan_generator(), on_complete)
         return True

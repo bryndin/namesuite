@@ -137,6 +137,10 @@ class ToolWindow:
         """Clears the given names proposals list."""
         self.given_store.clear()
 
+    def is_preserve_alt_enabled(self) -> bool:
+        """Returns whether the preserve alternative names checkbox is enabled."""
+        return self.preserve_alt_check.get_active()
+
     def build_window(self) -> None:
         self.window = Gtk.Window(title=_("Infer East Slavic Patronymics"))
         self.window.set_default_size(900, 600)
@@ -329,10 +333,8 @@ class ToolWindow:
             )
             return
 
-        has_results = self.controller.run_rename_scan(source, target, match_mode)
+        self.controller.run_rename_scan(source, target, match_mode)
         self.update_given_apply_button()
-        if not has_results:
-            self.show_ok_dialog(_("No Results"), _("No matching given names found."))
 
     def on_given_apply_clicked(self, widget: Any) -> None:
         if self.controller.apply_checked_renamings():
@@ -368,6 +370,10 @@ class ToolWindow:
     def clear_audit_results(self) -> None:
         self.audit_store.clear()
         self.audit_issues = []
+
+    def get_audit_result_count(self) -> int:
+        """Returns the number of audit issues currently displayed."""
+        return len(self.audit_issues)
 
     def append_issue(self, issue: AuditIssue) -> None:
         """Append an audit issue to the treeview store with Pango markup formatting."""
@@ -678,6 +684,10 @@ class ToolWindow:
             for row in self.audit_store
             if row[AuditRowData._fields.index("checkbox")]
         }
+
+    def get_enabled_audit_rules(self) -> set[str]:
+        """Returns the set of enabled audit rule IDs."""
+        return {r_id for r_id, enabled in self.enabled_rules.items() if enabled}
 
     def show_ok_dialog(self, title: str, message: str) -> None:
         OkDialog(title, message, self.window)
