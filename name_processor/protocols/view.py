@@ -1,10 +1,13 @@
 # name_processor/protocols/view.py
-from typing import Protocol
+from collections.abc import Callable, Generator
+from typing import Protocol, TypeVar
 
 from name_processor.models.audit import AuditIssue
 from name_processor.models.infer import PatronymicInferenceStatus
 from name_processor.models.renamer import AltAction
 from name_processor.presentation.row_schemas import GivenRowData
+
+T = TypeVar("T")
 
 
 class ToolViewPort(Protocol):
@@ -59,3 +62,21 @@ class GrampletViewPort(Protocol):
     def show_suggestion(self, patronymic: str, father_name: str) -> None: ...
 
     def display_error(self, title_key: str, message: str) -> None: ...
+
+
+class BackgroundTaskRunner(Protocol):
+    """Protocol for running chunked background tasks without freezing UI."""
+
+    def run_chunked(
+        self,
+        generator: Generator[None, None, T],
+        on_complete: Callable[[T | None], None] | None = None,
+    ) -> None:
+        """
+        Execute a generator in chunks, yielding control periodically.
+
+        Args:
+            generator: A generator yielding control periodically.
+            on_complete: Callback executed with the generator's final return value.
+        """
+        ...
