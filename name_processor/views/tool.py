@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from enum import Enum
 import logging
-import re
 from typing import Any, Callable, TYPE_CHECKING
 
 from gi.repository import Gtk
@@ -279,6 +278,10 @@ class ToolWindow:
     # --- Scanning & Processing Callbacks ---
 
     def on_given_scan_clicked(self, widget: Any) -> None:
+        """Handler for the Scan button click. Reads widget state and delegates to controller."""
+        if not self.controller:
+            return
+
         source = self.given_source_entry.get_text().strip()
         target = self.given_target_entry.get_text().strip()
         match_type = self.given_match_type_combo.get_active()
@@ -288,32 +291,9 @@ class ToolWindow:
             MatchModeIndex.SUBSTRING.value: MatchMode.SUBSTRING,
             MatchModeIndex.REGEX.value: MatchMode.REGEX,
         }
-        match_mode = mode_map.get(match_type, None)
+        match_mode = mode_map.get(match_type, MatchMode.EXACT)
 
-        # Validate source input
-        if not source:
-            self.show_ok_dialog(_("Invalid Input"), _("Source name cannot be empty."))
-            return
-
-        # Validate regex pattern when Regular Expression match mode is selected
-        if match_mode == MatchMode.REGEX:
-            try:
-                re.compile(source)
-            except re.error:
-                self.show_ok_dialog(
-                    _("Invalid Input"),
-                    _("Invalid regular expression pattern in source name."),
-                )
-                return
-
-        # Validate target input for non-empty when provided
-        if target and not target.strip():
-            self.show_ok_dialog(
-                _("Invalid Input"), _("Target name cannot contain only whitespace.")
-            )
-            return
-
-        self.controller.run_rename_scan(source, target, match_mode)
+        self.controller.on_rename_scan_requested(source, target, match_mode)
         self.update_given_apply_button()
 
     def on_given_apply_clicked(self, widget: Any) -> None:

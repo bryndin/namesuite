@@ -12,6 +12,7 @@ from name_processor.controllers.tool import ToolController  # noqa: E402
 from name_processor.models.audit import AuditScope  # noqa: E402
 from name_processor.models.renamer import AltAction, MatchMode  # noqa: E402
 from name_processor.presentation.row_schemas import GivenRowData  # noqa: E402
+from name_processor.protocols.view import ToolViewPort  # noqa: E402
 
 
 class TestToolController(unittest.TestCase):
@@ -430,6 +431,127 @@ class TestToolController(unittest.TestCase):
 
         # Verify scanning flag was reset
         self.assertFalse(controller._is_audit_scanning)
+
+
+class TestToolControllerRenameValidation(unittest.TestCase):
+    """Test cases for ToolController rename scan validation."""
+
+    def setUp(self):
+        """Set up test fixtures with mocked dependencies."""
+        self.mock_view = MagicMock(spec=ToolViewPort)
+        self.mock_read_repo = MagicMock()
+        self.mock_write_repo = MagicMock()
+        self.mock_renamer_service = MagicMock()
+        self.mock_alt_names_service = MagicMock()
+        self.mock_patronymic_service = MagicMock()
+        self.mock_audit_service = MagicMock()
+        self.mock_chronology_service = MagicMock()
+        self.mock_tool_instance = MagicMock()
+        self.mock_tool_instance.dbstate = MagicMock()
+        self.mock_tool_instance.dbstate.db = MagicMock()
+
+        self.controller = ToolController(
+            tool_instance=self.mock_tool_instance,
+            view=self.mock_view,
+            read_repo=self.mock_read_repo,
+            write_repo=self.mock_write_repo,
+            renamer_service=self.mock_renamer_service,
+            alt_names_service=self.mock_alt_names_service,
+            patronymic_service=self.mock_patronymic_service,
+            audit_service=self.mock_audit_service,
+            chronology_service=self.mock_chronology_service,
+        )
+
+    def test_validate_rename_input_empty_source(self):
+        """Validation should fail when source is empty."""
+        is_valid, error = self.controller._validate_rename_input(
+            "", "Ivan", MatchMode.EXACT
+        )
+        self.assertFalse(is_valid)
+        self.assertEqual(error, "Source name cannot be empty.")
+
+    def test_validate_rename_input_whitespace_source(self):
+        """Validation should fail when source is only whitespace."""
+        is_valid, error = self.controller._validate_rename_input(
+            "   ", "Ivan", MatchMode.EXACT
+        )
+        self.assertFalse(is_valid)
+        self.assertEqual(error, "Source name cannot be empty.")
+
+    def test_validate_rename_input_invalid_regex(self):
+        """Validation should fail for invalid regex pattern."""
+        is_valid, error = self.controller._validate_rename_input(
+            "[invalid(", "Ivan", MatchMode.REGEX
+        )
+        self.assertFalse(is_valid)
+        self.assertEqual(error, "Invalid regular expression pattern in source name.")
+
+    def test_validate_rename_input_valid_regex(self):
+        """Validation should pass for valid regex pattern."""
+        is_valid, error = self.controller._validate_rename_input(
+            "Иоанн", "Ivan", MatchMode.REGEX
+        )
+        self.assertTrue(is_valid)
+        self.assertIsNone(error)
+
+    def test_validate_rename_input_whitespace_target(self):
+        """Validation should fail when target is only whitespace."""
+        is_valid, error = self.controller._validate_rename_input(
+            "Иоанн", "   ", MatchMode.EXACT
+        )
+        self.assertFalse(is_valid)
+        self.assertEqual(error, "Target name cannot contain only whitespace.")
+
+    def test_validate_rename_input_empty_target_allowed(self):
+        """Validation should pass when target is empty (optional field)."""
+        is_valid, error = self.controller._validate_rename_input(
+            "Иоанн", "", MatchMode.EXACT
+        )
+        self.assertTrue(is_valid)
+        self.assertIsNone(error)
+
+    def test_validate_rename_input_valid_exact_mode(self):
+        """Validation should pass for valid exact mode input."""
+        is_valid, error = self.controller._validate_rename_input(
+            "Иоанн", "Ivan", MatchMode.EXACT
+        )
+        self.assertTrue(is_valid)
+        self.assertIsNone(error)
+
+    def test_on_rename_scan_requested_empty_source_shows_dialog(self):
+        """Empty source should show error dialog and not start scan."""
+        self.controller.on_rename_scan_requested("", "Ivan", MatchMode.EXACT)
+
+        self.mock_view.show_ok_dialog.assert_called_once()
+        args = self.mock_view.show_ok_dialog.call_args[0]
+        self.assertEqual(args[0], "Invalid Input")
+        self.assertEqual(args[1], "Source name cannot be empty.")
+
+    def test_on_rename_scan_requested_invalid_regex_shows_dialog(self):
+        """Invalid regex should show error dialog and not start scan."""
+        self.controller.on_rename_scan_requested("[invalid(", "Ivan", MatchMode.REGEX)
+
+        self.mock_view.show_ok_dialog.assert_called_once()
+        args = self.mock_view.show_ok_dialog.call_args[0]
+        self.assertEqual(args[0], "Invalid Input")
+        self.assertIn("Invalid regular expression", args[1])
+
+    def test_on_rename_scan_requested_whitespace_target_shows_dialog(self):
+        """Whitespace-only target should show error dialog and not start scan."""
+        self.controller.on_rename_scan_requested("Иоанн", "   ", MatchMode.EXACT)
+
+        self.mock_view.show_ok_dialog.assert_called_once()
+        args = self.mock_view.show_ok_dialog.call_args[0]
+        self.assertEqual(args[0], "Invalid Input")
+        self.assertEqual(args[1], "Target name cannot contain only whitespace.")
+
+    def test_on_rename_scan_requested_valid_calls_run_rename_scan(self):
+        """Valid input should call run_rename_scan without showing dialog."""
+        with patch.object(self.controller, "run_rename_scan") as mock_scan:
+            self.controller.on_rename_scan_requested("Иоанн", "Ivan", MatchMode.EXACT)
+
+            mock_scan.assert_called_once_with("Иоанн", "Ivan", MatchMode.EXACT)
+            self.mock_view.show_ok_dialog.assert_not_called()
 
 
 if __name__ == "__main__":

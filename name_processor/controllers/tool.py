@@ -106,6 +106,63 @@ class ToolController:
     # ==========================================
     # Tab 1: Rename Names
     # ==========================================
+    def _validate_rename_input(
+        self, source: str, target: str, match_mode: MatchMode
+    ) -> tuple[bool, str | None]:
+        """
+        Validates rename scan input parameters.
+
+        Args:
+            source: Source name pattern to search for
+            target: Target name to replace with
+            match_mode: Match mode (EXACT, SUBSTRING, or REGEX)
+
+        Returns:
+            tuple[bool, str | None]: (is_valid, error_message)
+            - If valid: (True, None)
+            - If invalid: (False, error_message)
+        """
+        # Validate source is not empty or whitespace-only
+        if not source or not source.strip():
+            return False, "Source name cannot be empty."
+
+        # Validate regex pattern when Regular Expression match mode is selected
+        if match_mode == MatchMode.REGEX:
+            try:
+                re.compile(source)
+            except re.error:
+                return False, "Invalid regular expression pattern in source name."
+
+        # Validate target is not whitespace-only
+        if target and not target.strip():
+            return False, "Target name cannot contain only whitespace."
+
+        return True, None
+
+    def on_rename_scan_requested(
+        self, source: str, target: str, match_mode: MatchMode
+    ) -> None:
+        """
+        Handles rename scan request from the view after input validation.
+
+        Validates the input parameters and shows an error dialog via the view
+        if validation fails. Otherwise, initiates the scan.
+
+        Args:
+            source: Source name pattern to search for
+            target: Target name to replace with
+            match_mode: Match mode (EXACT, SUBSTRING, or REGEX)
+        """
+        is_valid, error_message = self._validate_rename_input(
+            source, target, match_mode
+        )
+
+        if not is_valid:
+            self._view.show_ok_dialog("Invalid Input", error_message)
+            return
+
+        self.run_rename_scan(source, target, match_mode)
+
     def _propose_rename(
         self, person: GrampsPersonProxy, cfg: RenameConfig, preserve_alt: bool
     ) -> GivenRowData | None:
