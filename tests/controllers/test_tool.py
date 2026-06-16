@@ -8,10 +8,10 @@ from tests.compat_mocks import mock_gramps
 
 mock_gramps()
 
-from name_processor.controllers.tool import ToolController
-from name_processor.models.audit import AuditScope
-from name_processor.models.renamer import AltAction, MatchMode
-from name_processor.models.view import GivenRowData
+from name_processor.controllers.tool import ToolController  # noqa: E402
+from name_processor.models.audit import AuditScope  # noqa: E402
+from name_processor.models.renamer import AltAction, MatchMode  # noqa: E402
+from name_processor.presentation.row_schemas import GivenRowData  # noqa: E402
 
 
 class TestToolController(unittest.TestCase):

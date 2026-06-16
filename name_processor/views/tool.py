@@ -19,12 +19,16 @@ from gramps.gui.editors import EditPerson
 
 from name_processor.models.audit import AuditScope
 from name_processor.models.renamer import MatchMode, AltAction
-from name_processor.models.view import GivenRowData, AuditRowData
+from name_processor.presentation.markup import (
+    generate_pango_diff,
+    format_confidence,
+)
+from name_processor.presentation.row_schemas import GivenRowData, AuditRowData
 
 if TYPE_CHECKING:
     from name_processor.controllers.tool import ToolController
     from name_processor.models.audit import AuditIssue
-    from name_processor.models.view import GivenRowData
+    from name_processor.presentation.row_schemas import GivenRowData
 
 
 logger = logging.getLogger(__name__)
@@ -46,30 +50,6 @@ class MatchModeLabel(Enum):
     EXACT = "Exact Match"
     SUBSTRING = "Substring"
     REGEX = "Regular Expression"
-
-
-def pango_escape(text: str) -> str:
-    """Escapes XML special characters to prevent GTK Pango parsing crashes."""
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-
-def generate_pango_diff(old_str: str, new_str: str) -> str:
-    """
-    Generates a simple before/after diff in Pango markup.
-    Format: <current> -> <suggested>
-    Example: Иванович -> Ивановна
-    """
-    old_esc = pango_escape(old_str)
-    new_esc = pango_escape(new_str)
-
-    if not old_esc and not new_esc:
-        return ""
-    if not old_esc:
-        return f"<span weight='bold'>{new_esc}</span>"
-    if not new_esc:
-        return f"{old_esc}"
-
-    return f"{old_esc} → <span weight='bold'>{new_esc}</span>"
 
 
 class ToolWindow:
@@ -379,7 +359,7 @@ class ToolWindow:
         """Append an audit issue to the treeview store with Pango markup formatting."""
         diff_markup = generate_pango_diff(issue.current_value, issue.suggested_fix)
 
-        confidence_str = f"{int(getattr(issue, 'confidence', 0) * 100)}%"
+        confidence_str = format_confidence(getattr(issue, "confidence", 0))
 
         row = AuditRowData(
             checkbox=True,

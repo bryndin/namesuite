@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Generator
 from name_processor.models.audit import AuditScope
 from name_processor.models.person import Gender
 from name_processor.models.renamer import AltAction, MatchMode
-from name_processor.models.view import GivenRowData
+from name_processor.presentation.row_schemas import GivenRowData
 from name_processor.utils.gtk_runner import run_in_idle_loop
 
 if TYPE_CHECKING:

@@ -4,7 +4,7 @@ from typing import Protocol
 from name_processor.models.audit import AuditIssue
 from name_processor.models.infer import PatronymicInferenceStatus
 from name_processor.models.renamer import AltAction
-from name_processor.models.view import GivenRowData
+from name_processor.presentation.row_schemas import GivenRowData
 
 
 class ToolViewPort(Protocol):

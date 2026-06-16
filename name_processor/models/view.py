@@ -1,32 +1,11 @@
-from typing import NamedTuple
+"""DEPRECATED: Row schemas moved to presentation.row_schemas.
 
+This module provides backward compatibility by re-exporting row schemas.
+Import from name_processor.presentation.row_schemas instead.
+"""
 
-# Given Names store column indices (Tab 1 - Rename Given Names)
-# Important: Order must match the actual column definitions in the GTK store
-# Note: `handle` column is internal and not displayed in the UI
-class GivenRowData(NamedTuple):
-    checkbox: bool
-    gramps_id: str
-    display_name: str
-    current: str
-    proposed: str
-    alt_action: str
-    handle: str
+# Backward compatibility re-exports
+from name_processor.presentation.row_schemas import GivenRowData, AuditRowData
 
-
-# Audit store column indices (Tab 2 - Audit Patronymics)
-# Important: Order must match the actual column definitions in the GTK store
-# Note: `handle` column is internal and not displayed in the UI
-class AuditRowData(NamedTuple):
-    checkbox: bool
-    display_name: str
-    gramps_id: str
-    father_name: str
-    current_patronymic: str
-    diff_markup: str
-    confidence: str
-    ref_year: str
-    rule_id: str
-    handle: str
-    suggested_string: str
-    explanation: str
+# TODO: Remove this module in future versions
+__all__ = ["GivenRowData", "AuditRowData"]

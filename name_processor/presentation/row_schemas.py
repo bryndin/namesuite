@@ -1,0 +1,43 @@
+"""Row schema data structures for GTK ListStore column definitions.
+
+These NamedTuples define the column order and types for GTK ListStore widgets.
+The order must match the actual column definitions in the GTK store.
+Note: `handle` column is internal and not displayed in the UI.
+"""
+
+from typing import NamedTuple
+
+
+# Given Names store column indices (Tab 1 - Rename Given Names)
+# Important: Order must match the actual column definitions in the GTK store
+# Note: `handle` column is internal and not displayed in the UI
+class GivenRowData(NamedTuple):
+    """Row data for the Given Names rename proposals table."""
+
+    checkbox: bool
+    gramps_id: str
+    display_name: str
+    current: str
+    proposed: str
+    alt_action: str
+    handle: str
+
+
+# Audit store column indices (Tab 2 - Audit Patronymics)
+# Important: Order must match the actual column definitions in the GTK store
+# Note: `handle` column is internal and not displayed in the UI
+class AuditRowData(NamedTuple):
+    """Row data for the Audit Patronymics results table."""
+
+    checkbox: bool
+    display_name: str
+    gramps_id: str
+    father_name: str
+    current_patronymic: str
+    diff_markup: str
+    confidence: str
+    ref_year: str
+    rule_id: str
+    handle: str
+    suggested_string: str
+    explanation: str
