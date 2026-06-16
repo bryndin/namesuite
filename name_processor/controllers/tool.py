@@ -23,14 +23,14 @@ if TYPE_CHECKING:
     from name_processor.services.chronology import ChronologyService
     from name_processor.services.patronymic import PatronymicInferenceService
     from name_processor.services.renamer import RenamerService, RenameConfig
-    from name_processor.views.tool import ToolWindow
+    from name_processor.protocols.view import ToolViewPort
 
 
 class ToolController:
     def __init__(
         self,
         tool_instance: NamesTool,
-        view: ToolWindow,
+        view: ToolViewPort,
         read_repo: GrampsReadRepository,
         write_repo: GrampsWriteRepository,
         renamer_service: RenamerService,

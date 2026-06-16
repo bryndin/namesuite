@@ -87,18 +87,18 @@ class GrampletView:
 
     def show_status_message(
         self, message_key: PatronymicInferenceStatus, apply_sensitive: bool = False
-    ):
+    ) -> None:
         """Display a status message from the MESSAGES dictionary."""
         self._label.set_text(self.MESSAGES.get(message_key, ""))
         self._apply_btn.set_sensitive(apply_sensitive)
 
-    def show_suggestion(self, patronymic: str, father_name: str):
+    def show_suggestion(self, patronymic: str, father_name: str) -> None:
         """Display a patronymic suggestion with the father's name."""
         self._label.set_text(
             self.MESSAGES["SUGGESTION_TEMPLATE"].format(patronymic, father_name)
         )
         self._apply_btn.set_sensitive(True)
 
-    def display_error(self, title_key: str, message: str):
+    def display_error(self, title_key: str, message: str) -> None:
         """Display an error dialog."""
         ErrorDialog(_(title_key), message, self.gramplet.gui.get_window())

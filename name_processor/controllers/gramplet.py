@@ -10,13 +10,13 @@ if TYPE_CHECKING:
     from name_processor.repositories.gramps_write import GrampsWriteRepository
     from name_processor.services.patronymic import PatronymicInferenceService
     from name_processor.services.chronology import ChronologyService
-    from name_processor.views.gramplet import GrampletView
+    from name_processor.protocols.view import GrampletViewPort
 
 
 class GrampletController:
     def __init__(
         self,
-        view: GrampletView,
+        view: GrampletViewPort,
         patronymic_service: PatronymicInferenceService,
         chronology_service: ChronologyService,
         read_repo: GrampsReadRepository,
@@ -62,6 +62,12 @@ class GrampletController:
         res = self._patronymic_service.infer_patronymic(handle)
 
         if res.status == PatronymicInferenceStatus.SUCCESS:
+            assert res.patronymic is not None, (
+                "patronymic should not be None on SUCCESS"
+            )
+            assert res.father_name is not None, (
+                "father_name should not be None on SUCCESS"
+            )
             self._suggested_patronymic = res.patronymic
             self._view.show_suggestion(res.patronymic, res.father_name)
         else:
