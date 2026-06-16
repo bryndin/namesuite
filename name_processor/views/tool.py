@@ -96,6 +96,7 @@ class ToolWindow:
         self.enabled_rules = {
             rule_id: True for rule_id in self.controller.get_available_audit_rules()
         }
+        # TODO: consider moving this to the controller
         # Set up autocompletion for given name entry
         self.setup_given_name_autocompletion()
         # Run background calculations and fetch historical logs on display

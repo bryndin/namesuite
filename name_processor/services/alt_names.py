@@ -1,36 +1,46 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from gramps.gen.lib import Name, NameType
 
 if TYPE_CHECKING:
     from gramps.gen.lib import Person
+    from name_processor.repositories.gramps_read import GrampsReadRepository
 
 
 class AltNamesService:
+    """Thin wrapper for alternate name operations delegated to read repository."""
+
+    def __init__(self, read_repo: GrampsReadRepository | None = None) -> None:
+        """
+        Initialize with optional read repository for delegation.
+        If not provided, methods will need to be called with repository explicitly.
+        """
+        self._read_repo = read_repo
+
     def preserve_primary_name(self, gramps_person: Person) -> None:
         """
+        Delegates to GrampsReadRepository.preserve_primary_name.
         Creates a deep copy of the person's current primary name and appends it
         to their Alternative Names list. Retains all attached citations and dates.
         """
-        primary_name = gramps_person.get_primary_name()
-        if not primary_name:
-            return
-
-        # Gramps domain objects support deep copy via the 'source' kwarg
-        preserved_name = Name(source=primary_name)
-
-        # Reclassify the preserved name to distinguish it from the new primary
-        preserved_name.set_type(NameType(NameType.AKA))
-
-        gramps_person.add_alternate_name(preserved_name)
+        if self._read_repo:
+            self._read_repo.preserve_primary_name(gramps_person)
+        else:
+            raise RuntimeError(
+                "AltNamesService not initialized with read_repo. "
+                "Use GrampsReadRepository.preserve_primary_name directly."
+            )
 
     def is_protected_by_alias(self, gramps_person: Person, search_str: str) -> bool:
         """
+        Delegates to GrampsReadRepository.is_protected_by_alias.
         Checks if a specific string exists within the alternative names.
         Used to skip renaming if the string is a known historical alias or maiden name.
         """
-        for alt_name in gramps_person.get_alternate_names():
-            if search_str in alt_name.get_first_name():
-                return True
-        return False
+        if self._read_repo:
+            return self._read_repo.is_protected_by_alias(gramps_person, search_str)
+        else:
+            raise RuntimeError(
+                "AltNamesService not initialized with read_repo. "
+                "Use GrampsReadRepository.is_protected_by_alias directly."
+            )

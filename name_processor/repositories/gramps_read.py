@@ -43,6 +43,36 @@ class GrampsReadRepository:
         """Returns an Event object from its handle, or None if not found."""
         return self._db.get_event_from_handle(handle)
 
+    def preserve_primary_name(self, person: object) -> None:
+        """
+        Creates a deep copy of the person's current primary name and appends it
+        to their Alternative Names list. Retains all attached citations and dates.
+        This is a read operation that prepares data for later write operations.
+        """
+        from gramps.gen.lib import Name, NameType
+
+        primary_name = person.get_primary_name()
+        if not primary_name:
+            return
+
+        # Gramps domain objects support deep copy via the 'source' kwarg
+        preserved_name = Name(source=primary_name)
+
+        # Reclassify the preserved name to distinguish it from the new primary
+        preserved_name.set_type(NameType(NameType.AKA))
+
+        person.add_alternate_name(preserved_name)
+
+    def is_protected_by_alias(self, person: object, search_str: str) -> bool:
+        """
+        Checks if a specific string exists within the alternative names.
+        Used to skip renaming if the string is a known historical alias or maiden name.
+        """
+        for alt_name in person.get_alternate_names():
+            if search_str in alt_name.get_first_name():
+                return True
+        return False
+
     def get_all_person_handles(self) -> list[str]:
         """Returns a list of all person handles."""
         return self._db.get_person_handles()
@@ -104,6 +134,29 @@ class GrampsReadRepository:
                     if child_handle and child_handle != person_handle:
                         siblings.append(child_handle)
         return siblings
+
+    def get_father_proxy(self, person_handle: str) -> GrampsPersonProxy | None:
+        """
+        Returns a GrampsPersonProxy for the father of the given person.
+        Returns None if the person has no father or father not found.
+        """
+        father_handle = self.get_father_handle(person_handle)
+        if not father_handle:
+            return None
+        return self.get_person_proxy(father_handle)
+
+    def get_siblings_proxies(self, person_handle: str) -> list[GrampsPersonProxy]:
+        """
+        Returns a list of GrampsPersonProxy objects for all siblings of the given person.
+        Returns empty list if person has no siblings.
+        """
+        sibling_handles = self.get_siblings_handles(person_handle)
+        proxies = []
+        for handle in sibling_handles:
+            proxy = self.get_person_proxy(handle)
+            if proxy:
+                proxies.append(proxy)
+        return proxies
 
     def get_event_years(self, person_handle: str) -> list[int]:
         """Returns a list of years from a person's events."""

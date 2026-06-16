@@ -69,7 +69,7 @@ class ToolController:
 
     def get_gramps_person(self, handle: str) -> Any:
         """Used by the view to open the native Gramps Person Editor."""
-        return self._read_repo.get_raw_person(handle)
+        return self._read_repo.get_person_from_handle(handle)
 
     # ==========================================
     # Initialization & Caching
@@ -111,7 +111,7 @@ class ToolController:
     ) -> GivenRowData | None:
         """Evaluates a single person and returns UI row data if a match occurs."""
         proposed_name = self._renamer_service.evaluate_person(
-            person.get_primary_name().get_first_name(), cfg
+            person.given_name or "", cfg
         )
         if not proposed_name:
             return None
@@ -199,7 +199,7 @@ class ToolController:
 
         with self._write_repo.transaction("Batch Given Name Renaming") as t:
             for change in approved_changes:
-                person = self._read_repo.get_raw_person(change.handle)
+                person = self._read_repo.get_person_from_handle(change.handle)
                 if not person:
                     continue
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import unittest
-from typing import Generator
 from unittest.mock import MagicMock
 
 from name_processor.services.chronology import ChronologyService

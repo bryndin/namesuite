@@ -36,7 +36,7 @@ class NamesTool(tool.Tool):
             self._read_repo, self._confidence_service, self._chronology_service
         )
 
-        self._alt_names_service = AltNamesService()
+        self._alt_names_service = AltNamesService(self._read_repo)
         self._renamer_service = RenamerService()
         self._audit_service = AuditService(
             read_repo=self._read_repo,
