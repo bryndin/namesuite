@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable, Generator
 from typing import TypeVar
 
-from name_processor.protocols.view import BackgroundTaskRunner
 
 T = TypeVar("T")
 

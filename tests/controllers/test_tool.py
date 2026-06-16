@@ -13,6 +13,7 @@ from name_processor.models.audit import AuditScope  # noqa: E402
 from name_processor.models.renamer import AltAction, MatchMode  # noqa: E402
 from name_processor.presentation.row_schemas import GivenRowData  # noqa: E402
 from name_processor.protocols.view import ToolViewPort  # noqa: E402
+from tests.fakes.fake_tool_view import FakeToolView  # noqa: E402
 
 
 class TestToolController(unittest.TestCase):
@@ -39,11 +40,11 @@ class TestToolController(unittest.TestCase):
     def test_update_preserve_alt(self) -> None:
         mock_dbstate = MagicMock()
         mock_tool = MagicMock(dbstate=mock_dbstate)
-        mock_view = MagicMock()
+        fake_view = FakeToolView()
 
         controller = ToolController(
             tool_instance=mock_tool,
-            view=mock_view,
+            view=fake_view,
             read_repo=MagicMock(),
             write_repo=MagicMock(),
             patronymic_service=MagicMock(),
@@ -71,24 +72,24 @@ class TestToolController(unittest.TestCase):
             controller._rename_candidates["handle1"].alt_action,
             AltAction.PRESERVE.value,
         )
-        mock_view.update_given_store_actions.assert_called_once_with(AltAction.PRESERVE)
+        # Verify FakeToolView recorded the action update
+        self.assertEqual(len(fake_view.store_action_updates), 1)
+        self.assertEqual(fake_view.store_action_updates[0], AltAction.PRESERVE)
 
         # Toggle preserve off (active=False)
-        mock_view.reset_mock()
         controller.update_preserve_alt(AltAction.OVERWRITE)
 
         self.assertEqual(
             controller._rename_candidates["handle1"].alt_action,
             AltAction.OVERWRITE.value,
         )
-        mock_view.update_given_store_actions.assert_called_once_with(
-            AltAction.OVERWRITE
-        )
+        self.assertEqual(len(fake_view.store_action_updates), 2)
+        self.assertEqual(fake_view.store_action_updates[1], AltAction.OVERWRITE)
 
     @patch("name_processor.controllers.tool.run_in_idle_loop")
     def test_run_rename_scan_exact_mode_filtering(self, mock_run_in_idle_loop):
         mock_tool = MagicMock()
-        mock_view = MagicMock()
+        fake_view = FakeToolView()
         mock_read_repo = MagicMock()
         from name_processor.services.renamer import RenamerService
 
@@ -120,7 +121,7 @@ class TestToolController(unittest.TestCase):
 
         controller = ToolController(
             tool_instance=mock_tool,
-            view=mock_view,
+            view=fake_view,
             read_repo=mock_read_repo,
             write_repo=MagicMock(),
             patronymic_service=MagicMock(),
@@ -150,15 +151,15 @@ class TestToolController(unittest.TestCase):
         # Verify that append_rename_proposal was called ONLY for 'Ivan'
         # With the bug, it will be called twice (for Ivan AND Petr)
         self.assertEqual(
-            mock_view.append_rename_proposal.call_count,
+            len(fake_view.rename_proposals),
             1,
-            f"Expected 1 call, but got {mock_view.append_rename_proposal.call_count}",
+            f"Expected 1 proposal, but got {len(fake_view.rename_proposals)}",
         )
 
     @patch("name_processor.controllers.tool.run_in_idle_loop")
     def test_run_rename_scan_no_results(self, mock_run_in_idle_loop):
         mock_tool = MagicMock()
-        mock_view = MagicMock()
+        fake_view = FakeToolView()
         mock_read_repo = MagicMock()
         mock_renamer_service = MagicMock()
 
@@ -169,7 +170,7 @@ class TestToolController(unittest.TestCase):
 
         controller = ToolController(
             tool_instance=mock_tool,
-            view=mock_view,
+            view=fake_view,
             read_repo=mock_read_repo,
             write_repo=MagicMock(),
             patronymic_service=MagicMock(),
@@ -196,9 +197,10 @@ class TestToolController(unittest.TestCase):
         controller.run_rename_scan("Ivan", "Ioann", MatchMode.EXACT)
 
         # Verify that "No Results" dialog WAS shown
-        mock_view.show_ok_dialog.assert_called_with(
-            "No Results", "No matching given names found."
-        )
+        self.assertEqual(len(fake_view.dialog_calls), 1)
+        title, message = fake_view.dialog_calls[0]
+        self.assertEqual(title, "No Results")
+        self.assertEqual(message, "No matching given names found.")
 
     @patch("name_processor.controllers.tool.run_in_idle_loop")
     def test_initialize_median_year_async(self, mock_run_in_idle_loop):
@@ -331,7 +333,7 @@ class TestToolController(unittest.TestCase):
     @patch("name_processor.controllers.tool.run_in_idle_loop")
     def test_run_audit_scan_with_results(self, mock_run_in_idle_loop):
         mock_tool = MagicMock()
-        mock_view = MagicMock()
+        fake_view = FakeToolView()
         mock_read_repo = MagicMock()
         mock_audit_service = MagicMock()
 
@@ -347,11 +349,12 @@ class TestToolController(unittest.TestCase):
         # Mock audit service to return an issue
         mock_issue = MagicMock()
         mock_issue.rule_id = "test_rule"
+        mock_issue.person_handle = "handle1"
         mock_audit_service.audit_person.return_value = [mock_issue]
 
         controller = ToolController(
             tool_instance=mock_tool,
-            view=mock_view,
+            view=fake_view,
             read_repo=mock_read_repo,
             write_repo=MagicMock(),
             patronymic_service=MagicMock(),
@@ -386,10 +389,13 @@ class TestToolController(unittest.TestCase):
         # Verify scanning flag was reset
         self.assertFalse(controller._is_audit_scanning)
 
+        # Verify issue was appended to view
+        self.assertEqual(len(fake_view.audit_issues), 1)
+
     @patch("name_processor.controllers.tool.run_in_idle_loop")
     def test_run_audit_scan_no_results(self, mock_run_in_idle_loop):
         mock_tool = MagicMock()
-        mock_view = MagicMock()
+        fake_view = FakeToolView()
         mock_read_repo = MagicMock()
         mock_audit_service = MagicMock()
 
@@ -400,7 +406,7 @@ class TestToolController(unittest.TestCase):
 
         controller = ToolController(
             tool_instance=mock_tool,
-            view=mock_view,
+            view=fake_view,
             read_repo=mock_read_repo,
             write_repo=MagicMock(),
             patronymic_service=MagicMock(),
@@ -431,6 +437,9 @@ class TestToolController(unittest.TestCase):
 
         # Verify scanning flag was reset
         self.assertFalse(controller._is_audit_scanning)
+
+        # Verify no issues were appended to view
+        self.assertEqual(len(fake_view.audit_issues), 0)
 
 
 class TestToolControllerRenameValidation(unittest.TestCase):

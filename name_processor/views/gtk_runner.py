@@ -5,7 +5,6 @@ from typing import TypeVar
 
 from gi.repository import GLib
 
-from name_processor.protocols.view import BackgroundTaskRunner
 
 T = TypeVar("T")
 
