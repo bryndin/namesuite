@@ -3,14 +3,15 @@ from __future__ import annotations
 import unittest
 from unittest.mock import MagicMock, patch
 
-from name_processor.controllers.tool import ToolController
-from name_processor.models.renamer import AltAction, MatchMode
-from name_processor.presentation.row_schemas import GivenRowData
 from tests.compat_mocks import mock_gramps
-from tests.fakes.fake_tool_view import FakeToolView
-from tests.fakes.sync_task_runner import SynchronousTaskRunner
 
 mock_gramps()
+
+from name_processor.controllers.tool import ToolController  # noqa: E402
+from name_processor.models.renamer import AltAction, MatchMode  # noqa: E402
+from name_processor.presentation.row_schemas import GivenRowData  # noqa: E402
+from tests.fakes.fake_tool_view import FakeToolView  # noqa: E402
+from tests.fakes.sync_task_runner import SynchronousTaskRunner  # noqa: E402
 
 
 class TestRenameWorkflow(unittest.TestCase):
@@ -274,6 +275,162 @@ class TestRenameWorkflow(unittest.TestCase):
         title, message = self.fake_view.dialog_calls[0]
         self.assertEqual(title, "No Results")
         self.assertEqual(message, "No matching given names found.")
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_rename_scan_cyrillic_church_to_modern(self, mock_run_in_idle_loop) -> None:
+        """Test that rename scan handles Cyrillic church names to modern forms."""
+        # Arrange: Create mock person proxy with Cyrillic church name
+        mock_proxy = MagicMock()
+        mock_proxy.given_name = "Иоанн"
+        mock_proxy.gramps_id = "I0001"
+        mock_proxy.display_name = "Иоанн Иванов"
+        mock_proxy.handle = "handle1"
+
+        self.mock_read_repo.iter_all_persons.return_value = iter([mock_proxy])
+
+        # Configure renamer service to return modern form
+        self.mock_renamer_service.create_config.return_value = MagicMock()
+        self.mock_renamer_service.evaluate_person.return_value = "Иван"
+
+        # Configure mock to run synchronously
+        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
+
+        # Act: Run scan with Cyrillic strings
+        result = self.controller.run_rename_scan("Иоанн", "Иван", MatchMode.EXACT)
+
+        # Assert: Scan started successfully
+        self.assertTrue(result)
+
+        # Assert: Proposal appended with Cyrillic data
+        self.assertEqual(len(self.fake_view.rename_proposals), 1)
+        proposal = self.fake_view.rename_proposals[0]
+        self.assertEqual(proposal.current, "Иоанн")
+        self.assertEqual(proposal.proposed, "Иван")
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_rename_scan_cyrillic_typo_correction(self, mock_run_in_idle_loop) -> None:
+        """Test that rename scan handles Cyrillic typo correction."""
+        # Arrange: Create mock person proxy with typo
+        mock_proxy = MagicMock()
+        mock_proxy.given_name = "Иоаннн"
+        mock_proxy.gramps_id = "I0001"
+        mock_proxy.display_name = "Иоаннн Иванов"
+        mock_proxy.handle = "handle1"
+
+        self.mock_read_repo.iter_all_persons.return_value = iter([mock_proxy])
+
+        # Configure renamer service to return corrected form
+        self.mock_renamer_service.create_config.return_value = MagicMock()
+        self.mock_renamer_service.evaluate_person.return_value = "Иван"
+
+        # Configure mock to run synchronously
+        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
+
+        # Act: Run scan to correct typo
+        result = self.controller.run_rename_scan("Иоаннн", "Иван", MatchMode.EXACT)
+
+        # Assert: Scan started successfully
+        self.assertTrue(result)
+
+        # Assert: Proposal appended with corrected name
+        self.assertEqual(len(self.fake_view.rename_proposals), 1)
+        proposal = self.fake_view.rename_proposals[0]
+        self.assertEqual(proposal.current, "Иоаннн")
+        self.assertEqual(proposal.proposed, "Иван")
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_rename_scan_cyrillic_substring_hyphenated(
+        self, mock_run_in_idle_loop
+    ) -> None:
+        """Test that rename scan handles substring matching in Cyrillic hyphenated names."""
+        # Arrange: Create mock person proxy with hyphenated name
+        mock_proxy = MagicMock()
+        mock_proxy.given_name = "Анна-Иоанновна"
+        mock_proxy.gramps_id = "I0001"
+        mock_proxy.display_name = "Анна-Иоанновна Петрова"
+        mock_proxy.handle = "handle1"
+
+        self.mock_read_repo.iter_all_persons.return_value = iter([mock_proxy])
+
+        # Configure renamer service to return corrected form
+        self.mock_renamer_service.create_config.return_value = MagicMock()
+        self.mock_renamer_service.evaluate_person.return_value = "Анна-Ивановна"
+
+        # Configure mock to run synchronously
+        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
+
+        # Act: Run scan with substring match
+        result = self.controller.run_rename_scan("Иоан", "Иван", MatchMode.SUBSTRING)
+
+        # Assert: Scan started successfully
+        self.assertTrue(result)
+
+        # Assert: Proposal appended with corrected hyphenated name
+        self.assertEqual(len(self.fake_view.rename_proposals), 1)
+        proposal = self.fake_view.rename_proposals[0]
+        self.assertEqual(proposal.current, "Анна-Иоанновна")
+        self.assertEqual(proposal.proposed, "Анна-Ивановна")
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_rename_scan_cross_language(self, mock_run_in_idle_loop) -> None:
+        """Test that rename scan handles cross-language name standardization."""
+        # Arrange: Create mock person proxy with Italian name
+        mock_proxy = MagicMock()
+        mock_proxy.given_name = "Giuseppe"
+        mock_proxy.gramps_id = "I0001"
+        mock_proxy.display_name = "Giuseppe Rossi"
+        mock_proxy.handle = "handle1"
+
+        self.mock_read_repo.iter_all_persons.return_value = iter([mock_proxy])
+
+        # Configure renamer service to return anglicized form
+        self.mock_renamer_service.create_config.return_value = MagicMock()
+        self.mock_renamer_service.evaluate_person.return_value = "Joseph"
+
+        # Configure mock to run synchronously
+        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
+
+        # Act: Run scan for cross-language standardization
+        result = self.controller.run_rename_scan("Giuseppe", "Joseph", MatchMode.EXACT)
+
+        # Assert: Scan started successfully
+        self.assertTrue(result)
+
+        # Assert: Proposal appended with anglicized name
+        self.assertEqual(len(self.fake_view.rename_proposals), 1)
+        proposal = self.fake_view.rename_proposals[0]
+        self.assertEqual(proposal.current, "Giuseppe")
+        self.assertEqual(proposal.proposed, "Joseph")
+
+    def test_controller_initialization_sets_tab_controller(self) -> None:
+        """Test that set_controller updates tab controller references before setup_autocompletion."""
+        # This test prevents regression of the bug where tabs had None controller
+        # when setup_autocompletion was called during set_controller
+
+        # Arrange: Create a real ToolWindow (not FakeToolView)
+        # We need to test the actual initialization flow
+        from name_processor.views.tool import ToolWindow
+
+        # Create window without controller (simulates names_tool.py line 48)
+        window = ToolWindow(None)
+
+        # Assert: Tabs exist but have None controller
+        self.assertIsNotNone(window.rename_tab)
+        self.assertIsNone(window.rename_tab.controller)
+
+        # Arrange: Mock controller with get_given_names method
+        mock_controller = MagicMock()
+        mock_controller.get_available_audit_rules.return_value = {"rule1", "rule2"}
+        mock_controller.get_given_names.return_value = {"Ivan", "Maria"}
+        mock_controller.initialize_median_year_async = MagicMock()
+        mock_controller.initialize_given_names_async = MagicMock()
+
+        # Act: Set controller (simulates names_tool.py line 61)
+        window.set_controller(mock_controller)
+
+        # Assert: Tab controller is now set
+        self.assertEqual(window.rename_tab.controller, mock_controller)
+        self.assertEqual(window.audit_tab.controller, mock_controller)
 
 
 if __name__ == "__main__":

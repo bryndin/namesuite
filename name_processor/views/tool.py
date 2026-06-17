@@ -50,6 +50,12 @@ class ToolWindow:
         """Sets the controller instance and runs initial loads."""
         self.controller = controller
 
+        # Update controller reference in tabs
+        if self.rename_tab:
+            self.rename_tab.controller = controller
+        if self.audit_tab:
+            self.audit_tab.controller = controller
+
         # Initialize enabled rules in audit tab
         if self.audit_tab:
             self.audit_tab.enabled_rules = {
