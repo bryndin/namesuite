@@ -41,11 +41,8 @@ class PatronymicSuggestionGramplet(Gramplet):
         """
         self._view.init()
 
-        # Swap default textview with custom layout (runs once)
-        self.gui.get_container_widget().remove(self.gui.textview)
-        self.gui.WIDGET = self._view.get_root_widget()
-        self.gui.get_container_widget().add(self.gui.WIDGET)
-        self.gui.WIDGET.show()
+        # Embed the view's widget into the Gramplet container
+        self._view.embed(self.gui)
 
     def db_changed(self) -> None:
         """

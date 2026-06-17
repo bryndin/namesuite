@@ -6,7 +6,7 @@ Contains all GTK components and i18n message handling.
 from __future__ import annotations
 
 from gi.repository import Gtk
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gui.dialog import ErrorDialog
@@ -79,6 +79,23 @@ class GrampletView:
     def get_root_widget(self) -> Gtk.Box | None:
         """Returns the root GTK widget for Gramps to embed."""
         return self._box
+
+    def embed(self, container_gui: Any) -> None:
+        """
+        Embed the view's root widget into the Gramplet container.
+
+        This method replaces the default Gramplet textview with our custom layout.
+        Should be called once during Gramplet initialization.
+
+        Args:
+            container_gui: The Gramplet GUI object providing access to the container widget.
+                           Type is gramps.gen.plug.Gramplet but not imported to avoid Gramps dependency.
+        """
+        # Swap default textview with custom layout
+        container_gui.get_container_widget().remove(container_gui.textview)
+        container_gui.WIDGET = self.get_root_widget()
+        container_gui.get_container_widget().add(container_gui.WIDGET)
+        container_gui.WIDGET.show()
 
     def _on_apply_clicked(self, widget: Gtk.Button) -> None:
         """Handle apply button click event."""
