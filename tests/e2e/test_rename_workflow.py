@@ -47,14 +47,14 @@ class TestRenameWorkflow(unittest.TestCase):
             patronymic_service=self.mock_patronymic_service,
             audit_service=self.mock_audit_service,
             chronology_service=self.mock_chronology_service,
+            task_runner=self.sync_runner,
         )
 
     def _run_scan_synchronously(self, generator, on_complete=None):
         """Helper to run a scan generator synchronously using SynchronousTaskRunner."""
         self.sync_runner.run_chunked(generator, on_complete)
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_rename_scan_finds_proposals(self, mock_run_in_idle_loop) -> None:
+    def test_rename_scan_finds_proposals(self) -> None:
         """Test that rename scan finds and displays proposals."""
         # Arrange: Create mock person proxies
         mock_proxy1 = MagicMock()
@@ -78,7 +78,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.mock_renamer_service.evaluate_person.return_value = "Ioann"
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan
         result = self.controller.run_rename_scan("Ivan", "Ioann", MatchMode.EXACT)
@@ -251,8 +250,7 @@ class TestRenameWorkflow(unittest.TestCase):
         for proposal in self.fake_view.rename_proposals:
             self.assertEqual(proposal.alt_action, AltAction.OVERWRITE.value)
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_rename_scan_no_results_shows_dialog(self, mock_run_in_idle_loop) -> None:
+    def test_rename_scan_no_results_shows_dialog(self) -> None:
         """Test that scan with no results shows appropriate dialog."""
         # Arrange: Configure repository to return no persons
         self.mock_read_repo.iter_all_persons.return_value = iter([])
@@ -260,7 +258,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.mock_renamer_service.create_config.return_value = MagicMock()
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan
         result = self.controller.run_rename_scan("Ivan", "Ioann", MatchMode.EXACT)
@@ -277,8 +274,7 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(title, "No Results")
         self.assertEqual(message, "No matching given names found.")
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_rename_scan_cyrillic_church_to_modern(self, mock_run_in_idle_loop) -> None:
+    def test_rename_scan_cyrillic_church_to_modern(self) -> None:
         """Test that rename scan handles Cyrillic church names to modern forms."""
         # Arrange: Create mock person proxy with Cyrillic church name
         mock_proxy = MagicMock()
@@ -294,7 +290,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.mock_renamer_service.evaluate_person.return_value = "Иван"
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan with Cyrillic strings
         result = self.controller.run_rename_scan("Иоанн", "Иван", MatchMode.EXACT)
@@ -308,8 +303,7 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(proposal.current, "Иоанн")
         self.assertEqual(proposal.proposed, "Иван")
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_rename_scan_cyrillic_typo_correction(self, mock_run_in_idle_loop) -> None:
+    def test_rename_scan_cyrillic_typo_correction(self) -> None:
         """Test that rename scan handles Cyrillic typo correction."""
         # Arrange: Create mock person proxy with typo
         mock_proxy = MagicMock()
@@ -325,7 +319,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.mock_renamer_service.evaluate_person.return_value = "Иван"
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan to correct typo
         result = self.controller.run_rename_scan("Иоаннн", "Иван", MatchMode.EXACT)
@@ -339,10 +332,7 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(proposal.current, "Иоаннн")
         self.assertEqual(proposal.proposed, "Иван")
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_rename_scan_cyrillic_substring_hyphenated(
-        self, mock_run_in_idle_loop
-    ) -> None:
+    def test_rename_scan_cyrillic_substring_hyphenated(self) -> None:
         """Test that rename scan handles substring matching in Cyrillic hyphenated names."""
         # Arrange: Create mock person proxy with hyphenated name
         mock_proxy = MagicMock()
@@ -358,7 +348,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.mock_renamer_service.evaluate_person.return_value = "Анна-Ивановна"
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan with substring match
         result = self.controller.run_rename_scan("Иоан", "Иван", MatchMode.SUBSTRING)
@@ -372,8 +361,7 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(proposal.current, "Анна-Иоанновна")
         self.assertEqual(proposal.proposed, "Анна-Ивановна")
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_rename_scan_cross_language(self, mock_run_in_idle_loop) -> None:
+    def test_rename_scan_cross_language(self) -> None:
         """Test that rename scan handles cross-language name standardization."""
         # Arrange: Create mock person proxy with Italian name
         mock_proxy = MagicMock()
@@ -389,7 +377,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.mock_renamer_service.evaluate_person.return_value = "Joseph"
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan for cross-language standardization
         result = self.controller.run_rename_scan("Giuseppe", "Joseph", MatchMode.EXACT)
@@ -461,10 +448,7 @@ class TestRenameWorkflow(unittest.TestCase):
             f"ToolWindow is missing protocol methods: {missing_methods}",
         )
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_exact_match_preserve_original_as_alternative(
-        self, mock_run_in_idle_loop
-    ) -> None:
+    def test_exact_match_preserve_original_as_alternative(self) -> None:
         """Test exact match with preserve original name as alternative."""
         # Arrange: Set up sample family
         family = setup_sample_family()
@@ -480,7 +464,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertIn("Анна", suggestions)
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Configure renamer service for exact match
         self.mock_renamer_service.create_config.return_value = MagicMock()
@@ -527,17 +510,13 @@ class TestRenameWorkflow(unittest.TestCase):
         call_args = self.mock_write_repo.apply_first_name_correction.call_args
         self.assertEqual(call_args[0][2], "Ганна")  # proposed name
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_substring_match_preserve_original_as_alternative(
-        self, mock_run_in_idle_loop
-    ) -> None:
+    def test_substring_match_preserve_original_as_alternative(self) -> None:
         """Test substring match with preserve original name as alternative."""
         # Arrange: Set up sample family
         family = setup_sample_family()
         self.mock_read_repo.iter_all_persons.return_value = iter(family.values())
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Configure renamer service for substring match "А" -> "О"
         self.mock_renamer_service.create_config.return_value = MagicMock()
@@ -594,17 +573,13 @@ class TestRenameWorkflow(unittest.TestCase):
         # Assert: Write repository called twice
         self.assertEqual(self.mock_write_repo.apply_first_name_correction.call_count, 2)
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_regex_match_preserve_original_as_alternative(
-        self, mock_run_in_idle_loop
-    ) -> None:
+    def test_regex_match_preserve_original_as_alternative(self) -> None:
         """Test regex match with preserve original name as alternative."""
         # Arrange: Set up sample family
         family = setup_sample_family()
         self.mock_read_repo.iter_all_persons.return_value = iter(family.values())
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Configure renamer service for regex match "А(рк)ад(.*)" -> "О\2рай\1ий"
         # This should transform "Аркадий" to "Оийрайркий"
@@ -654,17 +629,13 @@ class TestRenameWorkflow(unittest.TestCase):
         call_args = self.mock_write_repo.apply_first_name_correction.call_args
         self.assertEqual(call_args[0][2], "Оийрайркий")  # proposed name
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_exact_match_without_preserve_original_as_alternative(
-        self, mock_run_in_idle_loop
-    ) -> None:
+    def test_exact_match_without_preserve_original_as_alternative(self) -> None:
         """Test exact match without preserve original name as alternative."""
         # Arrange: Set up sample family
         family = setup_sample_family()
         self.mock_read_repo.iter_all_persons.return_value = iter(family.values())
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Configure renamer service for exact match
         self.mock_renamer_service.create_config.return_value = MagicMock()

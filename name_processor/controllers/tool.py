@@ -7,7 +7,6 @@ from name_processor.models.audit import AuditScope
 from name_processor.models.person import Gender
 from name_processor.models.renamer import AltAction, MatchMode
 from name_processor.presentation.row_schemas import GivenRowData
-from name_processor.utils.gtk_runner import run_in_idle_loop
 
 if TYPE_CHECKING:
     from names_tool import NamesTool
@@ -23,7 +22,7 @@ if TYPE_CHECKING:
     from name_processor.services.chronology import ChronologyService
     from name_processor.services.patronymic import PatronymicInferenceService
     from name_processor.services.renamer import RenamerService, RenameConfig
-    from name_processor.protocols.view import ToolViewPort
+    from name_processor.protocols.view import ToolViewPort, BackgroundTaskRunner
 
 
 class ToolController:
@@ -38,6 +37,7 @@ class ToolController:
         patronymic_service: PatronymicInferenceService,
         audit_service: AuditService,
         chronology_service: ChronologyService,
+        task_runner: BackgroundTaskRunner,
     ) -> None:
         self.tool = tool_instance
         self.dbstate = tool_instance.dbstate
@@ -54,6 +54,7 @@ class ToolController:
         self._alt_names_service = alt_names_service
         self._audit_service = audit_service
         self._chronology_service = chronology_service
+        self._task_runner = task_runner
 
         # Guard to prevent overlapping async scan operations
         self._is_rename_scanning = False
@@ -75,7 +76,7 @@ class ToolController:
     # Initialization & Caching
     # ==========================================
     def initialize_median_year_async(self) -> None:
-        run_in_idle_loop(
+        self._task_runner.run_chunked(
             self._chronology_service.generate_years(),
             self._chronology_service.update_median_year,
         )
@@ -98,7 +99,7 @@ class ToolController:
                 self._given_names_cache.update(final_names)
                 self._view.setup_given_name_autocompletion()
 
-        run_in_idle_loop(generator(), on_complete)
+        self._task_runner.run_chunked(generator(), on_complete)
 
     def get_given_names(self) -> set[str]:
         return self._given_names_cache
@@ -228,7 +229,7 @@ class ToolController:
                     "No Results", "No matching given names found."
                 )
 
-        run_in_idle_loop(scan_generator(), on_complete)
+        self._task_runner.run_chunked(scan_generator(), on_complete)
         return True
 
     def update_preserve_alt(self, action: AltAction) -> None:
@@ -323,7 +324,7 @@ class ToolController:
             self._is_audit_scanning = False
             self._view.on_audit_complete(len(self._audit_candidates))
 
-        run_in_idle_loop(scan_generator(), on_complete)
+        self._task_runner.run_chunked(scan_generator(), on_complete)
         return True
 
     def apply_checked_audit_fixes(self, use_pre_reform: bool) -> bool:

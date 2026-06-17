@@ -47,14 +47,14 @@ class TestAuditWorkflow(unittest.TestCase):
             patronymic_service=self.mock_patronymic_service,
             audit_service=self.mock_audit_service,
             chronology_service=self.mock_chronology_service,
+            task_runner=self.sync_runner,
         )
 
     def _run_scan_synchronously(self, generator, on_complete=None):
         """Helper to run a scan generator synchronously using SynchronousTaskRunner."""
         self.sync_runner.run_chunked(generator, on_complete)
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_audit_scan_finds_issues(self, mock_run_in_idle_loop) -> None:
+    def test_audit_scan_finds_issues(self) -> None:
         """Test that audit scan finds and displays issues."""
         # Arrange: Create mock person proxy
         mock_proxy = MagicMock()
@@ -82,7 +82,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.return_value = [mock_issue]
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan
         result = self.controller.run_audit_scan(AuditScope.ALL, {"test_rule"}, False)
@@ -97,8 +96,7 @@ class TestAuditWorkflow(unittest.TestCase):
         # Assert: Issue checked by default
         self.assertEqual(len(self.fake_view.checked_audit_keys), 1)
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_audit_scan_with_scope_filter(self, mock_run_in_idle_loop) -> None:
+    def test_audit_scan_with_scope_filter(self) -> None:
         """Test that audit scan respects scope filter (males only)."""
         # Arrange: Create mock person proxies (male and female)
         mock_male = MagicMock()
@@ -118,7 +116,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.return_value = []
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan with MALES_ONLY scope
         result = self.controller.run_audit_scan(
@@ -219,10 +216,7 @@ class TestAuditWorkflow(unittest.TestCase):
         # Assert: Write repository called only once (for first issue)
         self.mock_write_repo.apply_patronymic_correction.assert_called_once()
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_audit_scan_cyrillic_patronymic_generation_male(
-        self, mock_run_in_idle_loop
-    ) -> None:
+    def test_audit_scan_cyrillic_patronymic_generation_male(self) -> None:
         """Test that audit scan generates correct male Cyrillic patronymic from father's name."""
         # Arrange: Create mock male person proxy with Cyrillic father name
         mock_proxy = MagicMock()
@@ -250,7 +244,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.return_value = [mock_issue]
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan
         result = self.controller.run_audit_scan(
@@ -265,10 +258,7 @@ class TestAuditWorkflow(unittest.TestCase):
         self.assertEqual(self.fake_view.audit_issues[0].father_name, "Иван")
         self.assertEqual(self.fake_view.audit_issues[0].suggested_fix, "Иванович")
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_audit_scan_cyrillic_patronymic_generation_female(
-        self, mock_run_in_idle_loop
-    ) -> None:
+    def test_audit_scan_cyrillic_patronymic_generation_female(self) -> None:
         """Test that audit scan generates correct female Cyrillic patronymic from father's name."""
         # Arrange: Create mock female person proxy with Cyrillic father name
         mock_proxy = MagicMock()
@@ -296,7 +286,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.return_value = [mock_issue]
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan
         result = self.controller.run_audit_scan(
@@ -311,8 +300,7 @@ class TestAuditWorkflow(unittest.TestCase):
         self.assertEqual(self.fake_view.audit_issues[0].father_name, "Иван")
         self.assertEqual(self.fake_view.audit_issues[0].suggested_fix, "Ивановна")
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_audit_scan_gender_suffix_mismatch(self, mock_run_in_idle_loop) -> None:
+    def test_audit_scan_gender_suffix_mismatch(self) -> None:
         """Test that audit scan flags gender suffix mismatch in Cyrillic patronymics."""
         # Arrange: Create mock male person proxy with female patronymic suffix
         mock_proxy = MagicMock()
@@ -340,7 +328,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.return_value = [mock_issue]
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan
         result = self.controller.run_audit_scan(
@@ -358,8 +345,7 @@ class TestAuditWorkflow(unittest.TestCase):
         self.assertEqual(self.fake_view.audit_issues[0].current_value, "Ивановна")
         self.assertEqual(self.fake_view.audit_issues[0].suggested_fix, "Иванович")
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_audit_scan_pre_reform_orthography(self, mock_run_in_idle_loop) -> None:
+    def test_audit_scan_pre_reform_orthography(self) -> None:
         """Test that audit scan handles pre-reform Cyrillic orthography."""
         # Arrange: Create mock person proxy
         mock_proxy = MagicMock()
@@ -387,7 +373,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.return_value = [mock_issue]
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan with pre-reform orthography enabled
         result = self.controller.run_audit_scan(
@@ -402,8 +387,7 @@ class TestAuditWorkflow(unittest.TestCase):
         self.assertTrue(self.fake_view.audit_issues[0].is_pre_reform)
         self.assertEqual(self.fake_view.audit_issues[0].suggested_fix, "Фёдорович")
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_patronymic_generation_for_children(self, mock_run_in_idle_loop) -> None:
+    def test_patronymic_generation_for_children(self) -> None:
         """Test patronymic generation for children from father's name."""
         # Arrange: Set up sample family
         family = setup_sample_family()
@@ -476,7 +460,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.side_effect = mock_audit_person
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan
         result = self.controller.run_audit_scan(
@@ -509,8 +492,7 @@ class TestAuditWorkflow(unittest.TestCase):
         # Assert: Write repository called three times
         self.assertEqual(self.mock_write_repo.apply_patronymic_correction.call_count, 3)
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_gender_suffix_mismatch_detection(self, mock_run_in_idle_loop) -> None:
+    def test_gender_suffix_mismatch_detection(self) -> None:
         """Test gender suffix mismatch detection."""
         # Arrange: Set up sample family with incorrect suffix
         family = setup_sample_family()
@@ -537,7 +519,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.return_value = [mock_issue]
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan
         result = self.controller.run_audit_scan(
@@ -570,8 +551,7 @@ class TestAuditWorkflow(unittest.TestCase):
         call_args = self.mock_write_repo.apply_patronymic_correction.call_args
         self.assertEqual(call_args[0][2], "Иванович")
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_pre_reform_orthography_detection(self, mock_run_in_idle_loop) -> None:
+    def test_pre_reform_orthography_detection(self) -> None:
         """Test pre-reform orthography detection."""
         # Arrange: Set up sample family with pre-reform patronymic
         family = setup_sample_family()
@@ -598,7 +578,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.return_value = [mock_issue]
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan with pre-reform orthography enabled
         result = self.controller.run_audit_scan(
@@ -628,8 +607,7 @@ class TestAuditWorkflow(unittest.TestCase):
         call_args = self.mock_write_repo.apply_patronymic_correction.call_args
         self.assertEqual(call_args[0][2], "Фёдорович")
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_scope_filter_males_only(self, mock_run_in_idle_loop) -> None:
+    def test_scope_filter_males_only(self) -> None:
         """Test scope filter - males only."""
         # Arrange: Set up sample family
         family = setup_sample_family()
@@ -665,7 +643,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.side_effect = mock_audit_person
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan with MALES_ONLY scope
         result = self.controller.run_audit_scan(
@@ -680,8 +657,7 @@ class TestAuditWorkflow(unittest.TestCase):
         issue_ids = {issue.gramps_id for issue in self.fake_view.audit_issues}
         self.assertEqual(issue_ids, {"I001", "I004"})
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_scope_filter_females_only(self, mock_run_in_idle_loop) -> None:
+    def test_scope_filter_females_only(self) -> None:
         """Test scope filter - females only."""
         # Arrange: Set up sample family
         family = setup_sample_family()
@@ -717,7 +693,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.side_effect = mock_audit_person
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan with FEMALES_ONLY scope
         result = self.controller.run_audit_scan(
@@ -732,8 +707,7 @@ class TestAuditWorkflow(unittest.TestCase):
         issue_ids = {issue.gramps_id for issue in self.fake_view.audit_issues}
         self.assertEqual(issue_ids, {"I000", "I002"})
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_multiple_issues_same_person(self, mock_run_in_idle_loop) -> None:
+    def test_multiple_issues_same_person(self) -> None:
         """Test multiple issues for the same person."""
         # Arrange: Set up sample family
         family = setup_sample_family()
@@ -774,7 +748,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.return_value = [mock_issue1, mock_issue2]
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan with both rules
         result = self.controller.run_audit_scan(
@@ -807,8 +780,7 @@ class TestAuditWorkflow(unittest.TestCase):
         # Assert: Write repository called only once (for patronymic_generation)
         self.assertEqual(self.mock_write_repo.apply_patronymic_correction.call_count, 1)
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_apply_partial_selection(self, mock_run_in_idle_loop) -> None:
+    def test_apply_partial_selection(self) -> None:
         """Test applying partial selection of audit issues."""
         # Arrange: Set up sample family
         family = setup_sample_family()
@@ -845,7 +817,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.side_effect = mock_audit_person
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan
         result = self.controller.run_audit_scan(
@@ -876,8 +847,7 @@ class TestAuditWorkflow(unittest.TestCase):
         # Assert: Write repository called twice (for I000 and I004)
         self.assertEqual(self.mock_write_repo.apply_patronymic_correction.call_count, 2)
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_unrelated_person_not_affected(self, mock_run_in_idle_loop) -> None:
+    def test_unrelated_person_not_affected(self) -> None:
         """Test that unrelated person is not affected by patronymic generation."""
         # Arrange: Set up sample family
         family = setup_sample_family()
@@ -916,7 +886,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.side_effect = mock_audit_person
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan
         result = self.controller.run_audit_scan(
@@ -931,8 +900,7 @@ class TestAuditWorkflow(unittest.TestCase):
         self.assertNotIn("I003", issue_ids)
         self.assertEqual(issue_ids, {"I000", "I002", "I004"})
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_cross_language_patronymic_generation(self, mock_run_in_idle_loop) -> None:
+    def test_cross_language_patronymic_generation(self) -> None:
         """Test cross-language patronymic generation."""
         # Arrange: Set up sample family with English father name
         family = setup_sample_family()
@@ -959,7 +927,6 @@ class TestAuditWorkflow(unittest.TestCase):
         self.mock_audit_service.audit_person.return_value = [mock_issue]
 
         # Configure mock to run synchronously
-        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
 
         # Act: Run scan
         result = self.controller.run_audit_scan(

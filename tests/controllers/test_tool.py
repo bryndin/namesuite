@@ -14,9 +14,14 @@ from name_processor.models.renamer import AltAction, MatchMode  # noqa: E402
 from name_processor.presentation.row_schemas import GivenRowData  # noqa: E402
 from name_processor.protocols.view import ToolViewPort  # noqa: E402
 from tests.fakes.fake_tool_view import FakeToolView  # noqa: E402
+from tests.fakes.sync_task_runner import SynchronousTaskRunner  # noqa: E402
 
 
 class TestToolController(unittest.TestCase):
+    def setUp(self):
+        """Set up test fixtures with sync task runner."""
+        self.sync_runner = SynchronousTaskRunner()
+
     def test_controller_initialization(self):
         mock_dbstate = MagicMock()
         mock_tool = MagicMock(dbstate=mock_dbstate)
@@ -32,6 +37,7 @@ class TestToolController(unittest.TestCase):
             alt_names_service=MagicMock(),
             audit_service=MagicMock(),
             chronology_service=MagicMock(),
+            task_runner=self.sync_runner,
         )
         self.assertEqual(controller.dbstate, mock_dbstate)
         self.assertFalse(controller._is_rename_scanning)
@@ -52,6 +58,7 @@ class TestToolController(unittest.TestCase):
             alt_names_service=MagicMock(),
             audit_service=MagicMock(),
             chronology_service=MagicMock(),
+            task_runner=self.sync_runner,
         )
 
         row_data1 = GivenRowData(
@@ -86,8 +93,7 @@ class TestToolController(unittest.TestCase):
         self.assertEqual(len(fake_view.store_action_updates), 2)
         self.assertEqual(fake_view.store_action_updates[1], AltAction.OVERWRITE)
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_run_rename_scan_exact_mode_filtering(self, mock_run_in_idle_loop):
+    def test_run_rename_scan_exact_mode_filtering(self):
         mock_tool = MagicMock()
         fake_view = FakeToolView()
         mock_read_repo = MagicMock()
@@ -129,20 +135,8 @@ class TestToolController(unittest.TestCase):
             alt_names_service=MagicMock(),
             audit_service=MagicMock(),
             chronology_service=MagicMock(),
+            task_runner=self.sync_runner,
         )
-
-        # Define how to handle the mocked run_in_idle_loop
-        def side_effect(generator, on_complete):
-            result = None
-            try:
-                while True:
-                    next(generator)
-            except StopIteration as e:
-                result = e.value
-            if on_complete:
-                on_complete(result)
-
-        mock_run_in_idle_loop.side_effect = side_effect
 
         # Run scan: Source is 'Ivan', Target is 'Ioann'
         # With buggy RenamerService, both 'Ivan' and 'Petr' will get proposed names
@@ -156,8 +150,7 @@ class TestToolController(unittest.TestCase):
             f"Expected 1 proposal, but got {len(fake_view.rename_proposals)}",
         )
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_run_rename_scan_no_results(self, mock_run_in_idle_loop):
+    def test_run_rename_scan_no_results(self):
         mock_tool = MagicMock()
         fake_view = FakeToolView()
         mock_read_repo = MagicMock()
@@ -178,20 +171,8 @@ class TestToolController(unittest.TestCase):
             alt_names_service=MagicMock(),
             audit_service=MagicMock(),
             chronology_service=MagicMock(),
+            task_runner=self.sync_runner,
         )
-
-        # Define how to handle the mocked run_in_idle_loop
-        def side_effect(generator, on_complete):
-            result = None
-            try:
-                while True:
-                    next(generator)
-            except StopIteration as e:
-                result = e.value
-            if on_complete:
-                on_complete(result)
-
-        mock_run_in_idle_loop.side_effect = side_effect
 
         # Run scan
         controller.run_rename_scan("Ivan", "Ioann", MatchMode.EXACT)
@@ -202,8 +183,7 @@ class TestToolController(unittest.TestCase):
         self.assertEqual(title, "No Results")
         self.assertEqual(message, "No matching given names found.")
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_initialize_median_year_async(self, mock_run_in_idle_loop):
+    def test_initialize_median_year_async(self):
         mock_tool = MagicMock()
         mock_view = MagicMock()
         mock_read_repo = MagicMock()
@@ -229,20 +209,8 @@ class TestToolController(unittest.TestCase):
             alt_names_service=MagicMock(),
             audit_service=MagicMock(),
             chronology_service=mock_chronology_service,
+            task_runner=self.sync_runner,
         )
-
-        # Define how to handle the mocked run_in_idle_loop
-        def side_effect(generator, on_complete):
-            result = None
-            try:
-                while True:
-                    next(generator)
-            except StopIteration as e:
-                result = e.value
-            if on_complete:
-                on_complete(result)
-
-        mock_run_in_idle_loop.side_effect = side_effect
 
         # Initialize median year
         controller.initialize_median_year_async()
@@ -255,8 +223,7 @@ class TestToolController(unittest.TestCase):
         call_args = mock_chronology_service.update_median_year.call_args[0][0]
         self.assertEqual(call_args, [1800, 1850, 1900, 1950, 2000])
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_initialize_median_year_async_with_empty_years(self, mock_run_in_idle_loop):
+    def test_initialize_median_year_async_with_empty_years(self):
         mock_tool = MagicMock()
         mock_view = MagicMock()
         mock_read_repo = MagicMock()
@@ -279,20 +246,8 @@ class TestToolController(unittest.TestCase):
             alt_names_service=MagicMock(),
             audit_service=MagicMock(),
             chronology_service=mock_chronology_service,
+            task_runner=self.sync_runner,
         )
-
-        # Define how to handle the mocked run_in_idle_loop
-        def side_effect(generator, on_complete):
-            result = None
-            try:
-                while True:
-                    next(generator)
-            except StopIteration as e:
-                result = e.value
-            if on_complete:
-                on_complete(result)
-
-        mock_run_in_idle_loop.side_effect = side_effect
 
         # Initialize median year
         controller.initialize_median_year_async()
@@ -319,6 +274,7 @@ class TestToolController(unittest.TestCase):
             alt_names_service=MagicMock(),
             audit_service=mock_audit_service,
             chronology_service=MagicMock(),
+            task_runner=self.sync_runner,
         )
 
         # Set scanning flag to True
@@ -330,8 +286,7 @@ class TestToolController(unittest.TestCase):
         # Should return False indicating scan was not started
         self.assertFalse(result)
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_run_audit_scan_with_results(self, mock_run_in_idle_loop):
+    def test_run_audit_scan_with_results(self):
         mock_tool = MagicMock()
         fake_view = FakeToolView()
         mock_read_repo = MagicMock()
@@ -362,20 +317,8 @@ class TestToolController(unittest.TestCase):
             alt_names_service=MagicMock(),
             audit_service=mock_audit_service,
             chronology_service=MagicMock(),
+            task_runner=self.sync_runner,
         )
-
-        # Define how to handle the mocked run_in_idle_loop
-        def side_effect(generator, on_complete):
-            result = None
-            try:
-                while True:
-                    next(generator)
-            except StopIteration as e:
-                result = e.value
-            if on_complete:
-                on_complete(result)
-
-        mock_run_in_idle_loop.side_effect = side_effect
 
         # Run scan
         result = controller.run_audit_scan(AuditScope.ALL, set(["test_rule"]), False)
@@ -392,8 +335,7 @@ class TestToolController(unittest.TestCase):
         # Verify issue was appended to view
         self.assertEqual(len(fake_view.audit_issues), 1)
 
-    @patch("name_processor.controllers.tool.run_in_idle_loop")
-    def test_run_audit_scan_no_results(self, mock_run_in_idle_loop):
+    def test_run_audit_scan_no_results(self):
         mock_tool = MagicMock()
         fake_view = FakeToolView()
         mock_read_repo = MagicMock()
@@ -414,20 +356,8 @@ class TestToolController(unittest.TestCase):
             alt_names_service=MagicMock(),
             audit_service=mock_audit_service,
             chronology_service=MagicMock(),
+            task_runner=self.sync_runner,
         )
-
-        # Define how to handle the mocked run_in_idle_loop
-        def side_effect(generator, on_complete):
-            result = None
-            try:
-                while True:
-                    next(generator)
-            except StopIteration as e:
-                result = e.value
-            if on_complete:
-                on_complete(result)
-
-        mock_run_in_idle_loop.side_effect = side_effect
 
         # Run scan
         result = controller.run_audit_scan(AuditScope.ALL, set(["test_rule"]), False)
@@ -459,6 +389,7 @@ class TestToolControllerRenameValidation(unittest.TestCase):
         self.mock_tool_instance.dbstate = MagicMock()
         self.mock_tool_instance.dbstate.db = MagicMock()
 
+        self.sync_runner = SynchronousTaskRunner()
         self.controller = ToolController(
             tool_instance=self.mock_tool_instance,
             view=self.mock_view,
@@ -469,6 +400,7 @@ class TestToolControllerRenameValidation(unittest.TestCase):
             patronymic_service=self.mock_patronymic_service,
             audit_service=self.mock_audit_service,
             chronology_service=self.mock_chronology_service,
+            task_runner=self.sync_runner,
         )
 
     def test_validate_rename_input_empty_source(self):

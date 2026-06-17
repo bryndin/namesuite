@@ -5,6 +5,7 @@ from gramps.gui.plug import tool
 from name_processor.controllers.tool import ToolController
 from name_processor.repositories.gramps_read import GrampsReadRepository
 from name_processor.repositories.gramps_write import GrampsWriteRepository
+from name_processor.views.gtk_runner import GtkBackgroundTaskRunner
 from name_processor.views.tool import ToolWindow
 
 # Domain Services
@@ -24,18 +25,16 @@ class NamesTool(tool.Tool):
         self.dbstate = dbstate
         self.user = user
 
-        # 1. Repositories
+        # Repositories
         self._read_repo = GrampsReadRepository(dbstate.db)
         self._write_repo = GrampsWriteRepository(dbstate.db)
 
-        # 2. Domain Services
+        # Domain Services
         self._chronology_service = ChronologyService(self._read_repo)
         self._confidence_service = ConfidenceService(self._read_repo)
-
         self._patronymic_service = PatronymicInferenceService(
             self._read_repo, self._confidence_service, self._chronology_service
         )
-
         self._alt_names_service = AltNamesService(self._read_repo)
         self._renamer_service = RenamerService()
         self._audit_service = AuditService(
@@ -44,8 +43,9 @@ class NamesTool(tool.Tool):
             confidence_service=self._confidence_service,
         )
 
-        # 3. Presentation Layer
+        # Presentation Layer
         self._view = ToolWindow(None)
+        self._task_runner = GtkBackgroundTaskRunner()
         self._controller = ToolController(
             tool_instance=self,  # <--- Pass the tool itself
             view=self._view,
@@ -56,6 +56,7 @@ class NamesTool(tool.Tool):
             alt_names_service=self._alt_names_service,
             audit_service=self._audit_service,
             chronology_service=self._chronology_service,
+            task_runner=self._task_runner,
         )
 
         self._view.set_controller(self._controller)

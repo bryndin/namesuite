@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, MagicMock
 
 from name_processor.controllers.gramplet import GrampletController
 from name_processor.models.infer import PatronymicInferenceStatus
+from tests.fakes.sync_task_runner import SynchronousTaskRunner
 
 
 class TestGrampletController(unittest.TestCase):
@@ -17,12 +18,14 @@ class TestGrampletController(unittest.TestCase):
             "read_repo": Mock(),
             "write_repo": Mock(),
         }
+        self.sync_runner = SynchronousTaskRunner()
         self.controller = GrampletController(
             view=self.mocks["view"],
             patronymic_service=self.mocks["patronymic_service"],
             chronology_service=self.mocks["chronology_service"],  # Injected here
             read_repo=self.mocks["read_repo"],
             write_repo=self.mocks["write_repo"],
+            task_runner=self.sync_runner,
         )
 
     def test_on_active_changed_with_none_handle(self):
@@ -101,22 +104,19 @@ class TestGrampletController(unittest.TestCase):
             PatronymicInferenceStatus.SUCCESS, apply_sensitive=False
         )
 
-    @patch("name_processor.controllers.gramplet.run_in_idle_loop")
-    def test_initialize_background_tasks_calls_update_median_year(
-        self, mock_run_in_idle_loop
-    ):
+    def test_initialize_background_tasks_calls_update_median_year(self):
         # Arrange
         years = [1900, 1910, 1920]
 
+        # Mock the generator to return years
+        def year_generator():
+            yield None
+            return years
+
+        self.mocks["chronology_service"].generate_years.return_value = year_generator()
+
         # Act
         self.controller.initialize_background_tasks()
-
-        # Capture the callback
-        args, kwargs = mock_run_in_idle_loop.call_args
-        on_complete_callback = kwargs["on_complete"]
-
-        # Call the callback
-        on_complete_callback(years)
 
         # Assert
         self.mocks["chronology_service"].update_median_year.assert_called_once_with(

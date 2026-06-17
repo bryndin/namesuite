@@ -11,6 +11,7 @@ from name_processor.repositories.gramps_write import GrampsWriteRepository
 from name_processor.services.patronymic import PatronymicInferenceService
 from name_processor.services.confidence import ConfidenceService
 from name_processor.services.chronology import ChronologyService
+from name_processor.views.gtk_runner import GtkBackgroundTaskRunner
 from name_processor.views.gramplet import GrampletView
 
 if TYPE_CHECKING:
@@ -64,12 +65,14 @@ class PatronymicSuggestionGramplet(Gramplet):
             )
 
             # Recreate the controller and link it to the existing view
+            self._task_runner = GtkBackgroundTaskRunner()
             self._controller = GrampletController(
                 self._view,
                 self._patronymic_service,
                 self._chronology_service,
                 self._read_repo,
                 self._write_repo,
+                self._task_runner,
             )
             if self._view:
                 self._view.set_controller(self._controller)

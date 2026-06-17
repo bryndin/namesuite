@@ -3,14 +3,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from name_processor.models.infer import PatronymicInferenceStatus
-from name_processor.utils.gtk_runner import run_in_idle_loop
 
 if TYPE_CHECKING:
     from name_processor.repositories.gramps_read import GrampsReadRepository
     from name_processor.repositories.gramps_write import GrampsWriteRepository
     from name_processor.services.patronymic import PatronymicInferenceService
     from name_processor.services.chronology import ChronologyService
-    from name_processor.protocols.view import GrampletViewPort
+    from name_processor.protocols.view import GrampletViewPort, BackgroundTaskRunner
 
 
 class GrampletController:
@@ -21,12 +20,14 @@ class GrampletController:
         chronology_service: ChronologyService,
         read_repo: GrampsReadRepository,
         write_repo: GrampsWriteRepository,
+        task_runner: BackgroundTaskRunner,
     ) -> None:
         self._view = view
         self._patronymic_service = patronymic_service
         self._chronology_service = chronology_service
         self._read_repo = read_repo
         self._write_repo = write_repo
+        self._task_runner = task_runner
 
         self._suggested_patronymic: str | None = None
         self._current_handle: str | None = None
@@ -39,7 +40,7 @@ class GrampletController:
             self._chronology_service.update_median_year(years)
             self.refresh()
 
-        run_in_idle_loop(
+        self._task_runner.run_chunked(
             self._chronology_service.generate_years(chunk_size=500),
             on_complete=on_median_calculated,
         )
