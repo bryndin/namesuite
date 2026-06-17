@@ -13,6 +13,7 @@ from gi.repository import Gtk
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gui.dialog import OkDialog
 
+from name_processor.models.audit import AuditIssue
 from name_processor.models.renamer import AltAction
 from name_processor.presentation.row_schemas import GivenRowData
 
@@ -153,7 +154,7 @@ class ToolWindow:
         if self.audit_tab:
             self.audit_tab.clear_results()
 
-    def append_issue(self, issue: Any) -> None:
+    def append_issue(self, issue: AuditIssue) -> None:
         """Delegate to audit_tab.append_issue(issue)"""
         if self.audit_tab:
             self.audit_tab.append_issue(issue)
@@ -195,3 +196,8 @@ class ToolWindow:
 
     def show_ok_dialog(self, title: str, message: str) -> None:
         OkDialog(title, message, self.window)
+
+    def setup_given_name_autocompletion(self) -> None:
+        """Set up autocompletion for given name entry (delegated to rename tab)."""
+        if self.rename_tab:
+            self.rename_tab.setup_autocompletion()
