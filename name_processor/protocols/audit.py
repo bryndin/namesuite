@@ -27,9 +27,6 @@ class AuditSubject(Protocol):
     def father_handle(self) -> str | None: ...
 
     @property
-    def father(self) -> AuditSubject | None: ...
-
-    @property
     def given_name(self) -> str | None: ...
 
     @property
