@@ -63,12 +63,11 @@ class GrampletController:
         res = self._patronymic_service.infer_patronymic(handle)
 
         if res.status == PatronymicInferenceStatus.SUCCESS:
-            assert res.patronymic is not None, (
-                "patronymic should not be None on SUCCESS"
-            )
-            assert res.father_name is not None, (
-                "father_name should not be None on SUCCESS"
-            )
+            if res.patronymic is None or res.father_name is None:
+                self._view.show_status_message(
+                    PatronymicInferenceStatus.UNKNOWN_ERROR, apply_sensitive=False
+                )
+                return
             self._suggested_patronymic = res.patronymic
             self._view.show_suggestion(res.patronymic, res.father_name)
         else:
