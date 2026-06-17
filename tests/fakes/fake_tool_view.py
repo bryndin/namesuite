@@ -42,7 +42,6 @@ class FakeToolView(ToolViewPort):
 
         # Clear calls tracking
         self.clear_rename_proposals_called: int = 0
-        self.clear_given_store_called: int = 0
         self.clear_audit_results_called: int = 0
 
     # Read path (controller → view)
@@ -50,10 +49,6 @@ class FakeToolView(ToolViewPort):
         self.clear_rename_proposals_called += 1
         self.rename_proposals.clear()
         self.checked_rename_handles.clear()
-
-    def clear_given_store(self) -> None:
-        self.clear_given_store_called += 1
-        # No-op in fake view
 
     def append_rename_proposal(self, row: GivenRowData) -> None:
         self.rename_proposals.append(row)

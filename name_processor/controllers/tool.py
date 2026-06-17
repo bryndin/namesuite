@@ -191,8 +191,6 @@ class ToolController:
 
         self._is_rename_scanning = True
         self._view.clear_rename_proposals()
-
-        self._view.clear_given_store()
         self._rename_candidates.clear()
         preserve_alt = self._view.is_preserve_alt_enabled()
 

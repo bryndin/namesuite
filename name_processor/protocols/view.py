@@ -16,10 +16,6 @@ class ToolViewPort(Protocol):
     # Read path (controller → view)
     def clear_rename_proposals(self) -> None: ...
 
-    def clear_given_store(
-        self,
-    ) -> None: ...  # Note: This will replace direct widget access in Stage 2
-
     def append_rename_proposal(self, row: GivenRowData) -> None: ...
 
     def update_given_store_actions(self, action: AltAction) -> None: ...

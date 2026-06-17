@@ -432,6 +432,34 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(window.rename_tab.controller, mock_controller)
         self.assertEqual(window.audit_tab.controller, mock_controller)
 
+    def test_tool_window_implements_protocol_methods(self) -> None:
+        """Test that ToolWindow implements all methods defined in ToolViewPort protocol."""
+        from name_processor.protocols.view import ToolViewPort
+        from name_processor.views.tool import ToolWindow
+
+        # Create window
+        window = ToolWindow(None)
+
+        # Get all methods defined in the protocol
+        protocol_methods = {
+            name for name in dir(ToolViewPort) if not name.startswith("_")
+        }
+
+        # Get all methods implemented by ToolWindow
+        window_methods = {
+            name
+            for name in dir(window)
+            if not name.startswith("_") and callable(getattr(window, name))
+        }
+
+        # Assert that ToolWindow implements all protocol methods
+        missing_methods = protocol_methods - window_methods
+        self.assertEqual(
+            len(missing_methods),
+            0,
+            f"ToolWindow is missing protocol methods: {missing_methods}",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
