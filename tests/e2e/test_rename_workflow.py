@@ -12,6 +12,7 @@ from name_processor.models.renamer import AltAction, MatchMode  # noqa: E402
 from name_processor.presentation.row_schemas import GivenRowData  # noqa: E402
 from tests.fakes.fake_tool_view import FakeToolView  # noqa: E402
 from tests.fakes.sync_task_runner import SynchronousTaskRunner  # noqa: E402
+from tests.fixtures import setup_sample_family  # noqa: E402
 
 
 class TestRenameWorkflow(unittest.TestCase):
@@ -51,119 +52,6 @@ class TestRenameWorkflow(unittest.TestCase):
     def _run_scan_synchronously(self, generator, on_complete=None):
         """Helper to run a scan generator synchronously using SynchronousTaskRunner."""
         self.sync_runner.run_chunked(generator, on_complete)
-
-    def _create_mock_name(self, first_name: str, surname: str = "") -> MagicMock:
-        """Helper to create a mock Gramps Name object."""
-        mock_name = MagicMock()
-        mock_name.get_first_name.return_value = first_name
-        mock_name.get_surname_list.return_value = []
-        return mock_name
-
-    def _create_mock_person(
-        self,
-        gramps_id: str,
-        given_name: str,
-        surname: str,
-        handle: str,
-        aka_names: list[tuple[str, str]] | None = None,
-    ) -> MagicMock:
-        """
-        Helper to create a mock Gramps Person object with deep mocking.
-
-        Args:
-            gramps_id: Gramps ID (e.g., "I001")
-            given_name: Given name (e.g., "Анна")
-            surname: Surname (e.g., "Облонская")
-            handle: Person handle (e.g., "handle1")
-            aka_names: List of (first_name, surname) tuples for AKA names
-
-        Returns:
-            MagicMock: Mocked Person object with proper name structure
-        """
-        mock_person = MagicMock()
-        mock_person.handle = handle
-        mock_person.gramps_id = gramps_id
-        mock_person.given_name = given_name
-        mock_person.display_name = f"{surname}, {given_name}"
-
-        # Mock primary name
-        mock_primary_name = self._create_mock_name(given_name, surname)
-        mock_person.get_primary_name.return_value = mock_primary_name
-
-        # Mock alternate names
-        mock_alt_names = []
-        if aka_names:
-            for aka_first, aka_surname in aka_names:
-                mock_aka_name = self._create_mock_name(aka_first, aka_surname)
-                mock_alt_names.append(mock_aka_name)
-        mock_person.get_alternate_names.return_value = mock_alt_names
-
-        # Track added alternate names for verification
-        added_alt_names = []
-
-        def add_alternate_name(name):
-            added_alt_names.append(name)
-
-        mock_person.add_alternate_name.side_effect = add_alternate_name
-        mock_person._added_alt_names = added_alt_names
-
-        return mock_person
-
-    def _setup_sample_family(self) -> dict[str, MagicMock]:
-        """
-        Set up the sample family from the test scenarios.
-
-        Returns:
-            dict: Mapping of gramps_id to mock_person objects
-        """
-        # Father: I001, Облонский, Аркадий
-        i001 = self._create_mock_person(
-            gramps_id="I001",
-            given_name="Аркадий",
-            surname="Облонский",
-            handle="handle_i001",
-        )
-
-        # Daughter: I000, Облонская, Анна (with AKA: Кюри, Мария)
-        i000 = self._create_mock_person(
-            gramps_id="I000",
-            given_name="Анна",
-            surname="Облонская",
-            handle="handle_i000",
-            aka_names=[("Мария", "Кюри")],
-        )
-
-        # Daughter: I002, Облонская, Долли, Аркадена
-        i002 = self._create_mock_person(
-            gramps_id="I002",
-            given_name="Долли",
-            surname="Облонская",
-            handle="handle_i002",
-        )
-
-        # Son: I004, Oblonsky, Stiva, Mikhailovich
-        i004 = self._create_mock_person(
-            gramps_id="I004",
-            given_name="Stiva",
-            surname="Oblonsky",
-            handle="handle_i004",
-        )
-
-        # Unrelated: I003, Skłodowska, Curie, Maria
-        i003 = self._create_mock_person(
-            gramps_id="I003",
-            given_name="Maria",
-            surname="Skłodowska",
-            handle="handle_i003",
-        )
-
-        return {
-            "I001": i001,
-            "I000": i000,
-            "I002": i002,
-            "I004": i004,
-            "I003": i003,
-        }
 
     @patch("name_processor.controllers.tool.run_in_idle_loop")
     def test_rename_scan_finds_proposals(self, mock_run_in_idle_loop) -> None:
@@ -579,7 +467,7 @@ class TestRenameWorkflow(unittest.TestCase):
     ) -> None:
         """Test exact match with preserve original name as alternative."""
         # Arrange: Set up sample family
-        family = self._setup_sample_family()
+        family = setup_sample_family()
         self.mock_read_repo.iter_all_persons.return_value = iter(family.values())
 
         # Set up autocompletion with available names (simulating UI state)
@@ -645,7 +533,7 @@ class TestRenameWorkflow(unittest.TestCase):
     ) -> None:
         """Test substring match with preserve original name as alternative."""
         # Arrange: Set up sample family
-        family = self._setup_sample_family()
+        family = setup_sample_family()
         self.mock_read_repo.iter_all_persons.return_value = iter(family.values())
 
         # Configure mock to run synchronously
@@ -712,7 +600,7 @@ class TestRenameWorkflow(unittest.TestCase):
     ) -> None:
         """Test regex match with preserve original name as alternative."""
         # Arrange: Set up sample family
-        family = self._setup_sample_family()
+        family = setup_sample_family()
         self.mock_read_repo.iter_all_persons.return_value = iter(family.values())
 
         # Configure mock to run synchronously
@@ -772,7 +660,7 @@ class TestRenameWorkflow(unittest.TestCase):
     ) -> None:
         """Test exact match without preserve original name as alternative."""
         # Arrange: Set up sample family
-        family = self._setup_sample_family()
+        family = setup_sample_family()
         self.mock_read_repo.iter_all_persons.return_value = iter(family.values())
 
         # Configure mock to run synchronously
