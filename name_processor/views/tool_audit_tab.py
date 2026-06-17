@@ -14,6 +14,7 @@ from gramps.gen.const import GRAMPS_LOCALE as glocale
 from name_processor.models.audit import AuditIssue, AuditScope
 from name_processor.presentation.markup import format_confidence, generate_pango_diff
 from name_processor.presentation.row_schemas import AuditRowData
+from name_processor.views.base_tab import BaseTab
 
 if TYPE_CHECKING:
     from gi.repository.Gtk import Window
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
 _ = glocale.translation.gettext
 
 
-class AuditTab:
+class AuditTab(BaseTab):
     """
     GTK Audit Tab component. Manages the audit patronymics tab UI.
     All business logic is delegated to the controller.
@@ -37,8 +38,7 @@ class AuditTab:
             parent_window: The parent GTK window for dialog references
             controller: The tool controller for business logic calls
         """
-        self.parent_window = parent_window
-        self.controller = controller
+        super().__init__(parent_window, controller)
 
         # Local view state (UI specific)
         self.enabled_rules: dict[str, bool] = {}
@@ -50,10 +50,6 @@ class AuditTab:
         self.pre_reform_check: Gtk.CheckButton
         self.run_btn: Gtk.Button
         self.progress: Gtk.ProgressBar
-        self.store: Gtk.ListStore
-        self.tree: Gtk.TreeView
-        self.select_all: Gtk.CheckButton
-        self.apply_btn: Gtk.Button
 
     def build(self) -> Gtk.Widget:
         """
@@ -148,6 +144,7 @@ class AuditTab:
             self.update_apply_button()
 
     def on_row_toggled(self, widget: Any, path: str) -> None:
+        """Override to add select_all checkbox sync logic."""
         chk_idx = AuditRowData._fields.index("checkbox")
         self.store[path][chk_idx] = not self.store[path][chk_idx]
         self.update_apply_button()
@@ -155,29 +152,6 @@ class AuditTab:
         self.select_all.handler_block_by_func(self.on_select_all_toggled)
         self.select_all.set_active(all_selected)
         self.select_all.handler_unblock_by_func(self.on_select_all_toggled)
-
-    def on_select_all_toggled(self, widget: Any) -> None:
-        chk_idx = AuditRowData._fields.index("checkbox")
-        for row in self.store:
-            row[chk_idx] = widget.get_active()
-        self.update_apply_button()
-
-    def on_row_activated(
-        self, tv: Gtk.TreeView, path: str, col: Gtk.TreeViewColumn
-    ) -> None:
-        handle = tv.get_model()[path][AuditRowData._fields.index("handle")]
-        gramps_person = self.controller.get_gramps_person(handle)
-        dbstate = self.controller.dbstate
-        uistate = getattr(self.controller.user, "uistate", None)
-        if gramps_person is None or dbstate is None or uistate is None:
-            return
-        try:
-            from gramps.gui.editors import EditPerson
-            from gramps.gen.errors import WindowActiveError
-
-            EditPerson(dbstate, uistate, [], gramps_person)
-        except WindowActiveError:
-            pass
 
     def on_configure_rules_clicked(self, widget: Any) -> None:
         dialog = Gtk.Dialog(
@@ -201,48 +175,30 @@ class AuditTab:
         dialog.destroy()
 
     # --- Column Setup ---
-    def _add_text_column(
-        self,
-        title: str,
-        field_name: str,
-        expand: bool = False,
-        use_markup: bool = False,
-        sort_field: str | None = None,
-    ) -> None:
-        attr = "markup" if use_markup else "text"
-        sort_id = AuditRowData._fields.index(sort_field if sort_field else field_name)
-        col = Gtk.TreeViewColumn(
-            title,
-            Gtk.CellRendererText(),
-            **{attr: AuditRowData._fields.index(field_name)},
-        )
-        col.set_expand(expand)
-        col.set_sort_column_id(sort_id)
-        self.tree.append_column(col)
-
     def setup_columns(self) -> None:
-        renderer_toggle = Gtk.CellRendererToggle()
-        renderer_toggle.connect("toggled", self.on_row_toggled)
-        self.tree.append_column(
-            Gtk.TreeViewColumn(
-                _("Use"), renderer_toggle, active=AuditRowData._fields.index("checkbox")
-            )
+        self._add_checkbox_column(AuditRowData, self.on_row_toggled)
+        self._add_text_column(_("ID"), "gramps_id", AuditRowData)
+        self._add_text_column(
+            _("Individual"), "display_name", AuditRowData, expand=True
         )
-        self._add_text_column(_("ID"), "gramps_id")
-        self._add_text_column(_("Individual"), "display_name", expand=True)
-        self._add_text_column(_("Father"), "father_name", expand=True)
-        self._add_text_column(_("Current"), "current_patronymic", expand=True)
+        self._add_text_column(_("Father"), "father_name", AuditRowData, expand=True)
+        self._add_text_column(
+            _("Current"), "current_patronymic", AuditRowData, expand=True
+        )
         self._add_text_column(
             _("Correction"),
             "diff_markup",
+            AuditRowData,
             expand=True,
             use_markup=True,
             sort_field="suggested_string",
         )
-        self._add_text_column(_("Conf"), "confidence")
-        self._add_text_column(_("Ref Year"), "ref_year")
-        self._add_text_column(_("Rule"), "rule_id")
-        self._add_text_column(_("Explanation"), "explanation", expand=True)
+        self._add_text_column(_("Conf"), "confidence", AuditRowData)
+        self._add_text_column(_("Ref Year"), "ref_year", AuditRowData)
+        self._add_text_column(_("Rule"), "rule_id", AuditRowData)
+        self._add_text_column(
+            _("Explanation"), "explanation", AuditRowData, expand=True
+        )
 
     # --- Port Methods (Controller → View) ---
     def clear_results(self) -> None:
@@ -287,9 +243,9 @@ class AuditTab:
         if total_found == 0:
             OkDialog(_("No Results"), _("No issues found."), self.parent_window)
 
-    def update_apply_button(self) -> None:
-        chk_idx = AuditRowData._fields.index("checkbox")
-        self.apply_btn.set_sensitive(any(row[chk_idx] for row in self.store))
+    def get_row_data_type(self) -> type[AuditRowData]:
+        """Return the RowData type for this tab."""
+        return AuditRowData
 
     def get_checked_keys(self) -> set[tuple[str, str]]:
         chk_idx = AuditRowData._fields.index("checkbox")

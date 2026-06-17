@@ -13,6 +13,7 @@ from gramps.gen.const import GRAMPS_LOCALE as glocale
 
 from name_processor.models.renamer import AltAction, MatchMode
 from name_processor.presentation.row_schemas import GivenRowData
+from name_processor.views.base_tab import BaseTab
 
 if TYPE_CHECKING:
     from gi.repository.Gtk import Window
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 _ = glocale.translation.gettext
 
 
-class RenameTab:
+class RenameTab(BaseTab):
     """
     GTK Rename Tab component. Manages the rename given names tab UI.
     All business logic is delegated to the controller.
@@ -36,8 +37,7 @@ class RenameTab:
             parent_window: The parent GTK window for dialog references
             controller: The tool controller for business logic calls
         """
-        self.parent_window = parent_window
-        self.controller = controller
+        super().__init__(parent_window, controller)
 
         # Widget properties (initialized in build())
         self.source_entry: Gtk.Entry
@@ -45,10 +45,6 @@ class RenameTab:
         self.match_combo: Gtk.ComboBoxText
         self.scan_btn: Gtk.Button
         self.preserve_check: Gtk.CheckButton
-        self.store: Gtk.ListStore
-        self.tree: Gtk.TreeView
-        self.select_all: Gtk.CheckButton
-        self.apply_btn: Gtk.Button
 
     def build(self) -> Gtk.Widget:
         """
@@ -141,34 +137,6 @@ class RenameTab:
             self.store.clear()
             self.update_apply_button()
 
-    def on_row_toggled(self, widget: Any, path: str) -> None:
-        chk_idx = GivenRowData._fields.index("checkbox")
-        self.store[path][chk_idx] = not self.store[path][chk_idx]
-        self.update_apply_button()
-
-    def on_select_all_toggled(self, widget: Any) -> None:
-        chk_idx = GivenRowData._fields.index("checkbox")
-        for row in self.store:
-            row[chk_idx] = widget.get_active()
-        self.update_apply_button()
-
-    def on_row_activated(
-        self, tv: Gtk.TreeView, path: str, col: Gtk.TreeViewColumn
-    ) -> None:
-        handle = tv.get_model()[path][GivenRowData._fields.index("handle")]
-        gramps_person = self.controller.get_gramps_person(handle)
-        dbstate = self.controller.dbstate
-        uistate = getattr(self.controller.user, "uistate", None)
-        if gramps_person is None or dbstate is None or uistate is None:
-            return
-        try:
-            from gramps.gui.editors import EditPerson
-            from gramps.gen.errors import WindowActiveError
-
-            EditPerson(dbstate, uistate, [], gramps_person)
-        except WindowActiveError:
-            pass
-
     def on_preserve_toggled(self, widget: Gtk.CheckButton) -> None:
         if self.controller:
             self.controller.update_preserve_alt(
@@ -176,38 +144,18 @@ class RenameTab:
             )
 
     # --- Column Setup ---
-    def _add_text_column(
-        self,
-        title: str,
-        field_name: str,
-        expand: bool = False,
-        use_markup: bool = False,
-    ) -> None:
-        """Helper to add a text column to the treeview."""
-        attr = "markup" if use_markup else "text"
-        col = Gtk.TreeViewColumn(
-            title,
-            Gtk.CellRendererText(),
-            **{attr: GivenRowData._fields.index(field_name)},
-        )
-        col.set_expand(expand)
-        col.set_sort_column_id(GivenRowData._fields.index(field_name))
-        self.tree.append_column(col)
-
     def setup_columns(self) -> None:
         """Setup treeview columns for the rename tab."""
-        renderer_toggle = Gtk.CellRendererToggle()
-        renderer_toggle.connect("toggled", self.on_row_toggled)
-        self.tree.append_column(
-            Gtk.TreeViewColumn(
-                _("Use"), renderer_toggle, active=GivenRowData._fields.index("checkbox")
-            )
+        self._add_checkbox_column(GivenRowData, self.on_row_toggled)
+        self._add_text_column(_("ID"), "gramps_id", GivenRowData)
+        self._add_text_column(
+            _("Individual"), "display_name", GivenRowData, expand=True
         )
-        self._add_text_column(_("ID"), "gramps_id")
-        self._add_text_column(_("Individual"), "display_name", expand=True)
-        self._add_text_column(_("Current"), "current", expand=True)
-        self._add_text_column(_("Proposed"), "proposed", expand=True, use_markup=True)
-        self._add_text_column(_("Action"), "alt_action")
+        self._add_text_column(_("Current"), "current", GivenRowData, expand=True)
+        self._add_text_column(
+            _("Proposed"), "proposed", GivenRowData, expand=True, use_markup=True
+        )
+        self._add_text_column(_("Action"), "alt_action", GivenRowData)
 
     # --- Port Methods (Controller → View) ---
 
@@ -238,9 +186,9 @@ class RenameTab:
         for row in self.store:
             row[act_idx] = translated
 
-    def update_apply_button(self) -> None:
-        chk_idx = GivenRowData._fields.index("checkbox")
-        self.apply_btn.set_sensitive(any(row[chk_idx] for row in self.store))
+    def get_row_data_type(self) -> type[GivenRowData]:
+        """Return the RowData type for this tab."""
+        return GivenRowData
 
     def get_checked_handles(self) -> set[str]:
         chk_idx = GivenRowData._fields.index("checkbox")
