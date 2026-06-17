@@ -44,6 +44,10 @@ class FakeToolView(ToolViewPort):
         self.clear_rename_proposals_called: int = 0
         self.clear_audit_results_called: int = 0
 
+        # Autocompletion tracking
+        self.autocompletion_names: set[str] = set()
+        self.autocompletion_setup_called: int = 0
+
     # Read path (controller → view)
     def clear_rename_proposals(self) -> None:
         self.clear_rename_proposals_called += 1
@@ -87,8 +91,8 @@ class FakeToolView(ToolViewPort):
         self.audit_apply_button_updated_count += 1
 
     def setup_given_name_autocompletion(self) -> None:
-        # No-op in fake view
-        pass
+        # Track that autocompletion was set up
+        self.autocompletion_setup_called += 1
 
     def show_ok_dialog(self, title: str, message: str) -> None:
         self.dialog_calls.append((title, message))
@@ -125,3 +129,16 @@ class FakeToolView(ToolViewPort):
     def uncheck_audit_key(self, key: tuple[str, str]) -> None:
         """Test helper to uncheck a specific audit issue."""
         self.checked_audit_keys.discard(key)
+
+    def set_autocompletion_names(self, names: set[str]) -> None:
+        """Test helper to set the names available for autocompletion."""
+        self.autocompletion_names = names
+
+    def get_autocompletion_suggestions(self, prefix: str) -> list[str]:
+        """
+        Test helper to get autocompletion suggestions for a given prefix.
+        Simulates GTK EntryCompletion behavior.
+        """
+        return sorted(
+            [name for name in self.autocompletion_names if name.startswith(prefix)]
+        )

@@ -52,6 +52,119 @@ class TestRenameWorkflow(unittest.TestCase):
         """Helper to run a scan generator synchronously using SynchronousTaskRunner."""
         self.sync_runner.run_chunked(generator, on_complete)
 
+    def _create_mock_name(self, first_name: str, surname: str = "") -> MagicMock:
+        """Helper to create a mock Gramps Name object."""
+        mock_name = MagicMock()
+        mock_name.get_first_name.return_value = first_name
+        mock_name.get_surname_list.return_value = []
+        return mock_name
+
+    def _create_mock_person(
+        self,
+        gramps_id: str,
+        given_name: str,
+        surname: str,
+        handle: str,
+        aka_names: list[tuple[str, str]] | None = None,
+    ) -> MagicMock:
+        """
+        Helper to create a mock Gramps Person object with deep mocking.
+
+        Args:
+            gramps_id: Gramps ID (e.g., "I001")
+            given_name: Given name (e.g., "Анна")
+            surname: Surname (e.g., "Облонская")
+            handle: Person handle (e.g., "handle1")
+            aka_names: List of (first_name, surname) tuples for AKA names
+
+        Returns:
+            MagicMock: Mocked Person object with proper name structure
+        """
+        mock_person = MagicMock()
+        mock_person.handle = handle
+        mock_person.gramps_id = gramps_id
+        mock_person.given_name = given_name
+        mock_person.display_name = f"{surname}, {given_name}"
+
+        # Mock primary name
+        mock_primary_name = self._create_mock_name(given_name, surname)
+        mock_person.get_primary_name.return_value = mock_primary_name
+
+        # Mock alternate names
+        mock_alt_names = []
+        if aka_names:
+            for aka_first, aka_surname in aka_names:
+                mock_aka_name = self._create_mock_name(aka_first, aka_surname)
+                mock_alt_names.append(mock_aka_name)
+        mock_person.get_alternate_names.return_value = mock_alt_names
+
+        # Track added alternate names for verification
+        added_alt_names = []
+
+        def add_alternate_name(name):
+            added_alt_names.append(name)
+
+        mock_person.add_alternate_name.side_effect = add_alternate_name
+        mock_person._added_alt_names = added_alt_names
+
+        return mock_person
+
+    def _setup_sample_family(self) -> dict[str, MagicMock]:
+        """
+        Set up the sample family from the test scenarios.
+
+        Returns:
+            dict: Mapping of gramps_id to mock_person objects
+        """
+        # Father: I001, Облонский, Аркадий
+        i001 = self._create_mock_person(
+            gramps_id="I001",
+            given_name="Аркадий",
+            surname="Облонский",
+            handle="handle_i001",
+        )
+
+        # Daughter: I000, Облонская, Анна (with AKA: Кюри, Мария)
+        i000 = self._create_mock_person(
+            gramps_id="I000",
+            given_name="Анна",
+            surname="Облонская",
+            handle="handle_i000",
+            aka_names=[("Мария", "Кюри")],
+        )
+
+        # Daughter: I002, Облонская, Долли, Аркадена
+        i002 = self._create_mock_person(
+            gramps_id="I002",
+            given_name="Долли",
+            surname="Облонская",
+            handle="handle_i002",
+        )
+
+        # Son: I004, Oblonsky, Stiva, Mikhailovich
+        i004 = self._create_mock_person(
+            gramps_id="I004",
+            given_name="Stiva",
+            surname="Oblonsky",
+            handle="handle_i004",
+        )
+
+        # Unrelated: I003, Skłodowska, Curie, Maria
+        i003 = self._create_mock_person(
+            gramps_id="I003",
+            given_name="Maria",
+            surname="Skłodowska",
+            handle="handle_i003",
+        )
+
+        return {
+            "I001": i001,
+            "I000": i000,
+            "I002": i002,
+            "I004": i004,
+            "I003": i003,
+        }
+
     @patch("name_processor.controllers.tool.run_in_idle_loop")
     def test_rename_scan_finds_proposals(self, mock_run_in_idle_loop) -> None:
         """Test that rename scan finds and displays proposals."""
@@ -459,6 +572,254 @@ class TestRenameWorkflow(unittest.TestCase):
             0,
             f"ToolWindow is missing protocol methods: {missing_methods}",
         )
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_exact_match_preserve_original_as_alternative(
+        self, mock_run_in_idle_loop
+    ) -> None:
+        """Test exact match with preserve original name as alternative."""
+        # Arrange: Set up sample family
+        family = self._setup_sample_family()
+        self.mock_read_repo.iter_all_persons.return_value = iter(family.values())
+
+        # Set up autocompletion with available names (simulating UI state)
+        self.fake_view.set_autocompletion_names(
+            {"Анна", "Аркадий", "Долли", "Stiva", "Maria"}
+        )
+
+        # Verify autocompletion would suggest "Анна" for prefix "Ан"
+        suggestions = self.fake_view.get_autocompletion_suggestions("Ан")
+        self.assertIn("Анна", suggestions)
+
+        # Configure mock to run synchronously
+        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
+
+        # Configure renamer service for exact match
+        self.mock_renamer_service.create_config.return_value = MagicMock()
+        self.mock_renamer_service.evaluate_person.side_effect = lambda name, cfg: (
+            "Ганна" if name == "Анна" else None
+        )
+
+        # Enable preserve alt
+        self.fake_view.set_preserve_alt_enabled(True)
+
+        # Act: Run scan for exact match "Анна" -> "Ганна"
+        result = self.controller.run_rename_scan("Анна", "Ганна", MatchMode.EXACT)
+
+        # Assert: Scan started successfully
+        self.assertTrue(result)
+
+        # Assert: One proposal for I000 (Анна)
+        self.assertEqual(len(self.fake_view.rename_proposals), 1)
+        proposal = self.fake_view.rename_proposals[0]
+        self.assertEqual(proposal.gramps_id, "I000")
+        self.assertEqual(proposal.current, "Анна")
+        self.assertEqual(proposal.proposed, "Ганна")
+        self.assertEqual(proposal.alt_action, AltAction.PRESERVE.value)
+
+        # Arrange: Mock repository methods for apply
+        mock_person = family["I000"]
+        self.mock_read_repo.get_person_from_handle.return_value = mock_person
+        self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
+        self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
+
+        # Act: Apply checked renamings
+        result = self.controller.apply_checked_renamings()
+
+        # Assert: Apply succeeded
+        self.assertTrue(result)
+
+        # Assert: Alt names service called to preserve primary name
+        self.mock_alt_names_service.preserve_primary_name.assert_called_once_with(
+            mock_person
+        )
+
+        # Assert: Write repository called with correct parameters
+        self.mock_write_repo.apply_first_name_correction.assert_called_once()
+        call_args = self.mock_write_repo.apply_first_name_correction.call_args
+        self.assertEqual(call_args[0][2], "Ганна")  # proposed name
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_substring_match_preserve_original_as_alternative(
+        self, mock_run_in_idle_loop
+    ) -> None:
+        """Test substring match with preserve original name as alternative."""
+        # Arrange: Set up sample family
+        family = self._setup_sample_family()
+        self.mock_read_repo.iter_all_persons.return_value = iter(family.values())
+
+        # Configure mock to run synchronously
+        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
+
+        # Configure renamer service for substring match "А" -> "О"
+        self.mock_renamer_service.create_config.return_value = MagicMock()
+        self.mock_renamer_service.evaluate_person.side_effect = lambda name, cfg: (
+            name.replace("А", "О") if "А" in name else None
+        )
+
+        # Enable preserve alt
+        self.fake_view.set_preserve_alt_enabled(True)
+
+        # Act: Run scan for substring match "А" -> "О"
+        result = self.controller.run_rename_scan("А", "О", MatchMode.SUBSTRING)
+
+        # Assert: Scan started successfully
+        self.assertTrue(result)
+
+        # Assert: Two proposals for I000 (Анна -> Онна) and I001 (Аркадий -> Оркадий)
+        self.assertEqual(len(self.fake_view.rename_proposals), 2)
+
+        # Check I000 proposal
+        proposal_i000 = next(
+            p for p in self.fake_view.rename_proposals if p.gramps_id == "I000"
+        )
+        self.assertEqual(proposal_i000.current, "Анна")
+        self.assertEqual(proposal_i000.proposed, "Онна")
+        self.assertEqual(proposal_i000.alt_action, AltAction.PRESERVE.value)
+
+        # Check I001 proposal
+        proposal_i001 = next(
+            p for p in self.fake_view.rename_proposals if p.gramps_id == "I001"
+        )
+        self.assertEqual(proposal_i001.current, "Аркадий")
+        self.assertEqual(proposal_i001.proposed, "Оркадий")
+        self.assertEqual(proposal_i001.alt_action, AltAction.PRESERVE.value)
+
+        # Arrange: Mock repository methods for apply
+        self.mock_read_repo.get_person_from_handle.side_effect = lambda h: family[
+            {"handle_i000": "I000", "handle_i001": "I001"}[h]
+        ]
+        self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
+        self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
+
+        # Act: Apply checked renamings
+        result = self.controller.apply_checked_renamings()
+
+        # Assert: Apply succeeded
+        self.assertTrue(result)
+
+        # Assert: Alt names service called twice (for both persons)
+        self.assertEqual(
+            self.mock_alt_names_service.preserve_primary_name.call_count, 2
+        )
+
+        # Assert: Write repository called twice
+        self.assertEqual(self.mock_write_repo.apply_first_name_correction.call_count, 2)
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_regex_match_preserve_original_as_alternative(
+        self, mock_run_in_idle_loop
+    ) -> None:
+        """Test regex match with preserve original name as alternative."""
+        # Arrange: Set up sample family
+        family = self._setup_sample_family()
+        self.mock_read_repo.iter_all_persons.return_value = iter(family.values())
+
+        # Configure mock to run synchronously
+        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
+
+        # Configure renamer service for regex match "А(рк)ад(.*)" -> "О\2рай\1ий"
+        # This should transform "Аркадий" to "Оийрайркий"
+        self.mock_renamer_service.create_config.return_value = MagicMock()
+        self.mock_renamer_service.evaluate_person.side_effect = lambda name, cfg: (
+            "Оийрайркий" if name == "Аркадий" else None
+        )
+
+        # Enable preserve alt
+        self.fake_view.set_preserve_alt_enabled(True)
+
+        # Act: Run scan for regex match
+        result = self.controller.run_rename_scan(
+            "А(рк)ад(.*)", "О\\2рай\\1ий", MatchMode.REGEX
+        )
+
+        # Assert: Scan started successfully
+        self.assertTrue(result)
+
+        # Assert: One proposal for I001 (Аркадий -> Оийрайркий)
+        self.assertEqual(len(self.fake_view.rename_proposals), 1)
+        proposal = self.fake_view.rename_proposals[0]
+        self.assertEqual(proposal.gramps_id, "I001")
+        self.assertEqual(proposal.current, "Аркадий")
+        self.assertEqual(proposal.proposed, "Оийрайркий")
+        self.assertEqual(proposal.alt_action, AltAction.PRESERVE.value)
+
+        # Arrange: Mock repository methods for apply
+        mock_person = family["I001"]
+        self.mock_read_repo.get_person_from_handle.return_value = mock_person
+        self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
+        self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
+
+        # Act: Apply checked renamings
+        result = self.controller.apply_checked_renamings()
+
+        # Assert: Apply succeeded
+        self.assertTrue(result)
+
+        # Assert: Alt names service called to preserve primary name
+        self.mock_alt_names_service.preserve_primary_name.assert_called_once_with(
+            mock_person
+        )
+
+        # Assert: Write repository called with correct parameters
+        self.mock_write_repo.apply_first_name_correction.assert_called_once()
+        call_args = self.mock_write_repo.apply_first_name_correction.call_args
+        self.assertEqual(call_args[0][2], "Оийрайркий")  # proposed name
+
+    @patch("name_processor.controllers.tool.run_in_idle_loop")
+    def test_exact_match_without_preserve_original_as_alternative(
+        self, mock_run_in_idle_loop
+    ) -> None:
+        """Test exact match without preserve original name as alternative."""
+        # Arrange: Set up sample family
+        family = self._setup_sample_family()
+        self.mock_read_repo.iter_all_persons.return_value = iter(family.values())
+
+        # Configure mock to run synchronously
+        mock_run_in_idle_loop.side_effect = self._run_scan_synchronously
+
+        # Configure renamer service for exact match
+        self.mock_renamer_service.create_config.return_value = MagicMock()
+        self.mock_renamer_service.evaluate_person.side_effect = lambda name, cfg: (
+            "Ганна" if name == "Анна" else None
+        )
+
+        # Disable preserve alt
+        self.fake_view.set_preserve_alt_enabled(False)
+
+        # Act: Run scan for exact match "Анна" -> "Ганна"
+        result = self.controller.run_rename_scan("Анна", "Ганна", MatchMode.EXACT)
+
+        # Assert: Scan started successfully
+        self.assertTrue(result)
+
+        # Assert: One proposal for I000 (Анна)
+        self.assertEqual(len(self.fake_view.rename_proposals), 1)
+        proposal = self.fake_view.rename_proposals[0]
+        self.assertEqual(proposal.gramps_id, "I000")
+        self.assertEqual(proposal.current, "Анна")
+        self.assertEqual(proposal.proposed, "Ганна")
+        self.assertEqual(proposal.alt_action, AltAction.OVERWRITE.value)
+
+        # Arrange: Mock repository methods for apply
+        mock_person = family["I000"]
+        self.mock_read_repo.get_person_from_handle.return_value = mock_person
+        self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
+        self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
+
+        # Act: Apply checked renamings
+        result = self.controller.apply_checked_renamings()
+
+        # Assert: Apply succeeded
+        self.assertTrue(result)
+
+        # Assert: Alt names service NOT called (preserve is disabled)
+        self.mock_alt_names_service.preserve_primary_name.assert_not_called()
+
+        # Assert: Write repository called with correct parameters
+        self.mock_write_repo.apply_first_name_correction.assert_called_once()
+        call_args = self.mock_write_repo.apply_first_name_correction.call_args
+        self.assertEqual(call_args[0][2], "Ганна")  # proposed name
 
 
 if __name__ == "__main__":
