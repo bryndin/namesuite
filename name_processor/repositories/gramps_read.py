@@ -197,22 +197,6 @@ class GrampsReadRepository:
     def get_patronymic_subject(self, handle: str) -> PatronymicSubject | None:
         return self.get_person_proxy(handle)
 
-    def get_person_proxies_chunked(
-        self, chunk_size: int = 250
-    ) -> Generator[list[GrampsPersonProxy], None, None]:
-        """
-        Yields batches of person proxies to hide handle iteration
-        and support GTK idle loop chunking.
-        """
-        handles = self.get_all_person_handles()
-        for i in range(0, len(handles), chunk_size):
-            chunk = []
-            for handle in handles[i : i + chunk_size]:
-                proxy = self.get_person_proxy(handle)
-                if proxy:
-                    chunk.append(proxy)
-            yield chunk
-
     def iter_all_persons(self) -> Generator[GrampsPersonProxy, None, None]:
         """Yields person proxies one by one for direct iteration."""
         for handle in self.get_all_person_handles():

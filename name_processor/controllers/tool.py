@@ -82,16 +82,16 @@ class ToolController:
         )
 
     def initialize_given_names_async(self) -> None:
-        # TODO: Refactor similar to the above
         def generator() -> Generator[None, None, set[str]]:
             names = set()
-            for proxy_chunk in self._read_repo.get_person_proxies_chunked(
-                chunk_size=500
-            ):
-                for proxy in proxy_chunk:
-                    if proxy.given_name:
-                        names.add(proxy.given_name)
-                yield None
+            count = 0
+            for proxy in self._read_repo.iter_all_persons():
+                if proxy.given_name:
+                    names.add(proxy.given_name)
+                count += 1
+                # TODO: Factor out the chunk size into a constant or config
+                if count % 500 == 0:
+                    yield None
             return names
 
         def on_complete(final_names: set[str] | None) -> None:
