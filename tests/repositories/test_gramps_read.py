@@ -28,14 +28,14 @@ class TestGrampsReadRepository(unittest.TestCase):
 
     def test_get_person_proxy_returns_none(self):
         self.mock_db.get_person_from_handle.return_value = None
-        self.assertIsNone(self.read_repo.get_person_proxy("bad_handle"))
+        self.assertIsNone(self.read_repo.get_person("bad_handle"))
 
     @patch("name_processor.repositories.person.GrampsPersonProxy")
     def test_get_person_proxy_success(self, mock_proxy_class):
         mock_person = Mock()
         self.mock_db.get_person_from_handle.return_value = mock_person
 
-        result = self.read_repo.get_person_proxy("h123")
+        result = self.read_repo.get_person("h123")
 
         mock_proxy_class.assert_called_once_with(mock_person)
         self.assertEqual(result, mock_proxy_class.return_value)
@@ -93,7 +93,7 @@ class TestGrampsReadRepository(unittest.TestCase):
         self.assertEqual(result, 1910)
 
     def test_get_father_proxy_returns_proxy_when_father_exists(self):
-        """Test that get_father_proxy returns a proxy when father exists."""
+        """Test that get_father returns a proxy when father exists."""
         person_handle = "person1"
         father_handle = "father1"
         mock_person = Mock()
@@ -108,25 +108,25 @@ class TestGrampsReadRepository(unittest.TestCase):
         with patch(
             "name_processor.repositories.person.GrampsPersonProxy"
         ) as mock_proxy_class:
-            result = self.read_repo.get_father_proxy(person_handle)
+            result = self.read_repo.get_father(person_handle)
 
             self.assertIsNotNone(result)
             mock_proxy_class.assert_called_once_with(mock_father)
 
     def test_get_father_proxy_returns_none_when_no_father(self):
-        """Test that get_father_proxy returns None when person has no father."""
+        """Test that get_father returns None when person has no father."""
         person_handle = "person1"
         mock_person = Mock()
 
         self.mock_db.get_person_from_handle.return_value = mock_person
         mock_person.get_parent_family_handle_list.return_value = []
 
-        result = self.read_repo.get_father_proxy(person_handle)
+        result = self.read_repo.get_father(person_handle)
 
         self.assertIsNone(result)
 
     def test_get_father_proxy_returns_none_when_invalid_handle(self):
-        """Test that get_father_proxy returns None when father handle is invalid."""
+        """Test that get_father returns None when father handle is invalid."""
         person_handle = "person1"
         mock_person = Mock()
 
@@ -136,12 +136,12 @@ class TestGrampsReadRepository(unittest.TestCase):
         mock_family.get_father_handle.return_value = "invalid_father"
         self.mock_db.get_family_from_handle.return_value = mock_family
 
-        result = self.read_repo.get_father_proxy(person_handle)
+        result = self.read_repo.get_father(person_handle)
 
         self.assertIsNone(result)
 
     def test_get_siblings_proxies_returns_list_when_siblings_exist(self):
-        """Test that get_siblings_proxies returns list of proxies when siblings exist."""
+        """Test that get_siblings returns list of proxies when siblings exist."""
         person_handle = "person1"
         sibling1_handle = "sibling1"
         sibling2_handle = "sibling2"
@@ -169,25 +169,25 @@ class TestGrampsReadRepository(unittest.TestCase):
         with patch(
             "name_processor.repositories.person.GrampsPersonProxy"
         ) as mock_proxy_class:
-            result = self.read_repo.get_siblings_proxies(person_handle)
+            result = self.read_repo.get_siblings(person_handle)
 
             self.assertEqual(len(result), 2)
             self.assertEqual(mock_proxy_class.call_count, 2)
 
     def test_get_siblings_proxies_returns_empty_list_when_no_siblings(self):
-        """Test that get_siblings_proxies returns empty list when no siblings."""
+        """Test that get_siblings returns empty list when no siblings."""
         person_handle = "person1"
         mock_person = Mock()
 
         self.mock_db.get_person_from_handle.return_value = mock_person
         mock_person.get_parent_family_handle_list.return_value = []
 
-        result = self.read_repo.get_siblings_proxies(person_handle)
+        result = self.read_repo.get_siblings(person_handle)
 
         self.assertEqual(result, [])
 
     def test_get_siblings_proxies_excludes_person_own_handle(self):
-        """Test that get_siblings_proxies excludes the person's own handle."""
+        """Test that get_siblings excludes the person's own handle."""
         person_handle = "person1"
         sibling_handle = "sibling1"
         mock_person = Mock()
@@ -209,7 +209,7 @@ class TestGrampsReadRepository(unittest.TestCase):
         with patch(
             "name_processor.repositories.person.GrampsPersonProxy"
         ) as mock_proxy_class:
-            result = self.read_repo.get_siblings_proxies(person_handle)
+            result = self.read_repo.get_siblings(person_handle)
 
             # Should only return the sibling, not the person themselves
             self.assertEqual(len(result), 1)

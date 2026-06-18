@@ -20,6 +20,7 @@ class GrampsReadRepository:
     # ==========================================
     # System Operations
     # ==========================================
+    # TODO: why are there two methods for this?
     def get_person_count(self) -> int:
         """Returns the total number of individuals to power UI progress bars."""
         return self.get_total_person_count()
@@ -135,7 +136,7 @@ class GrampsReadRepository:
                         siblings.append(child_handle)
         return siblings
 
-    def get_father_proxy(self, person_handle: str) -> GrampsPersonProxy | None:
+    def get_father(self, person_handle: str) -> GrampsPersonProxy | None:
         """
         Returns a GrampsPersonProxy for the father of the given person.
         Returns None if the person has no father or father not found.
@@ -143,9 +144,9 @@ class GrampsReadRepository:
         father_handle = self.get_father_handle(person_handle)
         if not father_handle:
             return None
-        return self.get_person_proxy(father_handle)
+        return self.get_person(father_handle)
 
-    def get_siblings_proxies(self, person_handle: str) -> list[GrampsPersonProxy]:
+    def get_siblings(self, person_handle: str) -> list[GrampsPersonProxy]:
         """
         Returns a list of GrampsPersonProxy objects for all siblings of the given person.
         Returns empty list if person has no siblings.
@@ -153,7 +154,7 @@ class GrampsReadRepository:
         sibling_handles = self.get_siblings_handles(person_handle)
         proxies = []
         for handle in sibling_handles:
-            proxy = self.get_person_proxy(handle)
+            proxy = self.get_person(handle)
             if proxy:
                 proxies.append(proxy)
         return proxies
@@ -177,7 +178,7 @@ class GrampsReadRepository:
     # ==========================================
     # Proxy Access & Iterators
     # ==========================================
-    def get_person_proxy(self, handle: str) -> GrampsPersonProxy | None:
+    def get_person(self, handle: str) -> GrampsPersonProxy | None:
         from name_processor.repositories.person import GrampsPersonProxy
 
         gramps_person = self.get_person_from_handle(handle)
@@ -186,21 +187,21 @@ class GrampsReadRepository:
         return GrampsPersonProxy(gramps_person)
 
     def get_chronology_subject(self, handle: str) -> ChronologySubject | None:
-        return self.get_person_proxy(handle)
+        return self.get_person(handle)
 
     def get_confidence_subject(self, handle: str) -> ConfidenceSubject | None:
-        return self.get_person_proxy(handle)
+        return self.get_person(handle)
 
     def get_audit_subject(self, handle: str) -> AuditSubject | None:
-        return self.get_person_proxy(handle)
+        return self.get_person(handle)
 
     def get_patronymic_subject(self, handle: str) -> PatronymicSubject | None:
-        return self.get_person_proxy(handle)
+        return self.get_person(handle)
 
     def iter_all_persons(self) -> Generator[GrampsPersonProxy, None, None]:
         """Yields person proxies one by one for direct iteration."""
         for handle in self.get_all_person_handles():
-            proxy = self.get_person_proxy(handle)
+            proxy = self.get_person(handle)
             if proxy:
                 yield proxy
 
@@ -218,6 +219,7 @@ class GrampsReadRepository:
     # ==========================================
     # Aggregations
     # ==========================================
+    # TODO: check if this is used anywhere
     def get_database_median_year_chunked(
         self, chunk_size: int = 500
     ) -> Generator[None, None, int | None]:

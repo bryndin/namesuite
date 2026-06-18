@@ -67,7 +67,7 @@ class AuditService:
 
         # Build Context
         # Resolve father using repository instead of accessing person.father
-        father = self._read_repo.get_father_proxy(person.handle)
+        father = self._read_repo.get_father(person.handle)
         father_given_name = father.given_name if father else None
 
         ref_year = self._chronology_service.estimate_reference_year(person.handle)

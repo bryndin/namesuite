@@ -37,7 +37,7 @@ class TestGrampletController(unittest.TestCase):
         self.mocks["view"].show_status_message.assert_called_once_with(
             PatronymicInferenceStatus.NO_ACTIVE_PERSON, apply_sensitive=False
         )
-        self.mocks["read_repo"].get_person_proxy.assert_not_called()
+        self.mocks["read_repo"].get_person.assert_not_called()
 
     def test_on_active_changed_person_not_found(self):
         # Arrange
