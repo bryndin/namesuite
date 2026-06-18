@@ -13,15 +13,12 @@ class GrampsReadRepository:
         self._db = db
 
     # ==========================================
-    # System Operations
+    # Database Query Methods
     # ==========================================
     def get_person_count(self) -> int:
         """Returns the total number of individuals to power UI progress bars."""
         return self._db.get_number_of_people()
 
-    # ==========================================
-    # Database Query Methods
-    # ==========================================
     def get_family_from_handle(self, handle: str) -> object | None:
         """Returns a Family object from its handle, or None if not found."""
         return self._db.get_family_from_handle(handle)
@@ -183,7 +180,7 @@ class GrampsReadRepository:
             if proxy:
                 yield proxy
 
-    def iter_event_years(self) -> Generator[int, None, None]:
+    def iter_all_events_years(self) -> Generator[int, None, None]:
         """Yields raw years sequentially. No business logic (medians) allowed here."""
         for handle in self._db.get_event_handles():
             event = self._db.get_event_from_handle(handle)

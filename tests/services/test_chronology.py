@@ -106,8 +106,8 @@ class TestChronologyService(unittest.TestCase):
 
     def test_generate_years_with_default_chunk_size(self):
         """Test generate_years collects years and yields periodically."""
-        # Mock iter_event_years to return years
-        self.mock_repo.iter_event_years.return_value = iter(
+        # Mock iter_all_events_years to return years
+        self.mock_repo.iter_all_events_years.return_value = iter(
             [1800, 1850, 1900, 1950, 2000]
         )
 
@@ -129,9 +129,9 @@ class TestChronologyService(unittest.TestCase):
 
     def test_generate_years_with_custom_chunk_size(self):
         """Test generate_years respects custom chunk_size."""
-        # Mock iter_event_years to return 250 years
+        # Mock iter_all_events_years to return 250 years
         years = list(range(1800, 2050))
-        self.mock_repo.iter_event_years.return_value = iter(years)
+        self.mock_repo.iter_all_events_years.return_value = iter(years)
 
         generator = self.service.generate_years(chunk_size=100)
 
@@ -151,7 +151,7 @@ class TestChronologyService(unittest.TestCase):
 
     def test_generate_years_with_empty_repository(self):
         """Test generate_years returns empty list when no years available."""
-        self.mock_repo.iter_event_years.return_value = iter([])
+        self.mock_repo.iter_all_events_years.return_value = iter([])
 
         generator = self.service.generate_years()
 

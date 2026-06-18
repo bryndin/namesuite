@@ -90,19 +90,9 @@ class GrampsWriteRepository:
             self.commit_person(trans, person)
 
     # ==========================================
-    # Legacy / Convenience Methods (Used by Gramplet)
+    # Convenience Method (Used by Gramplet)
     # ==========================================
     def update_patronymic_names(self, patronymics: dict[str, str]) -> None:
         with self.transaction("Update Patronymic Names") as t:
             for handle, patronymic in patronymics.items():
-                person = self._db.get_person_from_handle(handle)
-                if not person:
-                    continue
-
-                primary_name = person.get_primary_name()
-                if not primary_name:
-                    continue
-
-                update_or_add_patronymic(primary_name, patronymic)
-
-                self.commit_person(t, person)
+                self.apply_patronymic_correction(t, handle, patronymic)

@@ -32,7 +32,7 @@ class ChronologyService:
             A generator that yields None periodically and returns the list of years.
         """
         years = []
-        for year in self._repo.iter_event_years():
+        for year in self._repo.iter_all_events_years():
             years.append(year)
             if len(years) % chunk_size == 0:
                 yield None
