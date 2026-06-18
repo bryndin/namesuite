@@ -63,7 +63,7 @@ class FakeToolView(ToolViewPort):
         self.store_action_updates.append(action)
         # Update all proposals with new action
         self.rename_proposals = [
-            row._replace(alt_action=action.value) for row in self.rename_proposals
+            row._replace(alt_action=action) for row in self.rename_proposals
         ]
 
     def update_given_apply_button(self) -> None:

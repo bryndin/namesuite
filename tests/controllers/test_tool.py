@@ -77,7 +77,7 @@ class TestToolController(unittest.TestCase):
 
         self.assertEqual(
             controller._rename_candidates["handle1"].alt_action,
-            AltAction.PRESERVE.value,
+            AltAction.PRESERVE,
         )
         # Verify FakeToolView recorded the action update
         self.assertEqual(len(fake_view.store_action_updates), 1)
@@ -88,7 +88,7 @@ class TestToolController(unittest.TestCase):
 
         self.assertEqual(
             controller._rename_candidates["handle1"].alt_action,
-            AltAction.OVERWRITE.value,
+            AltAction.OVERWRITE,
         )
         self.assertEqual(len(fake_view.store_action_updates), 2)
         self.assertEqual(fake_view.store_action_updates[1], AltAction.OVERWRITE)

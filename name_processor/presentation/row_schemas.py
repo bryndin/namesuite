@@ -7,6 +7,8 @@ Note: `handle` column is internal and not displayed in the UI.
 
 from typing import NamedTuple
 
+from name_processor.models.renamer import AltAction
+
 
 # Given Names store column indices (Tab 1 - Rename Given Names)
 # Important: Order must match the actual column definitions in the GTK store
@@ -19,7 +21,7 @@ class GivenRowData(NamedTuple):
     display_name: str
     current: str
     proposed: str
-    alt_action: str
+    alt_action: AltAction
     handle: str
 
 

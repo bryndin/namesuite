@@ -180,9 +180,7 @@ class ToolController:
             display_name=person.display_name,
             current=person.given_name,
             proposed=proposed_name,
-            alt_action=(
-                AltAction.PRESERVE.value if preserve_alt else AltAction.OVERWRITE.value
-            ),
+            alt_action=(AltAction.PRESERVE if preserve_alt else AltAction.OVERWRITE),
             handle=person.handle,
         )
 
@@ -203,7 +201,6 @@ class ToolController:
 
             found_any = False
             count = 0
-            # TODO: Factor out the chunk size into a constant or config
             for person_proxy in self._read_repo.iter_all_persons():
                 row_data = self._propose_rename(person_proxy, cfg, preserve_alt)
                 if row_data:
@@ -238,7 +235,7 @@ class ToolController:
         """
         for row_data in self._rename_candidates.values():
             self._rename_candidates[row_data.handle] = row_data._replace(
-                alt_action=action.value
+                alt_action=action
             )
 
         self._view.update_given_store_actions(action)

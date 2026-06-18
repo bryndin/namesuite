@@ -106,7 +106,7 @@ class TestRenameWorkflow(unittest.TestCase):
             display_name="Ivan Ivanov",
             current="Ivan",
             proposed="Ioann",
-            alt_action=AltAction.OVERWRITE.value,
+            alt_action=AltAction.OVERWRITE,
             handle="handle1",
         )
         self.controller._rename_candidates["handle1"] = row_data
@@ -139,7 +139,7 @@ class TestRenameWorkflow(unittest.TestCase):
             display_name="Ivan Ivanov",
             current="Ivan",
             proposed="Ioann",
-            alt_action=AltAction.PRESERVE.value,
+            alt_action=AltAction.PRESERVE,
             handle="handle1",
         )
         self.controller._rename_candidates["handle1"] = row_data
@@ -173,7 +173,7 @@ class TestRenameWorkflow(unittest.TestCase):
             display_name="Ivan Ivanov",
             current="Ivan",
             proposed="Ioann",
-            alt_action=AltAction.OVERWRITE.value,
+            alt_action=AltAction.OVERWRITE,
             handle="handle1",
         )
         row_data2 = GivenRowData(
@@ -182,7 +182,7 @@ class TestRenameWorkflow(unittest.TestCase):
             display_name="Petr Petrov",
             current="Petr",
             proposed="Pyotr",
-            alt_action=AltAction.OVERWRITE.value,
+            alt_action=AltAction.OVERWRITE,
             handle="handle2",
         )
         self.controller._rename_candidates["handle1"] = row_data1
@@ -216,7 +216,7 @@ class TestRenameWorkflow(unittest.TestCase):
             display_name="Ivan Ivanov",
             current="Ivan",
             proposed="Ioann",
-            alt_action=AltAction.OVERWRITE.value,
+            alt_action=AltAction.OVERWRITE,
             handle="handle1",
         )
         row_data2 = GivenRowData(
@@ -225,7 +225,7 @@ class TestRenameWorkflow(unittest.TestCase):
             display_name="Petr Petrov",
             current="Petr",
             proposed="Pyotr",
-            alt_action=AltAction.OVERWRITE.value,
+            alt_action=AltAction.OVERWRITE,
             handle="handle2",
         )
         self.controller._rename_candidates["handle1"] = row_data1
@@ -237,7 +237,7 @@ class TestRenameWorkflow(unittest.TestCase):
 
         # Assert: All proposals updated to PRESERVE action
         for proposal in self.fake_view.rename_proposals:
-            self.assertEqual(proposal.alt_action, AltAction.PRESERVE.value)
+            self.assertEqual(proposal.alt_action, AltAction.PRESERVE)
 
         # Assert: View notified of action update
         self.assertEqual(len(self.fake_view.store_action_updates), 1)
@@ -248,7 +248,7 @@ class TestRenameWorkflow(unittest.TestCase):
 
         # Assert: All proposals updated to OVERWRITE action
         for proposal in self.fake_view.rename_proposals:
-            self.assertEqual(proposal.alt_action, AltAction.OVERWRITE.value)
+            self.assertEqual(proposal.alt_action, AltAction.OVERWRITE)
 
     def test_rename_scan_no_results_shows_dialog(self) -> None:
         """Test that scan with no results shows appropriate dialog."""
@@ -486,7 +486,7 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(proposal.gramps_id, "I000")
         self.assertEqual(proposal.current, "Анна")
         self.assertEqual(proposal.proposed, "Ганна")
-        self.assertEqual(proposal.alt_action, AltAction.PRESERVE.value)
+        self.assertEqual(proposal.alt_action, AltAction.PRESERVE)
 
         # Arrange: Mock repository methods for apply
         mock_person = family["I000"]
@@ -542,7 +542,7 @@ class TestRenameWorkflow(unittest.TestCase):
         )
         self.assertEqual(proposal_i000.current, "Анна")
         self.assertEqual(proposal_i000.proposed, "Онна")
-        self.assertEqual(proposal_i000.alt_action, AltAction.PRESERVE.value)
+        self.assertEqual(proposal_i000.alt_action, AltAction.PRESERVE)
 
         # Check I001 proposal
         proposal_i001 = next(
@@ -550,7 +550,7 @@ class TestRenameWorkflow(unittest.TestCase):
         )
         self.assertEqual(proposal_i001.current, "Аркадий")
         self.assertEqual(proposal_i001.proposed, "Оркадий")
-        self.assertEqual(proposal_i001.alt_action, AltAction.PRESERVE.value)
+        self.assertEqual(proposal_i001.alt_action, AltAction.PRESERVE)
 
         # Arrange: Mock repository methods for apply
         self.mock_read_repo.get_person_from_handle.side_effect = lambda h: family[
@@ -605,7 +605,7 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(proposal.gramps_id, "I001")
         self.assertEqual(proposal.current, "Аркадий")
         self.assertEqual(proposal.proposed, "Оийрайркий")
-        self.assertEqual(proposal.alt_action, AltAction.PRESERVE.value)
+        self.assertEqual(proposal.alt_action, AltAction.PRESERVE)
 
         # Arrange: Mock repository methods for apply
         mock_person = family["I001"]
@@ -658,7 +658,7 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(proposal.gramps_id, "I000")
         self.assertEqual(proposal.current, "Анна")
         self.assertEqual(proposal.proposed, "Ганна")
-        self.assertEqual(proposal.alt_action, AltAction.OVERWRITE.value)
+        self.assertEqual(proposal.alt_action, AltAction.OVERWRITE)
 
         # Arrange: Mock repository methods for apply
         mock_person = family["I000"]

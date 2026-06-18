@@ -178,7 +178,10 @@ class RenameTab(BaseTab):
         self.store.clear()
 
     def append_proposal(self, row_data: GivenRowData) -> None:
-        self.store.append(list(row_data))
+        row_list = list(row_data)
+        act_idx = GivenRowData._fields.index("alt_action")
+        row_list[act_idx] = _(row_data.alt_action.value)
+        self.store.append(row_list)
 
     def update_actions(self, new_action: AltAction) -> None:
         act_idx = GivenRowData._fields.index("alt_action")
