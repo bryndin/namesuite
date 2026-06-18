@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Protocol
 
 
+class NameType(Protocol):
+    """Protocol for Gramps NameType objects."""
+
+
 class Surname(Protocol):
     """Protocol for Gramps Surname objects."""
 
@@ -25,6 +29,14 @@ class PrimaryName(Protocol):
     def add_surname(self, surname: Surname) -> None: ...
 
 
+class Name(Protocol):
+    """Protocol for Gramps Name objects."""
+
+    def get_first_name(self) -> str: ...
+
+    def set_type(self, value: NameType) -> None: ...
+
+
 class Person(Protocol):
     """Protocol for Gramps Person objects."""
 
@@ -35,6 +47,10 @@ class Person(Protocol):
     def get_family_handle_list(self) -> list[str]: ...
 
     def get_event_ref_list(self) -> list[EventRef]: ...
+
+    def add_alternate_name(self, name: Name) -> None: ...
+
+    def get_alternate_names(self) -> list[Name]: ...
 
 
 class Family(Protocol):

@@ -30,7 +30,7 @@ class TestGrampsReadRepository(unittest.TestCase):
         self.mock_db.get_person_from_handle.return_value = None
         self.assertIsNone(self.read_repo.get_person("bad_handle"))
 
-    @patch("name_processor.repositories.person.GrampsPersonProxy")
+    @patch("name_processor.repositories.gramps_read.GrampsPersonProxy")
     def test_get_person_proxy_success(self, mock_proxy_class):
         mock_person = Mock()
         self.mock_db.get_person_from_handle.return_value = mock_person
@@ -54,7 +54,7 @@ class TestGrampsReadRepository(unittest.TestCase):
         self.mock_db.get_family_from_handle.return_value = mock_family
 
         with patch(
-            "name_processor.repositories.person.GrampsPersonProxy"
+            "name_processor.repositories.gramps_read.GrampsPersonProxy"
         ) as mock_proxy_class:
             result = self.read_repo.get_father(person_handle)
 
@@ -115,7 +115,7 @@ class TestGrampsReadRepository(unittest.TestCase):
         self.mock_db.get_family_from_handle.return_value = mock_family
 
         with patch(
-            "name_processor.repositories.person.GrampsPersonProxy"
+            "name_processor.repositories.gramps_read.GrampsPersonProxy"
         ) as mock_proxy_class:
             result = self.read_repo.get_siblings(person_handle)
 
@@ -155,7 +155,7 @@ class TestGrampsReadRepository(unittest.TestCase):
         self.mock_db.get_family_from_handle.return_value = mock_family
 
         with patch(
-            "name_processor.repositories.person.GrampsPersonProxy"
+            "name_processor.repositories.gramps_read.GrampsPersonProxy"
         ) as mock_proxy_class:
             result = self.read_repo.get_siblings(person_handle)
 

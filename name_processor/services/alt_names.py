@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from name_processor.protocols.gramps import Person
+
 if TYPE_CHECKING:
-    from gramps.gen.lib import Person
     from name_processor.repositories.gramps_read import GrampsReadRepository
 
 

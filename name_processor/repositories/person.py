@@ -9,9 +9,7 @@ from name_processor.models.person import Gender
 
 class GrampsPersonProxy:
     """
-    A lazy adapter that makes a Gramps Person look like both
-    a PatronymicSubject and a ChronologySubject.
-    Data is ONLY extracted if the Service actually asks for it.
+    A proxy for Gramps Person that implements various subject interfaces.
     """
 
     def __init__(self, gramps_person: GrampsPerson) -> None:

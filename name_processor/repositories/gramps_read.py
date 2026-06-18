@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generator
 
-from name_processor.protocols.gramps import GrampsDatabase
+from name_processor.protocols.gramps import GrampsDatabase, Person
+from name_processor.repositories.person import GrampsPersonProxy
 
 if TYPE_CHECKING:
     from name_processor.repositories.person import GrampsPersonProxy
@@ -51,7 +52,7 @@ class GrampsReadRepository:
 
         person.add_alternate_name(preserved_name)
 
-    def is_protected_by_alias(self, person: object, search_str: str) -> bool:
+    def is_protected_by_alias(self, person: Person, search_str: str) -> bool:
         """
         Checks if a specific string exists within the alternative names.
         Used to skip renaming if the string is a known historical alias or maiden name.
@@ -166,8 +167,6 @@ class GrampsReadRepository:
     # Proxy Access & Iterators
     # ==========================================
     def get_person(self, handle: str) -> GrampsPersonProxy | None:
-        from name_processor.repositories.person import GrampsPersonProxy
-
         gramps_person = self.get_person_from_handle(handle)
         if not gramps_person:
             return None
