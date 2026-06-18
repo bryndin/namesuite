@@ -201,10 +201,10 @@ class ToolController:
 
             found_any = False
             count = 0
-            for person_proxy in self._read_repo.iter_all_persons():
-                row_data = self._propose_rename(person_proxy, cfg, preserve_alt)
+            for person in self._read_repo.iter_all_persons():
+                row_data = self._propose_rename(person, cfg, preserve_alt)
                 if row_data:
-                    self._rename_candidates[person_proxy.handle] = row_data
+                    self._rename_candidates[person.handle] = row_data
                     self._view.append_rename_proposal(row_data)
                     found_any = True
                 count += 1
@@ -284,22 +284,22 @@ class ToolController:
 
         def scan_generator():
             processed_count = 0
-            for person_proxy in self._read_repo.iter_all_persons():
+            for person in self._read_repo.iter_all_persons():
                 processed_count += 1
 
                 # Apply scope filter
                 if audit_scope == AuditScope.MALES_ONLY:
-                    if person_proxy.gender != Gender.MALE:
+                    if person.gender != Gender.MALE:
                         continue
                 elif audit_scope == AuditScope.FEMALES_ONLY:
-                    if person_proxy.gender != Gender.FEMALE:
+                    if person.gender != Gender.FEMALE:
                         continue
 
                 issues = self._audit_service.audit_person(
-                    person_proxy, enabled_rules_set, use_pre_reform
+                    person, enabled_rules_set, use_pre_reform
                 )
                 for issue in issues:
-                    self._audit_candidates[(person_proxy.handle, issue.rule_id)] = issue
+                    self._audit_candidates[(person.handle, issue.rule_id)] = issue
                     self._view.append_issue(issue)
 
                 # TODO: Factor out the chunk size into a constant or config
