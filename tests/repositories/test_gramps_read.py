@@ -48,50 +48,6 @@ class TestGrampsReadRepository(unittest.TestCase):
         result = self.read_repo.get_chronology_subject("h123")
         self.assertEqual(result, mock_proxy_class.return_value)
 
-    def test_get_database_median_year_chunked_empty(self):
-        self.mock_db.get_event_handles.return_value = []
-
-        generator = self.read_repo.get_database_median_year_chunked()
-
-        # An empty database yields nothing; the return value should be None.
-        result = _exhaust_generator(generator)
-        self.assertIsNone(result)
-
-    def test_get_database_median_year_chunked(self):
-        # Create 5 mock events
-        self.mock_db.get_event_handles.return_value = ["e1", "e2", "e3", "e4", "e5"]
-
-        def create_mock_event(year):
-            event = Mock()
-            date_obj = Mock()
-            date_obj.is_empty.return_value = False
-            date_obj.get_year.return_value = year
-            event.get_date_object.return_value = date_obj
-            return event
-
-        # Unsorted years: 1910, 1950, 1890, 1900, 1920
-        # Sorted: 1890, 1900, 1910, 1920, 1950 -> Median: 1910
-        self.mock_db.get_event_from_handle.side_effect = [
-            create_mock_event(1910),
-            create_mock_event(1950),
-            create_mock_event(1890),
-            create_mock_event(1900),
-            create_mock_event(1920),
-        ]
-
-        generator = self.read_repo.get_database_median_year_chunked(chunk_size=2)
-
-        # Chunk 1 (e1, e2)
-        self.assertIsNone(next(generator))
-        # Chunk 2 (e3, e4)
-        self.assertIsNone(next(generator))
-        # Chunk 3 (e5)
-        self.assertIsNone(next(generator))
-
-        # Completion — generator return value carries the median year
-        result = _exhaust_generator(generator)
-        self.assertEqual(result, 1910)
-
     def test_get_father_proxy_returns_proxy_when_father_exists(self):
         """Test that get_father returns a proxy when father exists."""
         person_handle = "person1"

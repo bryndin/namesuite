@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import itertools
 from typing import TYPE_CHECKING, Generator
 
 from name_processor.protocols.audit import AuditSubject
 from name_processor.protocols.chronology import ChronologySubject
 from name_processor.protocols.confidence import ConfidenceSubject
-from name_processor.protocols.gramps import DateObject, GrampsDatabase
+from name_processor.protocols.gramps import GrampsDatabase
 from name_processor.protocols.patronymic import PatronymicSubject
 
 if TYPE_CHECKING:
@@ -20,13 +19,8 @@ class GrampsReadRepository:
     # ==========================================
     # System Operations
     # ==========================================
-    # TODO: why are there two methods for this?
     def get_person_count(self) -> int:
         """Returns the total number of individuals to power UI progress bars."""
-        return self.get_total_person_count()
-
-    def get_total_person_count(self) -> int:
-        """Returns the total number of individuals in the database."""
         return self._db.get_number_of_people()
 
     # ==========================================
@@ -215,35 +209,3 @@ class GrampsReadRepository:
                     year = date_obj.get_year()
                     if year and year > 0:
                         yield year
-
-    # ==========================================
-    # Aggregations
-    # ==========================================
-    # TODO: check if this is used anywhere
-    def get_database_median_year_chunked(
-        self, chunk_size: int = 500
-    ) -> Generator[None, None, int | None]:
-        """Calculates the median year asynchronously."""
-        years = []
-        handles = self.get_all_event_handles()
-        handle_iter = iter(handles)
-
-        while True:
-            chunk = list(itertools.islice(handle_iter, chunk_size))
-            if not chunk:
-                break
-
-            for handle in chunk:
-                event = self.get_event_from_handle(handle)
-                if event:
-                    date_obj: DateObject | None = event.get_date_object()
-                    if date_obj and not date_obj.is_empty():
-                        year = date_obj.get_year()
-                        if year and year > 0:
-                            years.append(year)
-            yield None
-
-        if years:
-            years.sort()
-            return years[len(years) // 2]
-        return None
