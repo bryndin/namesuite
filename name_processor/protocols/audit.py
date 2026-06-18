@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from name_processor.models.person import Gender
+
+if TYPE_CHECKING:
+    from name_processor.repositories.person import GrampsPersonProxy
 
 
 class AuditSubject(Protocol):
@@ -40,3 +43,5 @@ class AuditRepository(Protocol):
     """The repository interface required by AuditService."""
 
     def get_audit_subject(self, handle: str) -> AuditSubject | None: ...
+
+    def get_father_proxy(self, person_handle: str) -> GrampsPersonProxy | None: ...
