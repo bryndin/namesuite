@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from gi.repository import Gtk
 
 from gramps.gen.const import GRAMPS_LOCALE as glocale
+from gramps.gen.errors import WindowActiveError
+from gramps.gui.editors import EditPerson
 
 if TYPE_CHECKING:
     from gi.repository.Gtk import Window
@@ -62,9 +64,6 @@ class BaseTab:
         if gramps_person is None or dbstate is None or uistate is None:
             return
         try:
-            from gramps.gui.editors import EditPerson
-            from gramps.gen.errors import WindowActiveError
-
             EditPerson(dbstate, uistate, [], gramps_person)
         except WindowActiveError:
             pass
