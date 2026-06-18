@@ -67,7 +67,7 @@ class TestToolController(unittest.TestCase):
             display_name="Ivan Ivanov",
             current="Ivan",
             proposed="Ioann",
-            alt_action=AltAction.OVERWRITE.value,
+            alt_action=AltAction.OVERWRITE,
             handle="handle1",
         )
         controller._rename_candidates["handle1"] = row_data1

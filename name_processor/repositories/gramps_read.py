@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generator
 
-from name_processor.protocols.gramps import GrampsDatabase, Person
+from name_processor.protocols.gramps import GrampsDatabase, Person, Family, Event
 from name_processor.repositories.person import GrampsPersonProxy
 
 if TYPE_CHECKING:
@@ -20,19 +20,19 @@ class GrampsReadRepository:
         """Returns the total number of individuals to power UI progress bars."""
         return self._db.get_number_of_people()
 
-    def get_family_from_handle(self, handle: str) -> object | None:
+    def get_family_from_handle(self, handle: str) -> Family | None:
         """Returns a Family object from its handle, or None if not found."""
         return self._db.get_family_from_handle(handle)
 
-    def get_person_from_handle(self, handle: str) -> object | None:
+    def get_person_from_handle(self, handle: str) -> Person | None:
         """Returns a Person object from its handle, or None if not found."""
         return self._db.get_person_from_handle(handle)
 
-    def get_event_from_handle(self, handle: str) -> object | None:
+    def get_event_from_handle(self, handle: str) -> Event | None:
         """Returns an Event object from its handle, or None if not found."""
         return self._db.get_event_from_handle(handle)
 
-    def preserve_primary_name(self, person: object) -> None:
+    def preserve_primary_name(self, person: Person) -> None:
         """
         Creates a deep copy of the person's current primary name and appends it
         to their Alternative Names list. Retains all attached citations and dates.

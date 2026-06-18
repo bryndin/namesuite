@@ -1,3 +1,5 @@
+# type: ignore
+
 register(
     TOOL,
     id="name_standardization_tool",

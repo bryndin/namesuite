@@ -5,7 +5,7 @@ Provides reusable GTK treeview patterns and event handlers.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from gi.repository import Gtk
 
@@ -19,9 +19,6 @@ if TYPE_CHECKING:
 
 
 _ = glocale.translation.gettext
-
-# Generic type for row data schemas
-T = TypeVar("T")
 
 
 class BaseTab:
@@ -105,7 +102,7 @@ class BaseTab:
         self,
         title: str,
         field_name: str,
-        row_data_type: type[T],
+        row_data_type: type[NamedTuple],
         expand: bool = False,
         use_markup: bool = False,
         sort_field: str | None = None,
@@ -132,7 +129,9 @@ class BaseTab:
         col.set_sort_column_id(sort_id)
         self.tree.append_column(col)
 
-    def _add_checkbox_column(self, row_data_type: type[T], toggle_handler: Any) -> None:
+    def _add_checkbox_column(
+        self, row_data_type: type[NamedTuple], toggle_handler: Any
+    ) -> None:
         """
         Helper to add a checkbox column to the treeview.
 
@@ -152,7 +151,7 @@ class BaseTab:
 
     # --- Abstract Methods ---
 
-    def get_row_data_type(self) -> type[T]:
+    def get_row_data_type(self) -> type[NamedTuple]:
         """
         Return the RowData namedtuple type for this tab.
         Must be implemented by subclasses.
