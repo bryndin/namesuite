@@ -2,11 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generator
 
-from name_processor.protocols.audit import AuditSubject
-from name_processor.protocols.chronology import ChronologySubject
-from name_processor.protocols.confidence import ConfidenceSubject
 from name_processor.protocols.gramps import GrampsDatabase
-from name_processor.protocols.patronymic import PatronymicSubject
 
 if TYPE_CHECKING:
     from name_processor.repositories.person import GrampsPersonProxy
@@ -179,18 +175,6 @@ class GrampsReadRepository:
         if not gramps_person:
             return None
         return GrampsPersonProxy(gramps_person)
-
-    def get_chronology_subject(self, handle: str) -> ChronologySubject | None:
-        return self.get_person(handle)
-
-    def get_confidence_subject(self, handle: str) -> ConfidenceSubject | None:
-        return self.get_person(handle)
-
-    def get_audit_subject(self, handle: str) -> AuditSubject | None:
-        return self.get_person(handle)
-
-    def get_patronymic_subject(self, handle: str) -> PatronymicSubject | None:
-        return self.get_person(handle)
 
     def iter_all_persons(self) -> Generator[GrampsPersonProxy, None, None]:
         """Yields person proxies one by one for direct iteration."""

@@ -31,7 +31,7 @@ class PatronymicInferenceService:
         Generate a patronymic candidate for a single person.
         Handles DB lookups, validation, and morphology generation.
         """
-        person = self._read_repo.get_patronymic_subject(handle)
+        person = self._read_repo.get_person(handle)
         if not person:
             return ProposedPatronymic(status=PatronymicInferenceStatus.NO_ACTIVE_PERSON)
 
@@ -44,11 +44,7 @@ class PatronymicInferenceService:
             )
 
         father_handle = self._read_repo.get_father_handle(person.handle)
-        father = (
-            self._read_repo.get_patronymic_subject(father_handle)
-            if father_handle
-            else None
-        )
+        father = self._read_repo.get_person(father_handle) if father_handle else None
         if not father:
             return ProposedPatronymic(status=PatronymicInferenceStatus.NO_FATHER)
 

@@ -40,14 +40,6 @@ class TestGrampsReadRepository(unittest.TestCase):
         mock_proxy_class.assert_called_once_with(mock_person)
         self.assertEqual(result, mock_proxy_class.return_value)
 
-    @patch("name_processor.repositories.person.GrampsPersonProxy")
-    def test_get_chronology_subject_success(self, mock_proxy_class):
-        mock_person = Mock()
-        self.mock_db.get_person_from_handle.return_value = mock_person
-
-        result = self.read_repo.get_chronology_subject("h123")
-        self.assertEqual(result, mock_proxy_class.return_value)
-
     def test_get_father_proxy_returns_proxy_when_father_exists(self):
         """Test that get_father returns a proxy when father exists."""
         person_handle = "person1"

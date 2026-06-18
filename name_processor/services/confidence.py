@@ -45,13 +45,13 @@ class ConfidenceService:
         Multi-Signal Applicability Engine.
         Calculates a score between 0.0 and 1.0 based on available heuristics.
         """
-        person = self._repository.get_confidence_subject(person_handle)
+        person = self._repository.get_person(person_handle)
         if not person:
             return 0.0
 
         father = None
         if father_handle:
-            father = self._repository.get_confidence_subject(father_handle)
+            father = self._repository.get_person(father_handle)
 
         # Starting from a non-zero baseline because a successful morphological inference
         # is already a strong positive indicator.
@@ -60,7 +60,7 @@ class ConfidenceService:
         # Positive Signals
         # 1. Sibling has matching patronymic (+0.40)
         for sibling_handle in self._repository.get_siblings_handles(person_handle):
-            sibling = self._repository.get_confidence_subject(sibling_handle)
+            sibling = self._repository.get_person(sibling_handle)
             if sibling and sibling.has_patronymic:
                 score += self.CONFIDENCE_SCORE_SIBLING
                 break

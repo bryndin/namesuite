@@ -57,7 +57,7 @@ class MockConfidenceRepository:
         self._subjects = subjects or {}
         self._siblings_map = siblings_map or {}
 
-    def get_confidence_subject(self, handle: str) -> MockConfidenceSubject | None:
+    def get_person(self, handle: str) -> MockConfidenceSubject | None:
         return self._subjects.get(handle)
 
     def get_siblings_handles(self, person_handle: str) -> list[str]:

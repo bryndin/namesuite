@@ -74,7 +74,7 @@ class TestChronologyService(unittest.TestCase):
         mock_person = MagicMock(spec=ChronologySubject)
         mock_person.handle = "person1"
 
-        self.mock_repo.get_chronology_subject.return_value = mock_person
+        self.mock_repo.get_person.return_value = mock_person
         self.mock_repo.get_event_years.return_value = [1900, 1905, 1910]
 
         result = self.service.estimate_reference_year("person1")
@@ -83,7 +83,7 @@ class TestChronologyService(unittest.TestCase):
 
     def test_estimate_reference_year_with_no_person(self):
         """Test estimate_reference_year returns None when person not found."""
-        self.mock_repo.get_chronology_subject.return_value = None
+        self.mock_repo.get_person.return_value = None
 
         result = self.service.estimate_reference_year("person1")
 
@@ -94,7 +94,7 @@ class TestChronologyService(unittest.TestCase):
         mock_person = MagicMock(spec=ChronologySubject)
         mock_person.handle = "person1"
 
-        self.mock_repo.get_chronology_subject.return_value = mock_person
+        self.mock_repo.get_person.return_value = mock_person
         self.mock_repo.get_event_years.return_value = []  # No direct events
 
         # Set database median

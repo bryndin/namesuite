@@ -56,7 +56,7 @@ class ChronologyService:
         2. Generational BFS graph traversal (up to depth BFS_MAX_DEPTH).
         3. Database-wide median fallback.
         """
-        person = self._repo.get_chronology_subject(person_handle)
+        person = self._repo.get_person(person_handle)
         if not person:
             return None
 
@@ -104,7 +104,7 @@ class ChronologyService:
 
             # Fetch person from cache or DB
             if handle not in person_cache:
-                person_cache[handle] = self._repo.get_chronology_subject(handle)
+                person_cache[handle] = self._repo.get_person(handle)
             person = person_cache[handle]
             if not person:
                 continue
