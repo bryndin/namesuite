@@ -26,10 +26,11 @@ class AuditSubject(Protocol):
     @property
     def patronymic(self) -> str | None: ...
 
+    @property
+    def given_name(self) -> str | None: ...
+
 
 class AuditRepository(Protocol):
     """The repository interface required by AuditService."""
-
-    def get_person(self, handle: str) -> AuditSubject | None: ...
 
     def get_father(self, person_handle: str) -> AuditSubject | None: ...
