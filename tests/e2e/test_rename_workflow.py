@@ -411,6 +411,8 @@ class TestRenameWorkflow(unittest.TestCase):
         window.set_controller(mock_controller)
 
         # Assert: Tab controller is set
+        assert window.rename_tab is not None
+        assert window.audit_tab is not None
         self.assertEqual(window.rename_tab.controller, mock_controller)
         self.assertEqual(window.audit_tab.controller, mock_controller)
 

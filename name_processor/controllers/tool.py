@@ -179,7 +179,7 @@ class ToolController:
             checkbox=True,
             gramps_id=person.gramps_id,
             display_name=person.display_name,
-            current=person.given_name,
+            current=person.given_name or "",
             proposed=proposed_name,
             alt_action=(AltAction.PRESERVE if preserve_alt else AltAction.OVERWRITE),
             handle=person.handle,
@@ -198,7 +198,7 @@ class ToolController:
             try:
                 cfg = self._renamer_service.create_config(match_mode, source, target)
             except re.error as e:
-                return False, f"Invalid regex pattern: {e.msg}"
+                return False, str(e.msg)
 
             found_any = False
             count = 0
@@ -214,8 +214,10 @@ class ToolController:
                     yield None
             return found_any, None
 
-        def on_complete(result: tuple[bool | None, str | None]) -> None:
+        def on_complete(result: tuple[bool, str | None] | None) -> None:
             self._is_rename_scanning = False
+            if result is None:
+                return
             found_any, error_msg = result
             if error_msg:
                 self._view.show_ok_dialog("Invalid Regular Expression", error_msg)

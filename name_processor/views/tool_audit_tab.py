@@ -215,7 +215,7 @@ class AuditTab(BaseTab):
             checkbox=True,
             display_name=issue.display_name,
             gramps_id=issue.gramps_id,
-            father_name=issue.father_name,
+            father_name=issue.father_name or "",
             current_patronymic=issue.current_value,
             diff_markup=diff_markup,
             confidence=confidence_str,
