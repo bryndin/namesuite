@@ -70,7 +70,7 @@ class ToolController:
 
     def get_gramps_person(self, handle: str) -> Any:
         """Used by the view to open the native Gramps Person Editor."""
-        return self._read_repo.get_person_from_handle(handle)
+        return self._read_repo.get_raw_person(handle)
 
     # ==========================================
     # Initialization & Caching
@@ -255,7 +255,8 @@ class ToolController:
 
         with self._write_repo.transaction("Batch Given Name Renaming") as t:
             for change in approved_changes:
-                person = self._read_repo.get_person_from_handle(change.handle)
+                # TODO: Operations on the Raw Gramps objects should be moved to the write repository
+                person = self._read_repo.get_raw_person(change.handle)
                 if not person:
                     continue
 

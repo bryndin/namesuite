@@ -115,7 +115,7 @@ class TestRenameWorkflow(unittest.TestCase):
 
         # Mock repository methods
         mock_person = MagicMock()
-        self.mock_read_repo.get_person_from_handle.return_value = mock_person
+        self.mock_read_repo.get_raw_person.return_value = mock_person
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 
@@ -149,7 +149,7 @@ class TestRenameWorkflow(unittest.TestCase):
 
         # Mock repository methods
         mock_person = MagicMock()
-        self.mock_read_repo.get_person_from_handle.return_value = mock_person
+        self.mock_read_repo.get_raw_person.return_value = mock_person
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 
@@ -194,7 +194,7 @@ class TestRenameWorkflow(unittest.TestCase):
 
         # Mock repository methods
         mock_person = MagicMock()
-        self.mock_read_repo.get_person_from_handle.return_value = mock_person
+        self.mock_read_repo.get_raw_person.return_value = mock_person
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 
@@ -492,7 +492,7 @@ class TestRenameWorkflow(unittest.TestCase):
 
         # Arrange: Mock repository methods for apply
         mock_person = family["I000"]
-        self.mock_read_repo.get_person_from_handle.return_value = mock_person
+        self.mock_read_repo.get_raw_person.return_value = mock_person
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 
@@ -555,7 +555,7 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(proposal_i001.alt_action, AltAction.PRESERVE)
 
         # Arrange: Mock repository methods for apply
-        self.mock_read_repo.get_person_from_handle.side_effect = lambda h: family[
+        self.mock_read_repo.get_raw_person.side_effect = lambda h: family[
             {"handle_i000": "I000", "handle_i001": "I001"}[h]
         ]
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
@@ -611,7 +611,7 @@ class TestRenameWorkflow(unittest.TestCase):
 
         # Arrange: Mock repository methods for apply
         mock_person = family["I001"]
-        self.mock_read_repo.get_person_from_handle.return_value = mock_person
+        self.mock_read_repo.get_raw_person.return_value = mock_person
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 
@@ -664,7 +664,7 @@ class TestRenameWorkflow(unittest.TestCase):
 
         # Arrange: Mock repository methods for apply
         mock_person = family["I000"]
-        self.mock_read_repo.get_person_from_handle.return_value = mock_person
+        self.mock_read_repo.get_raw_person.return_value = mock_person
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 

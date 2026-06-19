@@ -14,24 +14,50 @@ class GrampsReadRepository:
         self._db = db
 
     # ==========================================
-    # Database Query Methods
+    # Public Entity Access Methods
     # ==========================================
-    def get_person_count(self) -> int:
-        """Returns the total number of individuals to power UI progress bars."""
-        return self._db.get_number_of_people()
+    def get_person(self, handle: str) -> GrampsPersonProxy | None:
+        """Returns a GrampsPersonProxy for the person, or None if not found."""
+        gramps_person = self._get_person_from_handle(handle)
+        if not gramps_person:
+            return None
+        return GrampsPersonProxy(gramps_person)
 
-    def get_family_from_handle(self, handle: str) -> Family | None:
+    def get_raw_person(self, handle: str) -> Person | None:
+        """Returns a raw Gramps Person object from its handle, or None if not found.
+
+        This method is provided for the controller and write repository which need
+        direct access to Gramps objects for the native editor and write operations.
+        Prefer get_person() for business logic which returns a GrampsPersonProxy.
+        """
+        return self._get_person_from_handle(handle)
+
+    def get_family(self, handle: str) -> Family | None:
         """Returns a Family object from its handle, or None if not found."""
-        return self._db.get_family_from_handle(handle)
+        return self._get_family_from_handle(handle)
 
-    def get_person_from_handle(self, handle: str) -> Person | None:
+    def get_event(self, handle: str) -> Event | None:
+        """Returns an Event object from its handle, or None if not found."""
+        return self._get_event_from_handle(handle)
+
+    # ==========================================
+    # Private Internal Methods
+    # ==========================================
+    def _get_person_from_handle(self, handle: str) -> Person | None:
         """Returns a Person object from its handle, or None if not found."""
         return self._db.get_person_from_handle(handle)
 
-    def get_event_from_handle(self, handle: str) -> Event | None:
+    def _get_family_from_handle(self, handle: str) -> Family | None:
+        """Returns a Family object from its handle, or None if not found."""
+        return self._db.get_family_from_handle(handle)
+
+    def _get_event_from_handle(self, handle: str) -> Event | None:
         """Returns an Event object from its handle, or None if not found."""
         return self._db.get_event_from_handle(handle)
 
+    # ==========================================
+    # Person Operations
+    # ==========================================
     def preserve_primary_name(self, person: Person) -> None:
         """
         Creates a deep copy of the person's current primary name and appends it
@@ -62,6 +88,13 @@ class GrampsReadRepository:
                 return True
         return False
 
+    # ==========================================
+    # Handle List Methods
+    # ==========================================
+    def get_person_count(self) -> int:
+        """Returns the total number of individuals to power UI progress bars."""
+        return self._db.get_number_of_people()
+
     def get_all_person_handles(self) -> list[str]:
         """Returns a list of all person handles."""
         return self._db.get_person_handles()
@@ -71,38 +104,38 @@ class GrampsReadRepository:
         return self._db.get_event_handles()
 
     # ==========================================
-    # Relationship Query Methods
+    # Relationship Handle Methods
     # ==========================================
     def get_father_handle(self, person_handle: str) -> str | None:
         """Returns the father's handle for a person, or None if not found."""
-        person = self.get_person_from_handle(person_handle)
+        person = self._get_person_from_handle(person_handle)
         if not person:
             return None
         families = person.get_parent_family_handle_list()
         if not families:
             return None
-        family = self.get_family_from_handle(families[0])
+        family = self._get_family_from_handle(families[0])
         return family.get_father_handle() if family else None
 
     def get_mother_handle(self, person_handle: str) -> str | None:
         """Returns the mother's handle for a person, or None if not found."""
-        person = self.get_person_from_handle(person_handle)
+        person = self._get_person_from_handle(person_handle)
         if not person:
             return None
         families = person.get_parent_family_handle_list()
         if not families:
             return None
-        family = self.get_family_from_handle(families[0])
+        family = self._get_family_from_handle(families[0])
         return family.get_mother_handle() if family else None
 
     def get_children_handles(self, person_handle: str) -> list[str]:
         """Returns a list of children handles for a person."""
-        person = self.get_person_from_handle(person_handle)
+        person = self._get_person_from_handle(person_handle)
         if not person:
             return []
         children = []
         for family_handle in person.get_family_handle_list():
-            family = self.get_family_from_handle(family_handle)
+            family = self._get_family_from_handle(family_handle)
             if family:
                 for child_ref in family.get_child_ref_list():
                     if child_ref.ref:
@@ -111,12 +144,12 @@ class GrampsReadRepository:
 
     def get_siblings_handles(self, person_handle: str) -> list[str]:
         """Returns a list of siblings handles for a person."""
-        person = self.get_person_from_handle(person_handle)
+        person = self._get_person_from_handle(person_handle)
         if not person:
             return []
         siblings = []
         for family_handle in person.get_parent_family_handle_list():
-            family = self.get_family_from_handle(family_handle)
+            family = self._get_family_from_handle(family_handle)
             if family:
                 for child_ref in family.get_child_ref_list():
                     child_handle = child_ref.ref
@@ -124,6 +157,9 @@ class GrampsReadRepository:
                         siblings.append(child_handle)
         return siblings
 
+    # ==========================================
+    # Relationship Proxy Methods
+    # ==========================================
     def get_father(self, person_handle: str) -> GrampsPersonProxy | None:
         """
         Returns a GrampsPersonProxy for the father of the given person.
@@ -147,16 +183,19 @@ class GrampsReadRepository:
                 proxies.append(proxy)
         return proxies
 
+    # ==========================================
+    # Event/Chronology Methods
+    # ==========================================
     def get_event_years(self, person_handle: str) -> list[int]:
         """Returns a list of years from a person's events."""
-        person = self.get_person_from_handle(person_handle)
+        person = self._get_person_from_handle(person_handle)
         if not person:
             return []
         years = []
         for ref in person.get_event_ref_list():
             if ref.ref is None:
                 continue
-            event = self.get_event_from_handle(ref.ref)
+            event = self._get_event_from_handle(ref.ref)
             if event:
                 date_obj = event.get_date_object()
                 if date_obj and not date_obj.is_empty():
@@ -166,14 +205,8 @@ class GrampsReadRepository:
         return years
 
     # ==========================================
-    # Proxy Access & Iterators
+    # Iterator Methods
     # ==========================================
-    def get_person(self, handle: str) -> GrampsPersonProxy | None:
-        gramps_person = self.get_person_from_handle(handle)
-        if not gramps_person:
-            return None
-        return GrampsPersonProxy(gramps_person)
-
     def iter_all_persons(self) -> Generator[GrampsPersonProxy, None, None]:
         """Yields person proxies one by one for direct iteration."""
         for handle in self.get_all_person_handles():
@@ -184,7 +217,7 @@ class GrampsReadRepository:
     def iter_all_events_years(self) -> Generator[int, None, None]:
         """Yields raw years sequentially. No business logic (medians) allowed here."""
         for handle in self._db.get_event_handles():
-            event = self._db.get_event_from_handle(handle)
+            event = self._get_event_from_handle(handle)
             if event:
                 date_obj = event.get_date_object()
                 if date_obj and not date_obj.is_empty():
