@@ -82,15 +82,14 @@ class ToolController:
         )
 
     def initialize_given_names_async(self) -> None:
-        def generator() -> Generator[None, None, set[str]]:
+        def generator(chunk_size: int = 500) -> Generator[None, None, set[str]]:
             names = set()
             count = 0
             for proxy in self._read_repo.iter_all_persons():
                 if proxy.given_name:
                     names.add(proxy.given_name)
                 count += 1
-                # TODO: Factor out the chunk size into a constant or config
-                if count % 500 == 0:
+                if count % chunk_size == 0:
                     yield None
             return names
 
@@ -194,7 +193,9 @@ class ToolController:
         self._rename_candidates.clear()
         preserve_alt = self._view.is_preserve_alt_enabled()
 
-        def scan_generator() -> Generator[None, None, tuple[bool, str | None]]:
+        def scan_generator(
+            chunk_size: int = 250,
+        ) -> Generator[None, None, tuple[bool, str | None]]:
             try:
                 cfg = self._renamer_service.create_config(match_mode, source, target)
             except re.error as e:
@@ -209,8 +210,7 @@ class ToolController:
                     self._view.append_rename_proposal(row_data)
                     found_any = True
                 count += 1
-                # TODO: Factor out the chunk size into a constant or config
-                if count % 250 == 0:
+                if count % chunk_size == 0:
                     yield None
             return found_any, None
 
@@ -285,7 +285,7 @@ class ToolController:
         # Get total person count dynamically from the repo for the progress bar
         total_people = self._read_repo.get_person_count()
 
-        def scan_generator():
+        def scan_generator(chunk_size: int = 50):
             processed_count = 0
             for person in self._read_repo.iter_all_persons():
                 processed_count += 1
@@ -305,8 +305,7 @@ class ToolController:
                     self._audit_candidates[(person.handle, issue.rule_id)] = issue
                     self._view.append_issue(issue)
 
-                # TODO: Factor out the chunk size into a constant or config
-                if processed_count % 50 == 0:
+                if processed_count % chunk_size == 0:
                     fraction = (
                         min(processed_count / total_people, 1.0)
                         if total_people > 0
