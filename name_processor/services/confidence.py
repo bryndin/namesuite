@@ -32,8 +32,8 @@ class ConfidenceService:
     PENALTY_NON_CYRILLIC = -0.20
     PENALTY_UNCERTAIN_FATHER = -0.50
 
-    def __init__(self, repository: ConfidenceRepository) -> None:
-        self._repository = repository
+    def __init__(self, read_repo: ConfidenceRepository) -> None:
+        self._read_repo = read_repo
 
     def calculate(
         self,
@@ -45,13 +45,13 @@ class ConfidenceService:
         Multi-Signal Applicability Engine.
         Calculates a score between 0.0 and 1.0 based on available heuristics.
         """
-        person = self._repository.get_person(person_handle)
+        person = self._read_repo.get_person(person_handle)
         if not person:
             return 0.0
 
         father = None
         if father_handle:
-            father = self._repository.get_person(father_handle)
+            father = self._read_repo.get_person(father_handle)
 
         # Starting from a non-zero baseline because a successful morphological inference
         # is already a strong positive indicator.
@@ -59,8 +59,8 @@ class ConfidenceService:
 
         # Positive Signals
         # 1. Sibling has matching patronymic (+0.40)
-        for sibling_handle in self._repository.get_siblings_handles(person_handle):
-            sibling = self._repository.get_person(sibling_handle)
+        for sibling_handle in self._read_repo.get_siblings_handles(person_handle):
+            sibling = self._read_repo.get_person(sibling_handle)
             if sibling and sibling.has_patronymic:
                 score += self.CONFIDENCE_SCORE_SIBLING
                 break

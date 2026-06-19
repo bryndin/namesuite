@@ -20,8 +20,7 @@ from name_processor.services.audit_rules.missing_patronymic import InfoMissingPa
 from name_processor.services.audit_rules.base import BaseRule
 
 if TYPE_CHECKING:
-    from name_processor.protocols.audit import AuditSubject
-    from name_processor.repositories.gramps_read import GrampsReadRepository
+    from name_processor.protocols.audit import AuditRepository, AuditSubject
     from name_processor.services.chronology import ChronologyService
     from name_processor.services.confidence import ConfidenceService
 
@@ -31,7 +30,7 @@ logger = logging.getLogger(__name__)
 class AuditService:
     def __init__(
         self,
-        read_repo: GrampsReadRepository,
+        read_repo: AuditRepository,
         chronology_service: ChronologyService,
         confidence_service: ConfidenceService,
     ):

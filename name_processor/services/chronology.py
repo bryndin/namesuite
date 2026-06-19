@@ -13,7 +13,7 @@ class ChronologyService:
     BFS_MAX_DEPTH = 4
 
     def __init__(self, read_repo: ChronologyRepository):
-        self._repo: ChronologyRepository = read_repo
+        self._read_repo: ChronologyRepository = read_repo
         # Lazy load the database median year only if a fallback is required
         self._db_median_year: int | None = None
 
@@ -32,7 +32,7 @@ class ChronologyService:
             A generator that yields None periodically and returns the list of years.
         """
         years = []
-        for year in self._repo.iter_all_events_years():
+        for year in self._read_repo.iter_all_events_years():
             years.append(year)
             if len(years) % chunk_size == 0:
                 yield None
@@ -55,7 +55,7 @@ class ChronologyService:
         2. Generational BFS graph traversal (up to depth BFS_MAX_DEPTH).
         3. Database-wide median fallback.
         """
-        person = self._repo.get_person(person_handle)
+        person = self._read_repo.get_person(person_handle)
         if not person:
             return None
 
@@ -74,7 +74,7 @@ class ChronologyService:
 
     def _get_person_event_year(self, person_handle: str) -> int | None:
         """Returns the latest event year from the person's events."""
-        years = self._repo.get_event_years(person_handle)
+        years = self._read_repo.get_event_years(person_handle)
         if years:
             return max(years)
         return None
@@ -103,7 +103,7 @@ class ChronologyService:
 
             # Fetch person from cache or DB
             if handle not in person_cache:
-                person_cache[handle] = self._repo.get_person(handle)
+                person_cache[handle] = self._read_repo.get_person(handle)
             person = person_cache[handle]
             if not person:
                 continue
@@ -116,24 +116,24 @@ class ChronologyService:
                     candidates.append(estimated_year)
 
             # Queue Parents (gen_offset + 1)
-            father_handle = self._repo.get_father_handle(handle)
+            father_handle = self._read_repo.get_father_handle(handle)
             if father_handle and father_handle not in visited:
                 visited.add(father_handle)
                 queue.append((father_handle, gen_offset + 1, depth + 1))
 
-            mother_handle = self._repo.get_mother_handle(handle)
+            mother_handle = self._read_repo.get_mother_handle(handle)
             if mother_handle and mother_handle not in visited:
                 visited.add(mother_handle)
                 queue.append((mother_handle, gen_offset + 1, depth + 1))
 
             # Queue Children (gen_offset - 1)
-            for child_handle in self._repo.get_children_handles(handle):
+            for child_handle in self._read_repo.get_children_handles(handle):
                 if child_handle not in visited:
                     visited.add(child_handle)
                     queue.append((child_handle, gen_offset - 1, depth + 1))
 
             # Queue Siblings (gen_offset)
-            for sibling_handle in self._repo.get_siblings_handles(handle):
+            for sibling_handle in self._read_repo.get_siblings_handles(handle):
                 if sibling_handle not in visited:
                     visited.add(sibling_handle)
                     queue.append((sibling_handle, gen_offset, depth + 1))

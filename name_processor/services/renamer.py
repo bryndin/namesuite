@@ -6,16 +6,19 @@ from name_processor.models.renamer import MatchMode, RenameConfig
 
 
 class RenamerService:
+    @classmethod
     def create_config(
-        self, match_type: MatchMode, source: str, target: str
+        cls, match_type: MatchMode, source: str, target: str
     ) -> RenameConfig:
         config = RenameConfig(mode=match_type, source=source, target=target)
         if match_type == MatchMode.REGEX:
             config.pattern = re.compile(source)
         return config
 
-    def evaluate_person(self, name: str | None, cfg: RenameConfig) -> str | None:
+    @classmethod
+    def evaluate_person(cls, name: str | None, cfg: RenameConfig) -> str | None:
         """Returns the transformed given name, or None if no change."""
+        # TODO: review why `name` is optional
         if not name:
             return None
 
