@@ -16,9 +16,8 @@ class RenamerService:
         return config
 
     @classmethod
-    def evaluate_person(cls, name: str | None, cfg: RenameConfig) -> str | None:
+    def evaluate_person(cls, name: str, cfg: RenameConfig) -> str | None:
         """Returns the transformed given name, or None if no change."""
-        # TODO: review why `name` is optional
         if not name:
             return None
 
