@@ -159,6 +159,7 @@ class ToolController:
         )
 
         if not is_valid:
+            assert error_message is not None
             self._view.show_ok_dialog("Invalid Input", error_message)
             return
 

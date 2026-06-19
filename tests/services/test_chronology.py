@@ -15,40 +15,35 @@ class TestChronologyService(unittest.TestCase):
     def test_update_median_year_with_valid_years(self):
         """Test update_median_year calculates median correctly."""
         years = [1800, 1850, 1900, 1950, 2000]
-        result = self.service.update_median_year(years)
+        self.service.update_median_year(years)
 
-        self.assertEqual(result, 1900)
         self.assertEqual(self.service._db_median_year, 1900)
 
     def test_update_median_year_with_even_number_of_years(self):
         """Test update_median_year with even number of years (upper median)."""
         years = [1800, 1850, 1900, 1950]
-        result = self.service.update_median_year(years)
+        self.service.update_median_year(years)
 
         # For even length, returns upper middle element (index 2)
-        self.assertEqual(result, 1900)
         self.assertEqual(self.service._db_median_year, 1900)
 
     def test_update_median_year_with_unsorted_years(self):
         """Test update_median_year sorts years before calculating median."""
         years = [1950, 1800, 2000, 1850, 1900]
-        result = self.service.update_median_year(years)
+        self.service.update_median_year(years)
 
-        self.assertEqual(result, 1900)
         self.assertEqual(self.service._db_median_year, 1900)
 
     def test_update_median_year_with_empty_list(self):
-        """Test update_median_year returns None for empty list."""
-        result = self.service.update_median_year([])
+        """Test update_median_year resets to None for empty list."""
+        self.service.update_median_year([])
 
-        self.assertIsNone(result)
         self.assertIsNone(self.service._db_median_year)
 
     def test_update_median_year_with_none(self):
-        """Test update_median_year returns None when years is None."""
-        result = self.service.update_median_year(None)
+        """Test update_median_year resets to None when years is None."""
+        self.service.update_median_year(None)
 
-        self.assertIsNone(result)
         self.assertIsNone(self.service._db_median_year)
 
     def test_update_median_year_resets_previous_value(self):
@@ -58,9 +53,8 @@ class TestChronologyService(unittest.TestCase):
 
         # Update with new years
         years = [2000, 2010, 2020]
-        result = self.service.update_median_year(years)
+        self.service.update_median_year(years)
 
-        self.assertEqual(result, 2010)
         self.assertEqual(self.service._db_median_year, 2010)
 
     def test_set_db_median_year(self):

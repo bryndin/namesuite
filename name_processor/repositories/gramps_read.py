@@ -154,6 +154,8 @@ class GrampsReadRepository:
             return []
         years = []
         for ref in person.get_event_ref_list():
+            if ref.ref is None:
+                continue
             event = self.get_event_from_handle(ref.ref)
             if event:
                 date_obj = event.get_date_object()

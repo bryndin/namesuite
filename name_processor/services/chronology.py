@@ -38,15 +38,14 @@ class ChronologyService:
                 yield None
         return years
 
-    def update_median_year(self, years: list[int] | None = None) -> int | None:
+    def update_median_year(self, years: list[int] | None = None) -> None:
         self._db_median_year = None
 
         if not years:
-            return None
+            return
 
         years = sorted(years)
         self._db_median_year = years[len(years) // 2]
-        return self._db_median_year
 
     def estimate_reference_year(self, person_handle: str) -> int | None:
         """

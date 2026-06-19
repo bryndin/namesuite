@@ -44,12 +44,16 @@ class ToolWindow:
         self.rename_tab: RenameTab | None = None
         self.audit_tab: AuditTab | None = None
 
-        # Build GTK Window UI
-        self.build_window()
+        # Window will be built when controller is set
+        self.window: Gtk.Window | None = None
 
     def set_controller(self, controller: ToolController) -> None:
         """Sets the controller instance and runs initial loads."""
         self.controller = controller
+
+        # Build window if not already built
+        if self.window is None:
+            self.build_window()
 
         # Update controller reference in tabs
         if self.rename_tab:
@@ -94,7 +98,8 @@ class ToolWindow:
         notebook = Gtk.Notebook()
         main_box.pack_start(notebook, True, True, 0)
 
-        # Instantiate tabs
+        # Instantiate tabs (controller must be set first)
+        assert self.controller is not None
         self.rename_tab = RenameTab(self.window, self.controller)
         self.audit_tab = AuditTab(self.window, self.controller)
 

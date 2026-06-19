@@ -196,9 +196,6 @@ class TestToolController(unittest.TestCase):
 
         mock_chronology_service.generate_years.return_value = year_generator()
 
-        # Mock update_median_year to return median
-        mock_chronology_service.update_median_year.return_value = 1900
-
         controller = ToolController(
             tool_instance=mock_tool,
             view=mock_view,

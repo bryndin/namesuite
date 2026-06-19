@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from tests.compat_mocks import mock_gramps
 
@@ -399,24 +399,18 @@ class TestRenameWorkflow(unittest.TestCase):
         # We need to test the actual initialization flow
         from name_processor.views.tool import ToolWindow
 
-        # Create window without controller (simulates names_tool.py line 48)
-        window = ToolWindow(None)
-
-        # Assert: Tabs exist but have None controller
-        self.assertIsNotNone(window.rename_tab)
-        self.assertIsNone(window.rename_tab.controller)
-
-        # Arrange: Mock controller with get_given_names method
+        # Arrange: Mock controller with required methods
         mock_controller = MagicMock()
         mock_controller.get_available_audit_rules.return_value = {"rule1", "rule2"}
         mock_controller.get_given_names.return_value = {"Ivan", "Maria"}
         mock_controller.initialize_median_year_async = MagicMock()
         mock_controller.initialize_given_names_async = MagicMock()
 
-        # Act: Set controller (simulates names_tool.py line 61)
+        # Create window with mock controller
+        window = ToolWindow(None)
         window.set_controller(mock_controller)
 
-        # Assert: Tab controller is now set
+        # Assert: Tab controller is set
         self.assertEqual(window.rename_tab.controller, mock_controller)
         self.assertEqual(window.audit_tab.controller, mock_controller)
 
@@ -425,8 +419,14 @@ class TestRenameWorkflow(unittest.TestCase):
         from name_processor.protocols.view import ToolViewPort
         from name_processor.views.tool import ToolWindow
 
-        # Create window
+        # Create window with mock controller
+        mock_controller = MagicMock()
+        mock_controller.get_available_audit_rules.return_value = {"rule1", "rule2"}
+        mock_controller.initialize_median_year_async = MagicMock()
+        mock_controller.initialize_given_names_async = MagicMock()
+
         window = ToolWindow(None)
+        window.set_controller(mock_controller)
 
         # Get all methods defined in the protocol
         protocol_methods = {

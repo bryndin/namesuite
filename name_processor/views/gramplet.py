@@ -106,11 +106,15 @@ class GrampletView:
         self, message_key: PatronymicInferenceStatus, apply_sensitive: bool = False
     ) -> None:
         """Display a status message from the MESSAGES dictionary."""
+        assert self._label is not None
+        assert self._apply_btn is not None
         self._label.set_text(self.MESSAGES.get(message_key, ""))
         self._apply_btn.set_sensitive(apply_sensitive)
 
     def show_suggestion(self, patronymic: str, father_name: str) -> None:
         """Display a patronymic suggestion with the father's name."""
+        assert self._label is not None
+        assert self._apply_btn is not None
         self._label.set_text(
             self.MESSAGES["SUGGESTION_TEMPLATE"].format(patronymic, father_name)
         )
