@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 
 from name_processor.models.person import Gender
-
-if TYPE_CHECKING:
-    from name_processor.repositories.person import GrampsPersonProxy
 
 
 class AuditSubject(Protocol):
