@@ -2,16 +2,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from name_processor.protocols.gramps import Person
-
 if TYPE_CHECKING:
-    from name_processor.repositories.gramps_read import GrampsReadRepository
+    from name_processor.protocols.gramps import Person
+    from name_processor.protocols.repository import ReadRepository
 
 
 class AltNamesService:
     """Thin wrapper for alternate name operations delegated to read repository."""
 
-    def __init__(self, read_repo: GrampsReadRepository | None = None) -> None:
+    def __init__(self, read_repo: ReadRepository | None = None) -> None:
         """
         Initialize with optional read repository for delegation.
         If not provided, methods will need to be called with repository explicitly.
@@ -20,7 +19,7 @@ class AltNamesService:
 
     def preserve_primary_name(self, gramps_person: Person) -> None:
         """
-        Delegates to GrampsReadRepository.preserve_primary_name.
+        Delegates to ReadRepository.preserve_primary_name.
         Creates a deep copy of the person's current primary name and appends it
         to their Alternative Names list. Retains all attached citations and dates.
         """
@@ -29,12 +28,12 @@ class AltNamesService:
         else:
             raise RuntimeError(
                 "AltNamesService not initialized with read_repo. "
-                "Use GrampsReadRepository.preserve_primary_name directly."
+                "Use ReadRepository.preserve_primary_name directly."
             )
 
     def is_protected_by_alias(self, gramps_person: Person, search_str: str) -> bool:
         """
-        Delegates to GrampsReadRepository.is_protected_by_alias.
+        Delegates to ReadRepository.is_protected_by_alias.
         Checks if a specific string exists within the alternative names.
         Used to skip renaming if the string is a known historical alias or maiden name.
         """
@@ -43,5 +42,5 @@ class AltNamesService:
         else:
             raise RuntimeError(
                 "AltNamesService not initialized with read_repo. "
-                "Use GrampsReadRepository.is_protected_by_alias directly."
+                "Use ReadRepository.is_protected_by_alias directly."
             )
