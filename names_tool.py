@@ -9,14 +9,12 @@ from name_processor.views.gtk_runner import GtkBackgroundTaskRunner
 from name_processor.views.tool import ToolWindow
 
 # Domain Services
+from name_processor.services.audit import AuditService
+from name_processor.services.alt_names import AltNamesService
 from name_processor.services.chronology import ChronologyService
 from name_processor.services.confidence import ConfidenceService
 from name_processor.services.patronymic import PatronymicInferenceService
 from name_processor.services.renamer import RenamerService
-from name_processor.services.alt_names import AltNamesService
-
-# Ensure you have an AuditService stub or class created
-from name_processor.services.audit import AuditService
 
 
 class NamesTool(tool.Tool):
@@ -51,7 +49,7 @@ class NamesTool(tool.Tool):
         if self._controller:
             self._view.window.show_all()
 
-    def db_changed(self) -> None:
+    def db_changed(self, db) -> None:
         """
         Overridden to recreate the database-dependent dependency graph
         whenever the database state changes (e.g., opened, switched, or closed).
@@ -59,6 +57,12 @@ class NamesTool(tool.Tool):
         self._disconnect_db_signals()
 
         if self.dbstate.is_open():
+            # Clear view state
+            if self._view:
+                self._view.clear_rename_proposals()
+                self._view.clear_audit_results()
+
+            # Recreate dependencies with new database
             self._initialize_dependencies()
 
             # Connect to database modification signals
@@ -71,8 +75,6 @@ class NamesTool(tool.Tool):
         else:
             # DB has closed - cleanly tear down backend dependencies
             self._controller = None
-            if self._view:
-                self._view.window.destroy()
 
     def _initialize_dependencies(self) -> None:
         """
@@ -115,7 +117,8 @@ class NamesTool(tool.Tool):
         self._view.set_controller(self._controller)
 
     def _disconnect_db_signals(self) -> None:
-        """Safely unhooks database signals to prevent memory leaks."""
+        """Safely unhooks database modification signals to prevent memory leaks."""
+        # Disconnect database modification signals (person-update, family-update, etc.)
         if (
             self._db_signal_handles
             and self.dbstate
