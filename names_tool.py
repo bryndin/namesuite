@@ -50,7 +50,7 @@ class NamesTool(tool.Tool):
         # Initialize dependencies
         self._initialize_dependencies()
 
-    def run(self):
+    def run(self) -> None:
         if self._controller:
             self._view.window.show_all()
 

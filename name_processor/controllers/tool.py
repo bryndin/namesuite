@@ -280,7 +280,7 @@ class ToolController:
         # Get total person count dynamically from the repo for the progress bar
         total_people = self._read_repo.get_person_count()
 
-        def scan_generator(chunk_size: int = 50):
+        def scan_generator(chunk_size: int = 50) -> Generator[None, None, int]:
             processed_count = 0
             for person in self._read_repo.iter_all_persons():
                 processed_count += 1

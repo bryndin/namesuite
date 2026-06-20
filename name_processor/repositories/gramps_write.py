@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 import contextlib
+
 from gramps.gen.db import DbTxn
 from gramps.gen.lib import Name, NameOriginType, NameType, Surname
 
@@ -52,7 +54,7 @@ class GrampsWriteRepository:
     # New MVCS Pure Persistence Methods
     # ==========================================
     @contextlib.contextmanager
-    def transaction(self, description: str):
+    def transaction(self, description: str) -> Generator[DbTxn, None, None]:
         """
         Exposes the Gramps DbTxn context manager to higher layers.
         Ensures a batch of modifications is treated as a single Undo step.

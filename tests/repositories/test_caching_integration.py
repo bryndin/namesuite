@@ -93,16 +93,19 @@ class TestCachingIntegration(unittest.TestCase):
         self.assertEqual(p_fresh._person, mock_p_new)
 
     def test_cache_survives_none_database_return(self) -> None:
-        """DB returns None → cached → second call returns None without DB hit."""
-        self.mock_db.get_person_from_handle.side_effect = [None, Mock()]
+        """DB returns None → not cached → second call returns None with DB hit."""
+        mock_p1 = Mock()
+        self.mock_db.get_person_from_handle.side_effect = [None, mock_p1]
 
         # First call (misses, gets None)
         res1 = self.read_repo.get_person("handle1")
         self.assertIsNone(res1)
 
-        # Second call (hits cache, returns None without consuming side_effect)
+        # Second call (misses again, hits DB)
         res2 = self.read_repo.get_person("handle1")
-        self.assertIsNone(res2)
+        self.assertIsNotNone(res2)
+        assert res2 is not None
+        self.assertEqual(res2._person, mock_p1)
 
     def test_clear_persons_does_not_affect_families(self) -> None:
         """Type isolation verified on rebuild signal."""

@@ -47,8 +47,8 @@ class TestInvalidationSignalManager(unittest.TestCase):
 
     def test_person_update_invalidates_handles(self) -> None:
         """Signal callback invalidates each handle in the list."""
-        self.cache.put_person("p1", object())
-        self.cache.put_person("p2", object())
+        self.cache.put_person("p1", Mock())
+        self.cache.put_person("p2", Mock())
 
         # Trigger person-update signal callback
         person_update_handler = self.connected_signals["person-update"]
@@ -58,8 +58,8 @@ class TestInvalidationSignalManager(unittest.TestCase):
 
     def test_person_rebuild_clears_all_persons(self) -> None:
         """Rebuild signal clears entire person cache."""
-        self.cache.put_person("p1", object())
-        self.cache.put_person("p2", object())
+        self.cache.put_person("p1", Mock())
+        self.cache.put_person("p2", Mock())
 
         person_rebuild_handler = self.connected_signals["person-rebuild"]
         person_rebuild_handler()
@@ -68,8 +68,8 @@ class TestInvalidationSignalManager(unittest.TestCase):
 
     def test_family_update_invalidates_handles(self) -> None:
         """Family signal invalidates family cache."""
-        self.cache.put_family("f1", object())
-        self.cache.put_family("f2", object())
+        self.cache.put_family("f1", Mock())
+        self.cache.put_family("f2", Mock())
 
         family_update_handler = self.connected_signals["family-update"]
         family_update_handler(["f1"])
@@ -82,8 +82,8 @@ class TestInvalidationSignalManager(unittest.TestCase):
 
     def test_event_update_invalidates_handles(self) -> None:
         """Event signal invalidates event cache."""
-        self.cache.put_event("e1", object())
-        self.cache.put_event("e2", object())
+        self.cache.put_event("e1", Mock())
+        self.cache.put_event("e2", Mock())
 
         event_update_handler = self.connected_signals["event-update"]
         event_update_handler(["e1"])
@@ -115,7 +115,7 @@ class TestInvalidationSignalManager(unittest.TestCase):
 
     def test_person_delete_invalidates_handle(self) -> None:
         """Delete signal evicts handle."""
-        self.cache.put_person("p1", object())
+        self.cache.put_person("p1", Mock())
         person_delete_handler = self.connected_signals["person-delete"]
         person_delete_handler(["p1"])
 
@@ -125,14 +125,14 @@ class TestInvalidationSignalManager(unittest.TestCase):
 
     def test_handles_empty_handle_list(self) -> None:
         """Signal with empty list is a no-op."""
-        self.cache.put_person("p1", object())
+        self.cache.put_person("p1", Mock())
         person_update_handler = self.connected_signals["person-update"]
         person_update_handler([])  # Empty list
         self.assertEqual(self.cache.person_count, 1)
 
     def test_handles_single_string_handle(self) -> None:
         """Defensive callback supports a single string handle instead of a list."""
-        self.cache.put_person("p1", object())
+        self.cache.put_person("p1", Mock())
         person_update_handler = self.connected_signals["person-update"]
         person_update_handler("p1")  # Single string
         from name_processor.repositories.entity_cache import _MISSING

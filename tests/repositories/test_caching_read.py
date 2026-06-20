@@ -38,8 +38,8 @@ class TestCachingReadRepository(unittest.TestCase):
         self.assertIsNotNone(result)
         self.mock_db.get_person_from_handle.assert_not_called()
 
-    def test_get_person_none_is_cached(self) -> None:
-        """Invalid handle is cached as None; db called only once."""
+    def test_get_person_none_not_cached(self) -> None:
+        """Invalid handle is NOT cached; db called again."""
         self.mock_db.get_person_from_handle.return_value = None
 
         # First call (miss)
@@ -48,10 +48,10 @@ class TestCachingReadRepository(unittest.TestCase):
         self.mock_db.get_person_from_handle.assert_called_once_with("bad_handle")
         self.mock_db.get_person_from_handle.reset_mock()
 
-        # Second call (hit None)
+        # Second call (miss again, hits DB)
         result2 = self.repo.get_person("bad_handle")
         self.assertIsNone(result2)
-        self.mock_db.get_person_from_handle.assert_not_called()
+        self.mock_db.get_person_from_handle.assert_called_once_with("bad_handle")
 
     def test_get_raw_person_uses_cache(self) -> None:
         """get_raw_person shares cache with get_person."""
