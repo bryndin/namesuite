@@ -148,8 +148,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.fake_view.set_preserve_alt_enabled(True)
 
         # Mock repository methods
-        mock_person = MagicMock()
-        self.mock_read_repo.get_raw_person.return_value = mock_person
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 
@@ -159,10 +157,12 @@ class TestRenameWorkflow(unittest.TestCase):
         # Assert: Apply succeeded
         self.assertTrue(result)
 
-        # Assert: Alt names service called to preserve primary name
-        self.mock_alt_names_service.preserve_primary_name.assert_called_once_with(
-            mock_person
-        )
+        # Assert: Write repository called with new signature (handle, new_first_name, preserve_alt)
+        self.mock_write_repo.apply_first_name_correction.assert_called_once()
+        call_args = self.mock_write_repo.apply_first_name_correction.call_args
+        self.assertEqual(call_args[0][1], "handle1")  # handle
+        self.assertEqual(call_args[0][2], "Ioann")  # new_first_name
+        self.assertTrue(call_args[0][3])  # preserve_alt
 
     def test_rename_apply_partial_selection(self) -> None:
         """Test that only checked proposals are applied."""
@@ -193,8 +193,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.fake_view.checked_rename_handles.add("handle1")
 
         # Mock repository methods
-        mock_person = MagicMock()
-        self.mock_read_repo.get_raw_person.return_value = mock_person
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 
@@ -206,6 +204,10 @@ class TestRenameWorkflow(unittest.TestCase):
 
         # Assert: Write repository called only once (for handle1)
         self.mock_write_repo.apply_first_name_correction.assert_called_once()
+        call_args = self.mock_write_repo.apply_first_name_correction.call_args
+        self.assertEqual(call_args[0][1], "handle1")  # handle
+        self.assertEqual(call_args[0][2], "Ioann")  # new_first_name
+        self.assertFalse(call_args[0][3])  # preserve_alt
 
     def test_preserve_alt_toggle_updates_all_proposals(self) -> None:
         """Test that toggling preserve alt updates all rename proposals."""
@@ -491,8 +493,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(proposal.alt_action, AltAction.PRESERVE)
 
         # Arrange: Mock repository methods for apply
-        mock_person = family["I000"]
-        self.mock_read_repo.get_raw_person.return_value = mock_person
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 
@@ -502,15 +502,12 @@ class TestRenameWorkflow(unittest.TestCase):
         # Assert: Apply succeeded
         self.assertTrue(result)
 
-        # Assert: Alt names service called to preserve primary name
-        self.mock_alt_names_service.preserve_primary_name.assert_called_once_with(
-            mock_person
-        )
-
-        # Assert: Write repository called with correct parameters
+        # Assert: Write repository called with new signature (handle, new_first_name, preserve_alt)
         self.mock_write_repo.apply_first_name_correction.assert_called_once()
         call_args = self.mock_write_repo.apply_first_name_correction.call_args
-        self.assertEqual(call_args[0][2], "Ганна")  # proposed name
+        self.assertEqual(call_args[0][1], family["I000"].handle)  # handle
+        self.assertEqual(call_args[0][2], "Ганна")  # new_first_name
+        self.assertTrue(call_args[0][3])  # preserve_alt
 
     def test_substring_match_preserve_original_as_alternative(self) -> None:
         """Test substring match with preserve original name as alternative."""
@@ -555,9 +552,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(proposal_i001.alt_action, AltAction.PRESERVE)
 
         # Arrange: Mock repository methods for apply
-        self.mock_read_repo.get_raw_person.side_effect = lambda h: family[
-            {"handle_i000": "I000", "handle_i001": "I001"}[h]
-        ]
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 
@@ -567,13 +561,11 @@ class TestRenameWorkflow(unittest.TestCase):
         # Assert: Apply succeeded
         self.assertTrue(result)
 
-        # Assert: Alt names service called twice (for both persons)
-        self.assertEqual(
-            self.mock_alt_names_service.preserve_primary_name.call_count, 2
-        )
-
-        # Assert: Write repository called twice
+        # Assert: Write repository called twice with new signature
         self.assertEqual(self.mock_write_repo.apply_first_name_correction.call_count, 2)
+        # Check that preserve_alt was True for both calls
+        for call in self.mock_write_repo.apply_first_name_correction.call_args_list:
+            self.assertTrue(call[0][3])  # preserve_alt
 
     def test_regex_match_preserve_original_as_alternative(self) -> None:
         """Test regex match with preserve original name as alternative."""
@@ -610,8 +602,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(proposal.alt_action, AltAction.PRESERVE)
 
         # Arrange: Mock repository methods for apply
-        mock_person = family["I001"]
-        self.mock_read_repo.get_raw_person.return_value = mock_person
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 
@@ -621,15 +611,12 @@ class TestRenameWorkflow(unittest.TestCase):
         # Assert: Apply succeeded
         self.assertTrue(result)
 
-        # Assert: Alt names service called to preserve primary name
-        self.mock_alt_names_service.preserve_primary_name.assert_called_once_with(
-            mock_person
-        )
-
-        # Assert: Write repository called with correct parameters
+        # Assert: Write repository called with new signature (handle, new_first_name, preserve_alt)
         self.mock_write_repo.apply_first_name_correction.assert_called_once()
         call_args = self.mock_write_repo.apply_first_name_correction.call_args
-        self.assertEqual(call_args[0][2], "Оийрайркий")  # proposed name
+        self.assertEqual(call_args[0][1], family["I001"].handle)  # handle
+        self.assertEqual(call_args[0][2], "Оийрайркий")  # new_first_name
+        self.assertTrue(call_args[0][3])  # preserve_alt
 
     def test_exact_match_without_preserve_original_as_alternative(self) -> None:
         """Test exact match without preserve original name as alternative."""
@@ -663,8 +650,6 @@ class TestRenameWorkflow(unittest.TestCase):
         self.assertEqual(proposal.alt_action, AltAction.OVERWRITE)
 
         # Arrange: Mock repository methods for apply
-        mock_person = family["I000"]
-        self.mock_read_repo.get_raw_person.return_value = mock_person
         self.mock_write_repo.transaction.return_value.__enter__ = MagicMock()
         self.mock_write_repo.transaction.return_value.__exit__ = MagicMock()
 
@@ -674,13 +659,12 @@ class TestRenameWorkflow(unittest.TestCase):
         # Assert: Apply succeeded
         self.assertTrue(result)
 
-        # Assert: Alt names service NOT called (preserve is disabled)
-        self.mock_alt_names_service.preserve_primary_name.assert_not_called()
-
-        # Assert: Write repository called with correct parameters
+        # Assert: Write repository called with new signature (handle, new_first_name, preserve_alt=False)
         self.mock_write_repo.apply_first_name_correction.assert_called_once()
         call_args = self.mock_write_repo.apply_first_name_correction.call_args
-        self.assertEqual(call_args[0][2], "Ганна")  # proposed name
+        self.assertEqual(call_args[0][1], family["I000"].handle)  # handle
+        self.assertEqual(call_args[0][2], "Ганна")  # new_first_name
+        self.assertFalse(call_args[0][3])  # preserve_alt
 
 
 if __name__ == "__main__":

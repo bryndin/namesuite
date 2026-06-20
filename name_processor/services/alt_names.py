@@ -17,20 +17,6 @@ class AltNamesService:
         """
         self._read_repo = read_repo
 
-    def preserve_primary_name(self, gramps_person: Person) -> None:
-        """
-        Delegates to ReadRepository.preserve_primary_name.
-        Creates a deep copy of the person's current primary name and appends it
-        to their Alternative Names list. Retains all attached citations and dates.
-        """
-        if self._read_repo:
-            self._read_repo.preserve_primary_name(gramps_person)
-        else:
-            raise RuntimeError(
-                "AltNamesService not initialized with read_repo. "
-                "Use ReadRepository.preserve_primary_name directly."
-            )
-
     def is_protected_by_alias(self, gramps_person: Person, search_str: str) -> bool:
         """
         Delegates to ReadRepository.is_protected_by_alias.

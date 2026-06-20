@@ -58,26 +58,6 @@ class GrampsReadRepository:
     # ==========================================
     # Person Operations
     # ==========================================
-    def preserve_primary_name(self, person: Person) -> None:
-        """
-        Creates a deep copy of the person's current primary name and appends it
-        to their Alternative Names list. Retains all attached citations and dates.
-        This is a read operation that prepares data for later write operations.
-        """
-        from gramps.gen.lib import Name, NameType
-
-        primary_name = person.get_primary_name()
-        if not primary_name:
-            return
-
-        # Gramps domain objects support deep copy via the 'source' kwarg
-        preserved_name = Name(source=primary_name)
-
-        # Reclassify the preserved name to distinguish it from the new primary
-        preserved_name.set_type(NameType(NameType.AKA))
-
-        person.add_alternate_name(preserved_name)
-
     def is_protected_by_alias(self, person: Person, search_str: str) -> bool:
         """
         Checks if a specific string exists within the alternative names.

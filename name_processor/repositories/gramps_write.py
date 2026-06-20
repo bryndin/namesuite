@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 from gramps.gen.db import DbTxn
-from gramps.gen.lib import NameOriginType, Surname
+from gramps.gen.lib import Name, NameOriginType, NameType, Surname
 
 from name_processor.protocols.gramps import (
     GrampsDatabase,
@@ -66,9 +66,41 @@ class GrampsWriteRepository:
         """
         self._db.commit_person(person, trans)
 
+    def preserve_primary_name(self, person: Person) -> None:
+        """
+        Creates a deep copy of the person's current primary name and appends it
+        to their Alternative Names list. Retains all attached citations and dates.
+        This is a mutation operation that prepares a Person object for write operations.
+        """
+        primary_name = person.get_primary_name()
+        if not primary_name:
+            return
+
+        # Gramps domain objects support deep copy via the 'source' kwarg
+        preserved_name = Name(source=primary_name)
+
+        # Reclassify the preserved name to distinguish it from the new primary
+        preserved_name.set_type(NameType(NameType.AKA))
+
+        person.add_alternate_name(preserved_name)
+
     # --- ATOMIC COMMANDS ---
-    def apply_first_name_correction(self, trans, person, new_first_name: str) -> None:
-        """Renaming command for updating primary given names."""
+    def apply_first_name_correction(
+        self, trans: DbTxn, handle: str, new_first_name: str, preserve_alt: bool = False
+    ) -> None:
+        """
+        Renaming command for updating primary given names.
+
+        Fetches the person internally, validates existence, and applies mutation.
+        Optionally preserves the primary name as an alternate name before updating.
+        """
+        person = self._db.get_person_from_handle(handle)
+        if not person:
+            raise ValueError(f"Person with handle {handle} not found")
+
+        if preserve_alt:
+            self.preserve_primary_name(person)
+
         primary_name = person.get_primary_name()
         if primary_name:
             primary_name.set_first_name(new_first_name)

@@ -163,29 +163,6 @@ class TestGrampsReadRepository(unittest.TestCase):
             self.assertEqual(len(result), 1)
             mock_proxy_class.assert_called_once_with(mock_sibling)
 
-    def test_preserve_primary_name_copies_to_alternate_names(self):
-        """Test that preserve_primary_name copies primary name to alternate names."""
-        mock_person = Mock()
-        mock_primary_name = Mock()
-        mock_person.get_primary_name.return_value = mock_primary_name
-
-        with patch("gramps.gen.lib.Name") as mock_name_class:
-            with patch("gramps.gen.lib.NameType") as mock_name_type:
-                self.read_repo.preserve_primary_name(mock_person)
-
-                mock_name_class.assert_called_once_with(source=mock_primary_name)
-                mock_name_type.assert_called_once_with(mock_name_type.AKA)
-                mock_person.add_alternate_name.assert_called_once()
-
-    def test_preserve_primary_name_does_nothing_when_no_primary_name(self):
-        """Test that preserve_primary_name does nothing when person has no primary name."""
-        mock_person = Mock()
-        mock_person.get_primary_name.return_value = None
-
-        self.read_repo.preserve_primary_name(mock_person)
-
-        mock_person.add_alternate_name.assert_not_called()
-
     def test_is_protected_by_alias_returns_true_when_match(self):
         """Test that is_protected_by_alias returns True when string matches an alt name."""
         mock_person = Mock()

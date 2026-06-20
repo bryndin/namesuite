@@ -28,6 +28,10 @@ class PrimaryName(Protocol):
 
     def add_surname(self, surname: Surname) -> None: ...
 
+    def get_first_name(self) -> str: ...
+
+    def set_first_name(self, value: str) -> None: ...
+
 
 class Name(Protocol):
     """Protocol for Gramps Name objects."""

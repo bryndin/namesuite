@@ -255,15 +255,9 @@ class ToolController:
 
         with self._write_repo.transaction("Batch Given Name Renaming") as t:
             for change in approved_changes:
-                # TODO: Operations on the Raw Gramps objects should be moved to the write repository
-                person = self._read_repo.get_raw_person(change.handle)
-                if not person:
-                    continue
-
-                if preserve_alt:
-                    self._alt_names_service.preserve_primary_name(person)
-
-                self._write_repo.apply_first_name_correction(t, person, change.proposed)
+                self._write_repo.apply_first_name_correction(
+                    t, change.handle, change.proposed, preserve_alt
+                )
 
         return True
 
