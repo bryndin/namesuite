@@ -3,6 +3,9 @@ from __future__ import annotations
 from gramps.gui.plug import tool
 
 from name_processor.controllers.tool import ToolController
+from name_processor.repositories.entity_cache import EntityCache
+from name_processor.repositories.caching_read import CachingReadRepository
+from name_processor.repositories.invalidation import InvalidationSignalManager
 from name_processor.repositories.gramps_read import GrampsReadRepository
 from name_processor.repositories.gramps_write import GrampsWriteRepository
 from name_processor.views.gtk_runner import GtkBackgroundTaskRunner
@@ -22,7 +25,9 @@ class NamesTool(tool.Tool):
         # Declare placeholders BEFORE running the parent constructor
         self._view = ToolWindow(None)
         self._controller: ToolController | None = None
-        self._read_repo: GrampsReadRepository | None = None
+        self._read_repo: CachingReadRepository | GrampsReadRepository | None = None
+        self._entity_cache: EntityCache | None = None
+        self._signal_manager: InvalidationSignalManager | None = None
         self._write_repo: GrampsWriteRepository | None = None
         self._chronology_service: ChronologyService | None = None
         self._confidence_service: ConfidenceService | None = None
@@ -82,7 +87,12 @@ class NamesTool(tool.Tool):
         Called from __init__ and db_changed().
         """
         # Repositories
-        self._read_repo = GrampsReadRepository(self.dbstate.db)
+        inner_repo = GrampsReadRepository(self.dbstate.db)
+        self._entity_cache = EntityCache()
+        self._read_repo = CachingReadRepository(inner_repo, self._entity_cache)
+        self._signal_manager = InvalidationSignalManager(
+            self.dbstate.db, self._entity_cache
+        )
         self._write_repo = GrampsWriteRepository(self.dbstate.db)
 
         # Domain Services
@@ -127,6 +137,11 @@ class NamesTool(tool.Tool):
             for handle in self._db_signal_handles:
                 self.dbstate.db.disconnect(handle)
         self._db_signal_handles = []
+
+        if self._signal_manager:
+            self._signal_manager.disconnect_all()
+            self._signal_manager = None
+        self._entity_cache = None
 
     def _on_data_modified(self, *args, **kwargs) -> None:
         """Triggered by Gramps on Edit, Undo, or Redo."""

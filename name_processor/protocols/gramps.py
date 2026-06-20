@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Protocol, Callable
 
 
 class NameType(Protocol):
@@ -111,3 +111,7 @@ class GrampsDatabase(Protocol):
     def get_family_from_handle(self, handle: str) -> Family | None: ...
 
     def commit_person(self, person: Person, trans: object) -> None: ...
+
+    def connect(self, signal: str, handler: Callable[..., None]) -> int: ...
+
+    def disconnect(self, key: int) -> None: ...

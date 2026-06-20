@@ -6,6 +6,9 @@ from gramps.gen.plug import Gramplet
 
 from name_processor.controllers.gramplet import GrampletController
 from name_processor.models.infer import PatronymicInferenceStatus
+from name_processor.repositories.entity_cache import EntityCache
+from name_processor.repositories.caching_read import CachingReadRepository
+from name_processor.repositories.invalidation import InvalidationSignalManager
 from name_processor.repositories.gramps_read import GrampsReadRepository
 from name_processor.repositories.gramps_write import GrampsWriteRepository
 from name_processor.services.patronymic import PatronymicInferenceService
@@ -23,7 +26,9 @@ class PatronymicSuggestionGramplet(Gramplet):
         # Declare placeholders BEFORE running the parent constructor
         self._view = GrampletView(self)
         self._controller: GrampletController | None = None
-        self._read_repo: GrampsReadRepository | None = None
+        self._read_repo: CachingReadRepository | GrampsReadRepository | None = None
+        self._entity_cache: EntityCache | None = None
+        self._signal_manager: InvalidationSignalManager | None = None
         self._write_repo: GrampsWriteRepository | None = None
         self._confidence_service: ConfidenceService | None = None
         self._chronology_service: ChronologyService | None = None
@@ -54,7 +59,12 @@ class PatronymicSuggestionGramplet(Gramplet):
 
         if self.dbstate.is_open():
             # Recreate repositories tied to the new database session
-            self._read_repo = GrampsReadRepository(self.dbstate.db)
+            inner_repo = GrampsReadRepository(self.dbstate.db)
+            self._entity_cache = EntityCache()
+            self._read_repo = CachingReadRepository(inner_repo, self._entity_cache)
+            self._signal_manager = InvalidationSignalManager(
+                self.dbstate.db, self._entity_cache
+            )
             self._write_repo = GrampsWriteRepository(self.dbstate.db)
 
             # Recreate domain services
@@ -111,6 +121,11 @@ class PatronymicSuggestionGramplet(Gramplet):
             for handle in self._db_signal_handles:
                 self.dbstate.db.disconnect(handle)
         self._db_signal_handles = []
+
+        if self._signal_manager:
+            self._signal_manager.disconnect_all()
+            self._signal_manager = None
+        self._entity_cache = None
 
     def _on_data_modified(self, *args, **kwargs) -> None:
         """Triggered by Gramps on Edit, Undo, or Redo."""
