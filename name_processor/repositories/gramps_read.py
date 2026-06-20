@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generator
 
-from name_processor.protocols.gramps import GrampsDatabase, Person, Family, Event
 from name_processor.repositories.person import GrampsPersonProxy
 
 if TYPE_CHECKING:
+    from name_processor.protocols.gramps import GrampsDatabase, Person, Family, Event
     from name_processor.repositories.person import GrampsPersonProxy
 
 

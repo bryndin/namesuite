@@ -15,7 +15,7 @@ from name_processor.protocols.gramps import (
 # should be moved to a Domain Service (e.g., name_processor.services.mutator)
 def is_patronymic_origin(orig: NameOriginType) -> bool:
     try:
-        return int(orig) == NameOriginType.PATRONYMIC
+        return bool(int(orig) == NameOriginType.PATRONYMIC)
     except (ValueError, TypeError):
         return False
 

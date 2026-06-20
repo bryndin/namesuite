@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from name_processor.protocols.gramps import Person, Family, Event
@@ -27,7 +28,10 @@ class CachingReadRepository(GrampsReadRepository):
         if cached is not _MISSING:
             return cached
         person = super()._get_person_from_handle(handle)
-        self._cache.put_person(handle, person)
+        if person is None:
+            logging.error(f"Person not found: {handle}")
+        else:
+            self._cache.put_person(handle, person)
         return person
 
     def _get_family_from_handle(self, handle: str) -> Family | None:
@@ -35,7 +39,10 @@ class CachingReadRepository(GrampsReadRepository):
         if cached is not _MISSING:
             return cached
         family = super()._get_family_from_handle(handle)
-        self._cache.put_family(handle, family)
+        if family is None:
+            logging.error(f"Family not found: {handle}")
+        else:
+            self._cache.put_family(handle, family)
         return family
 
     def _get_event_from_handle(self, handle: str) -> Event | None:
@@ -43,5 +50,8 @@ class CachingReadRepository(GrampsReadRepository):
         if cached is not _MISSING:
             return cached
         event = super()._get_event_from_handle(handle)
-        self._cache.put_event(handle, event)
+        if event is None:
+            logging.error(f"Event not found: {handle}")
+        else:
+            self._cache.put_event(handle, event)
         return event

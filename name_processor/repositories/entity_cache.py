@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from name_processor.protocols.gramps import Person, Family, Event
 
 
 _MISSING: object = object()  # Sentinel for cache miss
@@ -30,7 +33,7 @@ class EntityCache:
         """Returns cached person or _MISSING sentinel."""
         return self._persons.get(handle, _MISSING)
 
-    def put_person(self, handle: str, person: Any) -> None:
+    def put_person(self, handle: str, person: Person) -> None:
         """Stores a person (or None for negative lookups)."""
         self._persons[handle] = person
 
@@ -48,7 +51,7 @@ class EntityCache:
         """Returns cached family or _MISSING sentinel."""
         return self._families.get(handle, _MISSING)
 
-    def put_family(self, handle: str, family: Any) -> None:
+    def put_family(self, handle: str, family: Family) -> None:
         """Stores a family (or None for negative lookups)."""
         self._families[handle] = family
 
@@ -66,7 +69,7 @@ class EntityCache:
         """Returns cached event or _MISSING sentinel."""
         return self._events.get(handle, _MISSING)
 
-    def put_event(self, handle: str, event: Any) -> None:
+    def put_event(self, handle: str, event: Event) -> None:
         """Stores an event (or None for negative lookups)."""
         self._events[handle] = event
 
