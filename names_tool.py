@@ -21,13 +21,67 @@ from name_processor.services.audit import AuditService
 
 class NamesTool(tool.Tool):
     def __init__(self, dbstate, user, options_class, name, callback=None):
+        # Declare placeholders BEFORE running the parent constructor
+        self._view = ToolWindow(None)
+        self._controller: ToolController | None = None
+        self._read_repo: GrampsReadRepository | None = None
+        self._write_repo: GrampsWriteRepository | None = None
+        self._chronology_service: ChronologyService | None = None
+        self._confidence_service: ConfidenceService | None = None
+        self._patronymic_service: PatronymicInferenceService | None = None
+        self._alt_names_service: AltNamesService | None = None
+        self._renamer_service: RenamerService | None = None
+        self._audit_service: AuditService | None = None
+        self._task_runner: GtkBackgroundTaskRunner | None = None
+
+        # Initialize early so _disconnect_db_signals doesn't throw an AttributeError
+        self._db_signal_handles: list = []
+
         super().__init__(dbstate, options_class, name)
         self.dbstate = dbstate
         self.user = user
 
+        # Subscribe to database-changed signal (Tool base class doesn't do this automatically)
+        self.dbstate.connect("database-changed", self.db_changed)
+
+        # Initialize dependencies
+        self._initialize_dependencies()
+
+    def run(self):
+        if self._controller:
+            self._view.window.show_all()
+
+    def db_changed(self) -> None:
+        """
+        Overridden to recreate the database-dependent dependency graph
+        whenever the database state changes (e.g., opened, switched, or closed).
+        """
+        self._disconnect_db_signals()
+
+        if self.dbstate.is_open():
+            self._initialize_dependencies()
+
+            # Connect to database modification signals
+            self._db_signal_handles = [
+                self.dbstate.db.connect("person-update", self._on_data_modified),
+                self.dbstate.db.connect("person-rebuild", self._on_data_modified),
+                self.dbstate.db.connect("family-update", self._on_data_modified),
+                self.dbstate.db.connect("family-rebuild", self._on_data_modified),
+            ]
+        else:
+            # DB has closed - cleanly tear down backend dependencies
+            self._controller = None
+            if self._view:
+                self._view.window.destroy()
+
+    def _initialize_dependencies(self) -> None:
+        """
+        Initialize or reinitialize all database-dependent dependencies.
+        Called from __init__ and db_changed().
+        """
         # Repositories
-        self._read_repo = GrampsReadRepository(dbstate.db)
-        self._write_repo = GrampsWriteRepository(dbstate.db)
+        self._read_repo = GrampsReadRepository(self.dbstate.db)
+        self._write_repo = GrampsWriteRepository(self.dbstate.db)
 
         # Domain Services
         self._chronology_service = ChronologyService(self._read_repo)
@@ -44,10 +98,9 @@ class NamesTool(tool.Tool):
         )
 
         # Presentation Layer
-        self._view = ToolWindow(None)
         self._task_runner = GtkBackgroundTaskRunner()
         self._controller = ToolController(
-            tool_instance=self,  # <--- Pass the tool itself
+            tool_instance=self,
             view=self._view,
             read_repo=self._read_repo,
             write_repo=self._write_repo,
@@ -61,8 +114,24 @@ class NamesTool(tool.Tool):
 
         self._view.set_controller(self._controller)
 
-    def run(self):
-        self._view.window.show_all()
+    def _disconnect_db_signals(self) -> None:
+        """Safely unhooks database signals to prevent memory leaks."""
+        if (
+            self._db_signal_handles
+            and self.dbstate
+            and getattr(self.dbstate, "db", None)
+        ):
+            for handle in self._db_signal_handles:
+                self.dbstate.db.disconnect(handle)
+        self._db_signal_handles = []
+
+    def _on_data_modified(self, *args, **kwargs) -> None:
+        """Triggered by Gramps on Edit, Undo, or Redo."""
+        if self._controller:
+            # Clear cached data to force refresh
+            self._controller._given_names_cache.clear()
+            self._controller._rename_candidates.clear()
+            self._controller._audit_candidates.clear()
 
 
 class NamesToolOptions(tool.ToolOptions):
