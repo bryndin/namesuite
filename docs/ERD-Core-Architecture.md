@@ -27,43 +27,56 @@ The core mandate of this architecture is strict dependency isolation:
 
 **The Golden Rule:** The Repositories layer is the *only* place in the entire codebase permitted to interact directly with database cursors or Gramps data objects.
 
-The `GrampsDbRepository` acts as our data access adapter. It contains zero business logic, linguistic rules, or GTK UI references. It strictly translates internal operations into Gramps database operations.
+The repository layer is split into three specialized classes to maintain strict separation of concerns:
+
+* **`GrampsReadRepository`** - Handles all read operations from the database, including person queries, relationship traversals, and event data extraction.
+* **`GrampsWriteRepository`** - Handles all write operations, transaction management, and data mutations.
+* **`GrampsPersonProxy`** - A lazy adapter that wraps Gramps `Person` objects to implement domain protocols (PatronymicSubject, ChronologySubject, etc.) without exposing Gramps internals to upper layers.
 
 **Key Responsibilities:**
 
 * Encapsulating the Gramps `DbTxn` (Database Transaction) context manager.
 * Fetching and committing `Person` and `Name` objects.
-* Providing memory-safe iterators for full-database scans (yielding handles rather than loading 15,000 objects into RAM simultaneously).
+* Providing memory-safe iterators for full-database scans (yielding handles or proxies rather than loading 15,000 objects into RAM simultaneously).
+* Translating Gramps data structures into domain-friendly protocol interfaces.
 
-**Conceptual Interface:**
+**Protocol Interfaces:**
 
 ```python
-# repositories/gramps_db_repository.py
-from gramps.gen.db import DbTxn
-from gramps.gen.lib import Person, Name, NameType
+# protocols/gramps.py
+class GrampsDatabase(Protocol):
+    def get_person_from_handle(self, handle: str) -> Person | None: ...
+    def commit_person(self, person: Person, trans: object) -> None: ...
 
-class GrampsDbRepository:
-    def __init__(self, dbstate):
-        self.db = dbstate.db
+# protocols/patronymic.py
+class PatronymicSubject(Protocol):
+    @property
+    def handle(self) -> str: ...
+    @property
+    def gender(self) -> Gender: ...
+    @property
+    def has_patronymic(self) -> bool: ...
+    @property
+    def given_name(self) -> str | None: ...
 
-    def get_person(self, handle: str) -> Person:
-        return self.db.get_person_from_handle(handle)
+class PatronymicRepository(Protocol):
+    def get_patronymic_subject(self, handle: str) -> PatronymicSubject | None: ...
+    def get_father_handle(self, person_handle: str) -> str | None: ...
 
-    def iter_all_person_handles(self):
-        for handle in self.db.iter_person_handles():
-            yield handle
+# protocols/chronology.py
+class ChronologySubject(Protocol):
+    @property
+    def handle(self) -> str: ...
 
-    def open_transaction(self, description: str) -> DbTxn:
-        return DbTxn(description, self.db)
-
-    def commit_person(self, person: Person, txn: DbTxn):
-        self.db.commit_person(person, txn)
-
+class ChronologyRepository(Protocol):
+    def get_chronology_subject(self, handle: str) -> ChronologySubject | None: ...
+    def get_event_years(self, person_handle: str) -> list[int]: ...
+    def iter_event_years(self) -> Generator[int, None, None]: ...
 ```
 
 ### 2.2 The Services Layer (Business Logic & Orchestration)
 
-The Services layer contains the core business logic. It relies on the injected `GrampsDbRepository` to fetch data, meaning it requires **zero knowledge** of Gramps' internal C/Python APIs.
+The Services layer contains the core business logic. It relies on the injected `GrampsReadRepository` and `GrampsWriteRepository` to fetch and mutate data, meaning it requires **zero knowledge** of Gramps' internal C/Python APIs.
 
 The primary service handling the "Apply" step from the `[[PRD-Name-Standardization-Suite]]` is the `GrampsTransactionService`.
 
@@ -73,63 +86,34 @@ The primary service handling the "Apply" step from the `[[PRD-Name-Standardizati
 * **Execution Delegation:** It routes specific modifications to the specialized engines (e.g., routing name shifts to the `NameCanonicalizationService`).
 * **Generator Pattern:** Yields progress metrics back to the caller to maintain UI responsiveness.
 
-**Conceptual Interface:**
+**Service Interface:**
 
 ```python
-# services/transaction_service.py
-
-class GrampsTransactionService:
-    def __init__(self, repository: 'GrampsDbRepository'):
-        self.repository = repository
-        self.chunk_size = 100 # Process N records per UI tick
-
-    def execute_batch(self, approved_changes: list, transaction_desc: str):
-        """
-        Executes a batch of structural changes, yielding progress percentages.
-        """
-        total = len(approved_changes)
-        
-        with self.repository.open_transaction(transaction_desc) as txn:
-            for index, change in enumerate(approved_changes):
-                person = self.repository.get_person(change.person_id)
-                
-                # Apply the specific engine mutation (e.g., Patronymic vs Renaming)
-                change.apply_mutation(person) 
-                
-                self.repository.commit_person(person, txn)
-                
-                # Yield progress back to the Controllers every chunk
-                if index % self.chunk_size == 0:
-                    yield (index / total) * 100
-                    
-        yield 100.0 # Final completion signal
-
+class TransactionService(Protocol):
+    def execute_batch(
+        self, approved_changes: list, transaction_desc: str
+    ) -> Generator[float, None, None]:
+        """Executes batch changes, yielding progress percentages."""
+        ...
 ```
 
 ### 2.3 The Controllers & Views Layers (GTK UI)
 
 The Controllers manage the user interface and respond to user events, while the Views define the UI layouts. UI-specific imports (like `gi.repository.Gtk`) are completely contained within the Views layer.
 
+**Tab-Based View Structure:**
+To maintain manageable file sizes and clear separation of concerns, the main `ToolWindow` view delegates to tab-specific view classes:
+- **`RenameTab`** - Manages the "Rename Given Names" tab UI, including search/replace options, results treeview, and event handlers
+- **`AuditTab`** - Manages the "Audit Patronymics" tab UI, including audit settings, results treeview, and event handlers
+
+The `ToolWindow` acts as a shell that:
+- Instantiates the tab classes with references to the parent window and controller
+- Adds tab widgets to a GTK Notebook
+- Provides delegation methods that forward calls to the appropriate tab instance
+- Maintains shared window lifecycle (destroy handler, callback)
+
 **Anti-Freeze Mechanism:**
 When the user clicks the global `[Apply]` button, the Controller invokes the `execute_batch` generator. Instead of a blocking loop, it uses the GTK main loop iterator to consume the progress updates while keeping the UI responsive.
-
-```python
-# controllers/main_controller.py
-
-def on_apply_clicked(self, widget):
-    approved_changes = self.view.get_checked_rows_from_treeview()
-    
-    # Consume the generator yielded by the Services
-    for progress_pct in self.transaction_service.execute_batch(approved_changes, "Batch Name Update"):
-        self.view.progress_bar.set_fraction(progress_pct / 100.0)
-        
-        # Flush the GTK event queue (keeps the UI from freezing)
-        while self.view.events_pending():
-            self.view.main_iteration()
-            
-    self.view.show_success_dialog()
-
-```
 
 ## 3. Reversibility & Rollback Strategy
 
@@ -141,6 +125,6 @@ The primary benefit of this architecture is testability. Upstream Gramps relies 
 
 Because our Services layer is completely decoupled from both Gramps database internals and GTK:
 
-1. We construct an `InMemoryMockRepository` that implements the `GrampsDbRepository` interface using standard Python dicts.
+1. We construct mock implementations of `GrampsReadRepository` and `GrampsWriteRepository` using standard Python data structures.
 2. We can run $100\%$ of our linguistic heuristics, query canonicalizations, and chunking algorithms in a pure, headless Python environment using `pytest` and `hypothesis`.
 3. We avoid the overhead of mocking `DbTxn` objects or GTK widgets in our core logic tests.
