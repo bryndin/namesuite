@@ -87,9 +87,8 @@ class NamesTool(tool.Tool):
         Called from __init__ and db_changed().
         """
         # Repositories
-        inner_repo = GrampsReadRepository(self.dbstate.db)
         self._entity_cache = EntityCache()
-        self._read_repo = CachingReadRepository(inner_repo, self._entity_cache)
+        self._read_repo = CachingReadRepository(self.dbstate.db, self._entity_cache)
         self._signal_manager = InvalidationSignalManager(
             self.dbstate.db, self._entity_cache
         )

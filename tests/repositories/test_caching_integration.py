@@ -21,9 +21,8 @@ class TestCachingIntegration(unittest.TestCase):
         self.mock_db.connect.side_effect = mock_connect
 
         # Create real instances of repositories and managers
-        self.inner_repo = GrampsReadRepository(self.mock_db)
         self.cache = EntityCache()
-        self.read_repo = CachingReadRepository(self.inner_repo, self.cache)
+        self.read_repo = CachingReadRepository(self.mock_db, self.cache)
         self.signal_manager = InvalidationSignalManager(self.mock_db, self.cache)
 
     def test_cache_miss_then_invalidate_then_refetch(self) -> None:

@@ -59,9 +59,8 @@ class PatronymicSuggestionGramplet(Gramplet):
 
         if self.dbstate.is_open():
             # Recreate repositories tied to the new database session
-            inner_repo = GrampsReadRepository(self.dbstate.db)
             self._entity_cache = EntityCache()
-            self._read_repo = CachingReadRepository(inner_repo, self._entity_cache)
+            self._read_repo = CachingReadRepository(self.dbstate.db, self._entity_cache)
             self._signal_manager = InvalidationSignalManager(
                 self.dbstate.db, self._entity_cache
             )
