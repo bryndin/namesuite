@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, Callable
 import unittest
 from unittest.mock import Mock, call
 
@@ -12,10 +13,10 @@ class TestInvalidationSignalManager(unittest.TestCase):
         self.mock_db = Mock()
         self.cache = EntityCache()
         # Mock connect to return sequential integers as keys
-        self.connected_signals: dict[str, callable] = {}
+        self.connected_signals: dict[str, Callable[..., None]] = {}
         self.next_key = 100
 
-        def mock_connect(signal_name: str, handler: callable) -> int:
+        def mock_connect(signal_name: str, handler: Callable[..., None]) -> int:
             self.connected_signals[signal_name] = handler
             key = self.next_key
             self.next_key += 1

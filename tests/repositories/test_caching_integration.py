@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import unittest
+from typing import Callable
 from unittest.mock import Mock
 
 from name_processor.repositories.entity_cache import EntityCache
-from name_processor.repositories.gramps_read import GrampsReadRepository
 from name_processor.repositories.caching_read import CachingReadRepository
 from name_processor.repositories.invalidation import InvalidationSignalManager
 
@@ -12,9 +12,9 @@ from name_processor.repositories.invalidation import InvalidationSignalManager
 class TestCachingIntegration(unittest.TestCase):
     def setUp(self) -> None:
         self.mock_db = Mock()
-        self.connected_signals: dict[str, callable] = {}
+        self.connected_signals: dict[str, Callable[..., None]] = {}
 
-        def mock_connect(signal_name: str, handler: callable) -> int:
+        def mock_connect(signal_name: str, handler: Callable[..., None]) -> int:
             self.connected_signals[signal_name] = handler
             return len(self.connected_signals)
 
@@ -33,10 +33,14 @@ class TestCachingIntegration(unittest.TestCase):
 
         # Miss & Cache
         p_first = self.read_repo.get_person("handle1")
+        self.assertIsNotNone(p_first)
+        assert p_first is not None
         self.assertEqual(p_first._person, mock_p1)  # Proxy wraps raw object
 
         # Hit (no side_effect consumed)
         p_second = self.read_repo.get_person("handle1")
+        self.assertIsNotNone(p_second)
+        assert p_second is not None
         self.assertEqual(p_second._person, mock_p1)
 
         # Invalidate via signal callback
@@ -44,6 +48,8 @@ class TestCachingIntegration(unittest.TestCase):
 
         # Re-miss & Cache again (should fetch second side_effect)
         p_third = self.read_repo.get_person("handle1")
+        self.assertIsNotNone(p_third)
+        assert p_third is not None
         self.assertEqual(p_third._person, mock_p2)
 
     def test_relationship_traversal_with_cache(self) -> None:
@@ -82,6 +88,8 @@ class TestCachingIntegration(unittest.TestCase):
 
         # Next read should be fresh
         p_fresh = self.read_repo.get_person("handle1")
+        self.assertIsNotNone(p_fresh)
+        assert p_fresh is not None
         self.assertEqual(p_fresh._person, mock_p_new)
 
     def test_cache_survives_none_database_return(self) -> None:
