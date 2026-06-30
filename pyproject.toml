@@ -1,5 +1,15 @@
 [tool.mypy]
 
 [[tool.mypy.overrides]]
-module = "gramps.*,gi.*"
+module = "gramps.*,gi.*,compat_mocks"
 ignore_missing_imports = true
+
+[tool.ruff]
+exclude = [
+    "name_processor.gpr.py",
+]
+
+# [tool.ruff.lint]
+# ignore = [
+#     "E402",  # Module level import not at top of file (needed for test mocking)
+# ]
