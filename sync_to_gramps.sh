@@ -20,6 +20,7 @@ INCLUDES=(
     "names_tool.py"
     "patronymics_gramplet.py"
     "MANIFEST"
+    "po/***"
 )
 
 RSYNC_ARGS=(
